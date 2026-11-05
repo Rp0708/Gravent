@@ -1,45 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="160dp"
-    android:height="44dp"
-    android:viewportWidth="160"
-    android:viewportHeight="44">
+    android:width="180dp"
+    android:height="48dp"
+    android:viewportWidth="180"
+    android:viewportHeight="48">
 
-    <!-- "Anti" in sleek Dark Charcoal -->
-    <!-- Letter 'A' -->
+    <!-- Gravent Geometric Monogram Mark: Modern G in circle/squircle -->
+    <!-- Outer boundary accent -->
     <path
-        android:fillColor="#1E293B"
-        android:pathData="M 12,32 L 19,16 L 21,16 L 28,32 L 24.5,32 L 22.8,27.8 L 17.2,27.8 L 15.5,32 Z M 18.2,25 L 21.8,25 L 20,20.2 Z" />
+        android:strokeColor="#27272A"
+        android:strokeWidth="1.5"
+        android:pathData="M 12,8 L 32,8 C 36,8 38,10 38,14 L 38,34 C 38,38 36,40 32,40 L 12,40 C 8,40 6,38 6,34 L 6,14 C 6,10 8,8 12,8 Z" />
 
-    <!-- Letter 'n' -->
+    <!-- Stylized Geometric G -->
     <path
-        android:fillColor="#1E293B"
-        android:pathData="M 32,20 L 35,20 L 35,22.8 C 36.2,21 38.5,20 41,20 C 44.5,20 45.8,22.4 45.8,25.4 L 45.8,32 L 42.8,32 L 42.8,25.8 C 42.8,23.6 42,22.4 40.2,22.4 C 38.2,22.4 35,24 35,26.6 L 35,32 L 32,32 Z" />
+        android:fillColor="#FAFAFA"
+        android:pathData="M 30,17 C 28,15.5 25,14.5 22,14.5 C 16.5,14.5 12,18.5 12,24 C 12,29.5 16.5,33.5 22,33.5 C 26,33.5 28.5,31.5 29.5,29 L 22,29 L 22,26 L 33,26 L 33,30 C 31,34 27,36.5 22,36.5 C 14.5,36.5 9,30.5 9,24 C 9,17.5 14.5,11.5 22,11.5 C 26.5,11.5 30,13 32,15 Z" />
 
-    <!-- Letter 't' -->
+    <!-- Wordmark "GRAVENT" in Crisp Platinum White -->
+    <!-- Letter G -->
     <path
-        android:fillColor="#1E293B"
-        android:pathData="M 50.5,16 L 53.5,16 L 53.5,20 L 57,20 L 57,22.4 L 53.5,22.4 L 53.5,28.5 C 53.5,29.8 54.2,30.3 55.5,30.3 L 57,30.3 L 57,32.4 C 55.8,32.7 54.5,32.7 53.2,32.7 C 50.5,32.7 50.5,30.8 50.5,28.5 L 50.5,22.4 L 48,22.4 L 48,20 L 50.5,20 Z" />
+        android:fillColor="#FAFAFA"
+        android:pathData="M 58,19 C 56,17.2 53.5,16.5 50.5,16.5 C 45,16.5 41,20.2 41,25 C 41,29.8 45,33.5 50.5,33.5 C 54,33.5 56.5,31.5 57.5,29.2 L 50.5,29.2 L 50.5,26.5 L 60,26.5 L 60,30 C 58.2,33.5 54.5,35.5 50.5,35.5 C 43.5,35.5 38.5,30.5 38.5,25 C 38.5,19.2 43.5,14.5 50.5,14.5 C 54.5,14.5 57.8,16 60,18 Z" />
 
-    <!-- Letter 'i' -->
+    <!-- Letter R -->
     <path
-        android:fillColor="#1E293B"
-        android:pathData="M 61.5,16.5 C 61.5,15.4 62.4,14.5 63.5,14.5 C 64.6,14.5 65.5,15.4 65.5,16.5 C 65.5,17.6 64.6,18.5 63.5,18.5 C 62.4,18.5 61.5,17.6 61.5,16.5 Z M 62,20 L 65,20 L 65,32 L 62,32 Z" />
+        android:fillColor="#FAFAFA"
+        android:pathData="M 64,15 L 72,15 C 75.5,15 77.5,17 77.5,20 C 77.5,22.2 76,23.8 74,24.5 L 78,35 L 75,35 L 71.3,25.2 L 66.8,25.2 L 66.8,35 L 64,35 Z M 66.8,23 L 71.8,23 C 73.5,23 74.8,22 74.8,20.2 C 74.8,18.4 73.5,17.3 71.8,17.3 L 66.8,17.3 Z" />
 
-    <!-- "Gem" in Claude Terracotta Accent -->
-    <!-- Letter 'G' -->
+    <!-- Letter A -->
     <path
-        android:fillColor="#CC785C"
-        android:pathData="M 88,18.8 C 85.8,16.8 82.8,15.8 79,15.8 C 72.5,15.8 67.5,20.8 67.5,26.8 C 67.5,32.8 72.5,37.8 79,37.8 C 83.5,37.8 87,35.5 88.8,32 L 88.8,27.5 L 79.5,27.5 L 79.5,25 L 91.5,25 L 91.5,33 C 89,37.4 84.5,40.4 79,40.4 C 70.8,40.4 64.5,34.4 64.5,26.8 C 64.5,19.4 70.8,13.2 79,13.2 C 84,13.2 88,15.2 90.8,17.5 Z" />
+        android:fillColor="#FAFAFA"
+        android:pathData="M 80,35 L 86,15 L 89,15 L 95,35 L 92.2,35 L 90.6,29.5 L 84.4,29.5 L 82.8,35 Z M 85.2,27 L 89.8,27 L 87.5,19 Z" />
 
-    <!-- Letter 'e' -->
+    <!-- Letter V -->
     <path
-        android:fillColor="#CC785C"
-        android:pathData="M 96,26 C 96,22.5 98.8,20 102.5,20 C 106.2,20 108.8,22.5 108.8,26.2 L 99,26.2 C 99.2,28.8 100.8,30.2 103,30.2 C 104.5,30.2 106,29.4 106.8,28.4 L 108.8,30 C 107.4,31.6 105.4,32.5 103,32.5 C 98.8,32.5 96,29.8 96,26 Z M 105.8,24 C 105.5,22.6 104.2,21.8 102.5,21.8 C 100.8,21.8 99.4,22.6 99.1,24 Z" />
+        android:fillColor="#FAFAFA"
+        android:pathData="M 97,15 L 100,15 L 104.5,29.5 L 109,15 L 112,15 L 106,35 L 103,35 Z" />
 
-    <!-- Letter 'm' -->
+    <!-- Letter E -->
     <path
-        android:fillColor="#CC785C"
-        android:pathData="M 114,20 L 117,20 L 117,22.8 C 118,21 120,20 122.5,20 C 124.8,20 126.2,21.2 126.8,22.8 C 128,21 130,20 132.5,20 C 136,20 137.2,22.4 137.2,25.4 L 137.2,32 L 134.2,32 L 134.2,25.8 C 134.2,23.6 133.4,22.4 131.8,22.4 C 129.8,22.4 127.2,24 127.2,26.6 L 127.2,32 L 124.2,32 L 124.2,25.8 C 124.2,23.6 123.4,22.4 121.8,22.4 C 119.8,22.4 117,24 117,26.6 L 117,32 L 114,32 Z" />
+        android:fillColor="#FAFAFA"
+        android:pathData="M 115,15 L 126,15 L 126,17.5 L 118,17.5 L 118,23.5 L 124.5,23.5 L 124.5,26 L 118,26 L 118,32.5 L 126.5,32.5 L 126.5,35 L 115,35 Z" />
+
+    <!-- Letter N -->
+    <path
+        android:fillColor="#FAFAFA"
+        android:pathData="M 130,15 L 133,15 L 140.5,28.5 L 140.5,15 L 143,15 L 143,35 L 140,35 L 132.5,21.5 L 132.5,35 L 130,35 Z" />
+
+    <!-- Letter T -->
+    <path
+        android:fillColor="#FAFAFA"
+        android:pathData="M 148,15 L 160,15 L 160,17.5 L 155.3,17.5 L 155.3,35 L 152.5,35 L 152.5,17.5 L 148,17.5 Z" />
 
 </vector>

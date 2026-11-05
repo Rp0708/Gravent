@@ -150,10 +150,10 @@ fun ThinkingAccordion(
                 // Subtle vertical left bar
                 Box(
                     modifier = Modifier
-                        .width(2.dp)
+                        .width(1.5.dp)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(1.dp))
-                        .background(ClaudeTerracotta.copy(alpha = 0.35f))
+                        .background(Color(0xFF27272A))
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -169,13 +169,13 @@ fun ThinkingAccordion(
                     )
 
                     if (!isStreaming && durationMs != null && durationMs > 0) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "⏱️ Thought for ${formatDuration(durationMs)}",
-                            fontSize = 11.5.sp,
+                            text = "thought for ${formatDuration(durationMs)}",
+                            fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Medium,
-                            color = ClaudeTerracotta.copy(alpha = 0.9f)
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFFA1A1AA)
                         )
                     }
                 }

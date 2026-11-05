@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.domain.model.AgentKind
 
-val ClaudeAccent = Color(0xFFD97757)
+val ClaudeAccent = Color(0xFFFAFAFA)
 
-/** Antigravity's color across the app (same blue as its settings group). */
-val AgyAccent = Color(0xFF3B82F6)
+/** Antigravity's color across the app (minimalist monochrome). */
+val AgyAccent = Color(0xFFE4E4E7)
 
 fun AgentKind.label(): String = when (this) {
     AgentKind.AGY -> "Antigravity"

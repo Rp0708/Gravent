@@ -489,8 +489,8 @@ fun AgentToolCallCard(
         ) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF0D0E15),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                color = Color(0xFF08080A),
+                border = BorderStroke(1.dp, Color(0xFF222226)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
@@ -522,18 +522,18 @@ fun AgentToolCallCard(
                         Text(
                             text = commandPrefix,
                             fontFamily = if (isBash || isMcp) FontFamily.Monospace else FontFamily.Default,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 11.5.sp,
-                            color = ClaudeTerracotta,
+                            color = Color(0xFFFAFAFA),
                             modifier = Modifier.weight(1f)
                         )
 
                         if (toolCall.durationMs != null && toolCall.durationMs > 0) {
                             Text(
-                                text = "⏱️ ${formatDuration(toolCall.durationMs)}",
+                                text = formatDuration(toolCall.durationMs),
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                color = Color(0xFFA1A1AA),
                                 modifier = Modifier.padding(horizontal = 6.dp)
                             )
                         }

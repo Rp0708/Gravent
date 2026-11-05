@@ -755,7 +755,7 @@ fun ChatInputBar(
                                 Icon(
                                     imageVector = Icons.Default.ArrowUpward,
                                     contentDescription = "Send voice note",
-                                    tint = Color.White,
+                                    tint = Color.Black,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -1208,20 +1208,20 @@ fun ChatInputBar(
                             Surface(
                                 onClick = onStopStreaming,
                                 shape = CircleShape,
-                                color = ClaudeTerracotta,
+                                color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Default.Stop,
                                         contentDescription = "Stop",
-                                        tint = Color.White,
+                                        tint = if (isDark) Color(0xFF09090B) else Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
                         } else if (canSend) {
-                            val sendBtnColor = if (!isAuth) Color(0xFF6B7280) else if (!isOnline) Color(0xFF6B7280) else if (isBackgroundActive) Color(0xFFFFB300) else ClaudeTerracotta
+                            val sendBtnColor = if (!isAuth) Color(0xFF27272A) else if (!isOnline) Color(0xFF27272A) else if (isBackgroundActive) Color(0xFFF59E0B) else ClaudeTerracotta
                             Surface(
                                 onClick = {
                                     val trimmed = textFieldValue.text.trim()
@@ -1247,7 +1247,7 @@ fun ChatInputBar(
                                     Icon(
                                         imageVector = Icons.Default.ArrowUpward,
                                         contentDescription = "Send",
-                                        tint = if (isAuth && isOnline) (if (isBackgroundActive) Color(0xFF1E1E1E) else Color.White) else Color(0xFFD1D5DB),
+                                        tint = if (isAuth && isOnline) (if (isBackgroundActive) Color(0xFF09090B) else (if (isDark) Color(0xFF09090B) else Color.White)) else Color(0xFF71717A),
                                         modifier = Modifier.size(19.dp)
                                     )
                                 }

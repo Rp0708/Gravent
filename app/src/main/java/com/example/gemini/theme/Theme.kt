@@ -32,10 +32,12 @@ private val DarkColorScheme = darkColorScheme(
     background = ClaudeDarkBg,
     surface = ClaudeDarkBg,
     surfaceTint = Color.Transparent,
-    onPrimary = Color.White,
+    onPrimary = Color.Black,
     onBackground = TextPrimaryDark,
     onSurface = TextPrimaryDark,
-    surfaceVariant = ClaudeUserBubbleDark
+    surfaceVariant = ClaudeUserBubbleDark,
+    outline = GraventDarkBorder,
+    outlineVariant = GraventSubtleBorder
 )
 
 private val LightColorScheme = lightColorScheme(

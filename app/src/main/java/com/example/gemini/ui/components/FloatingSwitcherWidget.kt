@@ -195,30 +195,30 @@ fun FloatingSwitcherWidget(
                 }
         ) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)),
-                shadowElevation = 8.dp,
-                modifier = Modifier.shadow(8.dp, RoundedCornerShape(24.dp))
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF09090B),
+                border = BorderStroke(1.dp, Color(0xFF222226)),
+                shadowElevation = 12.dp,
+                modifier = Modifier.shadow(12.dp, RoundedCornerShape(20.dp))
             ) {
                 if (!isExpanded) {
-                    // Collapsed Compact Pill with Directional Arrow
+                    // Collapsed Compact Pill with Minimalist Icon
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .clickable {
                                 lastInteractionTimestamp = System.currentTimeMillis()
                                 isExpanded = true
                             }
-                            .padding(horizontal = 9.dp, vertical = 9.dp),
+                            .padding(horizontal = 10.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             imageVector = expandArrowIcon,
-                            contentDescription = "Expand Switcher",
-                            tint = ClaudeTerracotta,
-                            modifier = Modifier.size(20.dp)
+                            contentDescription = "Expand Navigation",
+                            tint = Color(0xFFFAFAFA),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 } else {
@@ -390,10 +390,10 @@ private fun FloatingSwitcherItemButton(
 ) {
     Surface(
         shape = CircleShape,
-        color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.20f) else Color.Transparent,
-        border = if (isSelected) BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.5f)) else null,
+        color = if (isSelected) Color(0xFFFAFAFA) else Color.Transparent,
+        border = if (isSelected) BorderStroke(1.dp, Color(0xFFFFFFFF)) else null,
         modifier = Modifier
-            .size(36.dp)
+            .size(34.dp)
             .clip(CircleShape)
             .clickable(onClick = onClick)
     ) {
@@ -401,8 +401,8 @@ private fun FloatingSwitcherItemButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                modifier = Modifier.size(20.dp)
+                tint = if (isSelected) Color(0xFF09090B) else Color(0xFFA1A1AA),
+                modifier = Modifier.size(18.dp)
             )
         }
     }

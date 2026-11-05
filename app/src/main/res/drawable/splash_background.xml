@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Pure white splash background -->
-    <item android:drawable="@android:color/white" />
+    <!-- Deep AMOLED Black Splash Background -->
+    <item android:drawable="@android:color/black" />
 
-    <!-- Centered AntiGem Logo -->
+    <!-- Centered Gravent Brand Mark -->
     <item
         android:gravity="center"
-        android:width="160dp"
-        android:height="160dp">
-        <bitmap
-            android:src="@drawable/splash_logo"
-            android:filter="true"
-            android:antialias="true"
-            android:dither="true"
-            android:gravity="center" />
-    </item>
+        android:width="180dp"
+        android:height="48dp"
+        android:drawable="@drawable/splash_brand_name" />
 </layer-list>
-

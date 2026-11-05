@@ -802,68 +802,89 @@ fun TokenUsageTelemetryPill(
     } else 0
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val inputColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF1565C0)
-    val outputColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
-    val cacheColor = if (isDark) Color(0xFFFFD54F) else Color(0xFFB45309)
+    val labelColor = if (isDark) Color(0xFF71717A) else Color(0xFF71717A)
+    val valueColor = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B)
+    val accentCached = if (isDark) Color(0xFFE4E4E7) else Color(0xFF27272A)
 
     Surface(
         shape = RoundedCornerShape(6.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDark) 0.45f else 0.7f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = if (isDark) 0.12f else 0.18f)),
+        color = if (isDark) Color(0xFF09090B) else Color(0xFFF4F4F5),
+        border = BorderStroke(0.5.dp, if (isDark) Color(0xFF222226) else Color(0xFFE4E4E7)),
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
             .then(if (onViewPayload != null) Modifier.clickable { onViewPayload() } else Modifier)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(
-                text = "📥 ${formatCompactTokens(usage.promptTokens)}",
-                fontSize = 10.5.sp,
+                text = "in",
+                fontSize = 9.5.sp,
                 fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.SemiBold,
-                color = inputColor
+                color = labelColor
             )
             Text(
-                text = "📤 ${formatCompactTokens(usage.outputTokens)}",
-                fontSize = 10.5.sp,
+                text = formatCompactTokens(usage.promptTokens),
+                fontSize = 10.sp,
                 fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.SemiBold,
-                color = outputColor
+                fontWeight = FontWeight.Medium,
+                color = valueColor
             )
+            Text(text = "·", fontSize = 10.sp, color = labelColor.copy(alpha = 0.5f))
+
+            Text(
+                text = "out",
+                fontSize = 9.5.sp,
+                fontFamily = FontFamily.Monospace,
+                color = labelColor
+            )
+            Text(
+                text = formatCompactTokens(usage.outputTokens),
+                fontSize = 10.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Medium,
+                color = valueColor
+            )
+
             if (usage.cachedTokens > 0) {
+                Text(text = "·", fontSize = 10.sp, color = labelColor.copy(alpha = 0.5f))
                 Text(
-                    text = "⚡ ${formatCompactTokens(usage.cachedTokens)} ($cachePct%)",
-                    fontSize = 10.5.sp,
+                    text = "${cachePct}% cached",
+                    fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = cacheColor
+                    fontWeight = FontWeight.Medium,
+                    color = accentCached
                 )
             }
+
             if (usage.durationMs > 0) {
+                Text(text = "·", fontSize = 10.sp, color = labelColor.copy(alpha = 0.5f))
                 Text(
-                    text = "⏱️ ${formatDuration(usage.durationMs)}",
-                    fontSize = 10.5.sp,
+                    text = formatDuration(usage.durationMs),
+                    fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = labelColor
                 )
             }
+
             usage.model?.let { model ->
+                Text(text = "·", fontSize = 10.sp, color = labelColor.copy(alpha = 0.5f))
                 Text(
-                    text = model.removePrefix("claude-"),
-                    fontSize = 10.5.sp,
+                    text = model.removePrefix("claude-").removePrefix("gemini-"),
+                    fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = labelColor
                 )
             }
+
             if (usage.isEstimated) {
                 Text(
-                    text = "(est.)",
-                    fontSize = 9.5.sp,
+                    text = "(est)",
+                    fontSize = 9.sp,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = labelColor.copy(alpha = 0.6f)
                 )
             }
         }

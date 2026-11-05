@@ -42,25 +42,31 @@ import com.example.gemini.ui.components.ClaudeAccent
 /** Uppercase group label used to separate Antigravity / Claude Code / App settings. */
 @Composable
 fun SettingsGroupHeader(title: String, accent: Color, subtitle: String? = null, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.padding(top = 10.dp, bottom = 2.dp, start = 4.dp)) {
+    Column(modifier = modifier.padding(top = 14.dp, bottom = 4.dp, start = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(accent))
+            Box(Modifier.size(6.dp).clip(RoundedCornerShape(1.5.dp)).background(Color(0xFFFAFAFA)))
             Spacer(Modifier.width(8.dp))
-            Text(title.uppercase(), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = accent, letterSpacing = 1.sp)
+            Text(
+                title.uppercase(),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFFAFAFA),
+                letterSpacing = 1.2.sp
+            )
         }
         if (subtitle != null) {
             Text(
                 subtitle,
                 fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(start = 16.dp, top = 1.dp)
+                color = Color(0xFFA1A1AA),
+                modifier = Modifier.padding(start = 14.dp, top = 2.dp)
             )
         }
     }
 }
 
 @Composable
-fun claudeCardColor(): Color = if (isAppInDarkTheme()) ClaudeDarkSurface else Color.White
+fun claudeCardColor(): Color = if (isAppInDarkTheme()) Color(0xFF09090B) else Color.White
 
 /** Navigation card matching the existing settings cards. */
 @Composable
@@ -69,41 +75,46 @@ fun ClaudeNavCard(
     title: String,
     subtitle: String,
     badge: String? = null,
-    badgeColor: Color = ClaudeAccent,
-    tint: Color = ClaudeAccent,
+    badgeColor: Color = Color(0xFFFAFAFA),
+    tint: Color = Color(0xFFFAFAFA),
     onClick: () -> Unit
 ) {
+    val isDark = isAppInDarkTheme()
     Card(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = claudeCardColor()),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF1E1E22) else Color(0xFFE4E4E7))
     ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(tint.copy(alpha = 0.12f)),
+                Modifier.size(38.dp).clip(RoundedCornerShape(8.dp)).background(if (isDark) Color(0xFF141417) else Color(0xFFF4F4F5)),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) }
+            ) { Icon(icon, null, tint = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B), modifier = Modifier.size(20.dp)) }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF09090B))
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    subtitle, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    subtitle, fontSize = 11.5.sp, color = Color(0xFFA1A1AA),
                     maxLines = 2, overflow = TextOverflow.Ellipsis
                 )
             }
             if (badge != null) {
                 Spacer(Modifier.width(8.dp))
-                Surface(shape = RoundedCornerShape(6.dp), color = badgeColor.copy(alpha = 0.12f)) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isDark) Color(0xFF18181B) else Color(0xFFF4F4F5),
+                    border = BorderStroke(0.5.dp, if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7))
+                ) {
                     Text(
-                        badge, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        badge, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF09090B),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                     )
                 }
             }
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF71717A), modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -111,11 +122,12 @@ fun ClaudeNavCard(
 /** Plain content card. */
 @Composable
 fun ClaudeCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val isDark = isAppInDarkTheme()
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = claudeCardColor()),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF1E1E22) else Color(0xFFE4E4E7))
     ) { Column(Modifier.padding(14.dp)) { content() } }
 }
 
@@ -161,18 +173,30 @@ fun ControlChip(
     highlighted: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
+    val isDark = isAppInDarkTheme()
     Surface(
-        modifier = modifier.clip(RoundedCornerShape(14.dp)).then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        shape = RoundedCornerShape(14.dp),
-        color = if (highlighted) color.copy(alpha = 0.14f) else MaterialTheme.colorScheme.background,
-        border = BorderStroke(1.dp, if (highlighted) color.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+        modifier = modifier.clip(RoundedCornerShape(8.dp)).then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        shape = RoundedCornerShape(8.dp),
+        color = if (highlighted) (if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B)) else (if (isDark) Color(0xFF09090B) else Color(0xFFF4F4F5)),
+        border = BorderStroke(1.dp, if (highlighted) Color.White else (if (isDark) Color(0xFF222226) else Color(0xFFE4E4E7)))
     ) {
         Row(Modifier.padding(horizontal = 9.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
-                Icon(icon, null, tint = color, modifier = Modifier.size(13.dp))
+                Icon(
+                    icon,
+                    null,
+                    tint = if (highlighted) (if (isDark) Color(0xFF09090B) else Color.White) else color,
+                    modifier = Modifier.size(13.dp)
+                )
                 Spacer(Modifier.width(4.dp))
             }
-            Text(text, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
+            Text(
+                text,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (highlighted) (if (isDark) Color(0xFF09090B) else Color.White) else color,
+                maxLines = 1
+            )
         }
     }
 }
