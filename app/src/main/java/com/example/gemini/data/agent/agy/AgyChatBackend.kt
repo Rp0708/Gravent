@@ -82,6 +82,13 @@ class AgyChatBackend(
         AuthPreferences.currentHubUrl
     }
 
+    init {
+        AntigravityAccountManager.init(application)
+    }
+
+    val savedAgyAccounts: StateFlow<List<SavedAgyAccount>> = AntigravityAccountManager.savedAccounts
+    val activeAgyAccountId: StateFlow<String?> = AntigravityAccountManager.activeAccountId
+
     private val _hasReceivedInitialSync = MutableStateFlow(false)
     val hasReceivedInitialSync: StateFlow<Boolean> = _hasReceivedInitialSync.asStateFlow()
 
@@ -293,6 +300,9 @@ class AgyChatBackend(
                     _isAuthBusy.value = false
                     _pendingLoginUrl.value = null
                     loginPollJob?.cancel()
+                    backendScope.launch {
+                        AntigravityAccountManager.syncCurrentAccount(application, info)
+                    }
                     if (userInitiated) {
                         _authFeedbackMessage.tryEmit("Signed in as ${info.displayName.ifBlank { info.email }}")
                     }
@@ -333,6 +343,7 @@ class AgyChatBackend(
                 val authed = preCheck.getOrThrow()
                 _agyAuthInfo.value = authed
                 agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
+                AntigravityAccountManager.syncCurrentAccount(application, authed)
                 lastAuthCheckTimeMs = System.currentTimeMillis()
                 _isAuthBusy.value = false
                 _authFeedbackMessage.tryEmit("Already signed in as ${authed.displayName}!")
@@ -354,6 +365,7 @@ class AgyChatBackend(
                             val authed = res.getOrThrow()
                             _agyAuthInfo.value = authed
                             agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
+                            AntigravityAccountManager.syncCurrentAccount(application, authed)
                             lastAuthCheckTimeMs = System.currentTimeMillis()
                             _isAuthBusy.value = false
                             _pendingLoginUrl.value = null
@@ -415,6 +427,43 @@ class AgyChatBackend(
                 _isAuthBusy.value = false
             }
         }
+    }
+
+    fun switchAgyAccount(account: SavedAgyAccount) {
+        if (_isAuthBusy.value) return
+        _isAuthBusy.value = true
+        backendScope.launch {
+            _authFeedbackMessage.tryEmit("Switching to ${account.displayName.ifBlank { account.email }}...")
+            AntigravityAccountManager.switchAccount(application, account) {
+                val hubUrl = AuthPreferences.currentHubUrl
+                val res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
+                if (res.isSuccess && res.getOrThrow().isLoggedIn) {
+                    val authed = res.getOrThrow()
+                    _agyAuthInfo.value = authed
+                    agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
+                    _authFeedbackMessage.tryEmit("Switched to ${authed.displayName}!")
+                    refreshQuotas(force = true)
+                } else {
+                    _authFeedbackMessage.tryEmit("Switched credentials on disk. Reconnecting...")
+                    refreshQuotas(force = true)
+                }
+                _isAuthBusy.value = false
+            }
+        }
+    }
+
+    fun startAddAnotherAgyAccount() {
+        backendScope.launch {
+            val currentAuth = _agyAuthInfo.value
+            if (currentAuth.isLoggedIn) {
+                AntigravityAccountManager.syncCurrentAccount(application, currentAuth)
+            }
+            loginToAgyHub(force = true)
+        }
+    }
+
+    fun removeSavedAgyAccount(accountId: String) {
+        AntigravityAccountManager.removeAccount(accountId)
     }
 
     private val _activeInstances = MutableStateFlow<List<com.example.gemini.data.remote.AgyActiveInstance>>(emptyList())

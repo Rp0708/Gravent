@@ -44,13 +44,13 @@ import com.example.gemini.ui.components.ClaudeAccent
 fun SettingsGroupHeader(title: String, accent: Color, subtitle: String? = null, modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(top = 14.dp, bottom = 4.dp, start = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(6.dp).clip(RoundedCornerShape(1.5.dp)).background(Color(0xFFFAFAFA)))
+            Box(Modifier.size(6.dp).clip(RoundedCornerShape(1.5.dp)).background(accent))
             Spacer(Modifier.width(8.dp))
             Text(
                 title.uppercase(),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFFAFAFA),
+                color = accent,
                 letterSpacing = 1.2.sp
             )
         }
@@ -66,7 +66,7 @@ fun SettingsGroupHeader(title: String, accent: Color, subtitle: String? = null, 
 }
 
 @Composable
-fun claudeCardColor(): Color = if (isAppInDarkTheme()) Color(0xFF09090B) else Color.White
+fun claudeCardColor(): Color = Color(0xFF09090B)
 
 /** Navigation card matching the existing settings cards. */
 @Composable
@@ -79,21 +79,20 @@ fun ClaudeNavCard(
     tint: Color = Color(0xFFFAFAFA),
     onClick: () -> Unit
 ) {
-    val isDark = isAppInDarkTheme()
     Card(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = claudeCardColor()),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF1E1E22) else Color(0xFFE4E4E7))
+        border = BorderStroke(1.dp, Color(0xFF222226))
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(38.dp).clip(RoundedCornerShape(8.dp)).background(if (isDark) Color(0xFF141417) else Color(0xFFF4F4F5)),
+                Modifier.size(38.dp).clip(RoundedCornerShape(8.dp)).background(tint.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, null, tint = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B), modifier = Modifier.size(20.dp)) }
+            ) { Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp)) }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF09090B))
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFFAFAFA))
                 Spacer(Modifier.height(2.dp))
                 Text(
                     subtitle, fontSize = 11.5.sp, color = Color(0xFFA1A1AA),
@@ -104,11 +103,11 @@ fun ClaudeNavCard(
                 Spacer(Modifier.width(8.dp))
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isDark) Color(0xFF18181B) else Color(0xFFF4F4F5),
-                    border = BorderStroke(0.5.dp, if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7))
+                    color = badgeColor.copy(alpha = 0.12f),
+                    border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.25f))
                 ) {
                     Text(
-                        badge, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF09090B),
+                        badge, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = badgeColor,
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                     )
                 }

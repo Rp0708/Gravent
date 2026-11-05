@@ -464,12 +464,13 @@ fun TerminalLauncherOnboardingDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(46.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Check,
                         contentDescription = null,
+                        tint = Color.Black,
                         modifier = Modifier.size(17.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -477,7 +478,7 @@ fun TerminalLauncherOnboardingDialog(
                         text = "Save & Continue",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = Color.Black
                     )
                 }
 

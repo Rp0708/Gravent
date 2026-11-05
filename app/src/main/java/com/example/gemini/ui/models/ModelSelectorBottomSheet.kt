@@ -558,11 +558,10 @@ private fun TieredModelGroupCard(
         ModelFamily.OTHER -> MaterialTheme.colorScheme.primary
     }
 
-    val isDark = isAppInDarkTheme()
     val cardBg = if (isAnyVariantSelected) {
-        if (isDark) ClaudeDarkSurface else Color.White
+        ClaudeDarkSurface
     } else {
-        if (isDark) ClaudeDarkSurface.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.85f)
+        ClaudeDarkSurface.copy(alpha = 0.65f)
     }
 
     Surface(
@@ -673,7 +672,7 @@ private fun CategoryNavigationTile(
             .defaultMinSize(minHeight = 88.dp)
             .clip(RoundedCornerShape(14.dp))
             .clickable { onClick() },
-        color = if (isDark) ClaudeDarkSurface else Color.White,
+        color = ClaudeDarkSurface,
         shape = RoundedCornerShape(14.dp)
     ) {
         Row(
@@ -774,11 +773,10 @@ private fun ModelRowItem(
 ) {
     val brandColor = if (model.family == ModelFamily.CLAUDE) ClaudeTerracotta else GeminiBlue
 
-    val isDark = isAppInDarkTheme()
     val cardBg = if (isSelected) {
-        if (isDark) ClaudeDarkSurface else Color.White
+        ClaudeDarkSurface
     } else {
-        if (isDark) ClaudeDarkSurface.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.85f)
+        ClaudeDarkSurface.copy(alpha = 0.65f)
     }
 
     Surface(

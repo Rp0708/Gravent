@@ -81,10 +81,7 @@ fun ThinkingSelectorBottomSheet(
 
             // Level Options
             ThinkingLevel.values().forEach { level ->
-                val isDark = isAppInDarkTheme()
-                val isSelected = selectedLevel == level
-                val borderColor = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                val unselectedBg = if (isDark) ClaudeDarkSurface else Color.White
+                val unselectedBg = ClaudeDarkSurface
                 val bgColor = if (isSelected) ClaudeTerracotta.copy(alpha = 0.08f) else unselectedBg
 
                 Card(
@@ -183,10 +180,10 @@ fun ThinkingSelectorBottomSheet(
                                     onDismiss()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Text("Apply Custom Budget", fontWeight = FontWeight.Bold)
+                                Text("Apply Custom Budget", fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                         }
                     }

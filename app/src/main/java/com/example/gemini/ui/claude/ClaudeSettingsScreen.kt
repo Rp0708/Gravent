@@ -145,24 +145,71 @@ fun ClaudeSettingsGroup(deps: ClaudeSettingsDeps, onOpen: (ClaudeSettingsPage) -
     val accountColor = state.dotColor
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ClaudeNavCard(
-            Icons.Outlined.AccountCircle,
-            ClaudeSettingsPage.ACCOUNT.title,
-            listOfNotNull(auth?.email, status?.version).joinToString(" · ").ifBlank { ClaudeSettingsPage.ACCOUNT.subtitle },
+            icon = Icons.Outlined.AccountCircle,
+            title = ClaudeSettingsPage.ACCOUNT.title,
+            subtitle = listOfNotNull(auth?.email, status?.version).joinToString(" · ").ifBlank { ClaudeSettingsPage.ACCOUNT.subtitle },
             badge = accountBadge,
-            badgeColor = accountColor
-        ) { onOpen(ClaudeSettingsPage.ACCOUNT) }
-        ClaudeNavCard(Icons.Outlined.Tune, ClaudeSettingsPage.DEFAULTS.title, ClaudeSettingsPage.DEFAULTS.subtitle) { onOpen(ClaudeSettingsPage.DEFAULTS) }
+            badgeColor = accountColor,
+            tint = if (state == ClaudeStatus.READY) Color(0xFF22C55E) else Color(0xFF60A5FA),
+            onClick = { onOpen(ClaudeSettingsPage.ACCOUNT) }
+        )
+        ClaudeNavCard(
+            icon = Icons.Outlined.Tune,
+            title = ClaudeSettingsPage.DEFAULTS.title,
+            subtitle = ClaudeSettingsPage.DEFAULTS.subtitle,
+            tint = Color(0xFFF87171),
+            onClick = { onOpen(ClaudeSettingsPage.DEFAULTS) }
+        )
         val providers by deps.backend.providers.collectAsState()
-        ClaudeNavCard(Icons.Outlined.Cloud, ClaudeSettingsPage.PROVIDERS.title, ClaudeSettingsPage.PROVIDERS.subtitle,
-            badge = providers.size.takeIf { it > 0 }?.let { "$it added" }) { onOpen(ClaudeSettingsPage.PROVIDERS) }
+        ClaudeNavCard(
+            icon = Icons.Outlined.Cloud,
+            title = ClaudeSettingsPage.PROVIDERS.title,
+            subtitle = ClaudeSettingsPage.PROVIDERS.subtitle,
+            badge = providers.size.takeIf { it > 0 }?.let { "$it added" },
+            badgeColor = Color(0xFF38BDF8),
+            tint = Color(0xFF38BDF8),
+            onClick = { onOpen(ClaudeSettingsPage.PROVIDERS) }
+        )
         val allowCount = settings?.let { deps.config.rules("allow").size } ?: 0
-        ClaudeNavCard(Icons.Outlined.Security, ClaudeSettingsPage.PERMISSIONS.title, ClaudeSettingsPage.PERMISSIONS.subtitle,
-            badge = allowCount.takeIf { it > 0 }?.let { "$it allowed" }) { onOpen(ClaudeSettingsPage.PERMISSIONS) }
-        ClaudeNavCard(Icons.Outlined.Hub, ClaudeSettingsPage.MCP.title, ClaudeSettingsPage.MCP.subtitle,
-            badge = mcp.size.takeIf { it > 0 }?.let { "$it servers" }) { onOpen(ClaudeSettingsPage.MCP) }
-        ClaudeNavCard(Icons.Outlined.Extension, ClaudeSettingsPage.PLUGINS.title, ClaudeSettingsPage.PLUGINS.subtitle) { onOpen(ClaudeSettingsPage.PLUGINS) }
-        ClaudeNavCard(Icons.Outlined.Description, ClaudeSettingsPage.MEMORY.title, ClaudeSettingsPage.MEMORY.subtitle) { onOpen(ClaudeSettingsPage.MEMORY) }
-        ClaudeNavCard(Icons.Outlined.Code, ClaudeSettingsPage.ADVANCED.title, ClaudeSettingsPage.ADVANCED.subtitle) { onOpen(ClaudeSettingsPage.ADVANCED) }
+        ClaudeNavCard(
+            icon = Icons.Outlined.Security,
+            title = ClaudeSettingsPage.PERMISSIONS.title,
+            subtitle = ClaudeSettingsPage.PERMISSIONS.subtitle,
+            badge = allowCount.takeIf { it > 0 }?.let { "$it allowed" },
+            badgeColor = Color(0xFFFBBF24),
+            tint = Color(0xFFFBBF24),
+            onClick = { onOpen(ClaudeSettingsPage.PERMISSIONS) }
+        )
+        ClaudeNavCard(
+            icon = Icons.Outlined.Hub,
+            title = ClaudeSettingsPage.MCP.title,
+            subtitle = ClaudeSettingsPage.MCP.subtitle,
+            badge = mcp.size.takeIf { it > 0 }?.let { "$it servers" },
+            badgeColor = Color(0xFF34D399),
+            tint = Color(0xFF34D399),
+            onClick = { onOpen(ClaudeSettingsPage.MCP) }
+        )
+        ClaudeNavCard(
+            icon = Icons.Outlined.Extension,
+            title = ClaudeSettingsPage.PLUGINS.title,
+            subtitle = ClaudeSettingsPage.PLUGINS.subtitle,
+            tint = Color(0xFFA78BFA),
+            onClick = { onOpen(ClaudeSettingsPage.PLUGINS) }
+        )
+        ClaudeNavCard(
+            icon = Icons.Outlined.Description,
+            title = ClaudeSettingsPage.MEMORY.title,
+            subtitle = ClaudeSettingsPage.MEMORY.subtitle,
+            tint = Color(0xFF2DD4BF),
+            onClick = { onOpen(ClaudeSettingsPage.MEMORY) }
+        )
+        ClaudeNavCard(
+            icon = Icons.Outlined.Code,
+            title = ClaudeSettingsPage.ADVANCED.title,
+            subtitle = ClaudeSettingsPage.ADVANCED.subtitle,
+            tint = Color(0xFF818CF8),
+            onClick = { onOpen(ClaudeSettingsPage.ADVANCED) }
+        )
     }
 }
 
@@ -973,8 +1020,8 @@ private fun PluginsPage(deps: ClaudeSettingsDeps) {
                                 Button(onClick = {
                                     addingMarket = marketSource
                                     deps.config.pluginAction("marketplace-add", ClaudePluginAction(source = marketSource))
-                                }, enabled = marketSource.isNotBlank() && !adding, colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) {
-                                    if (adding) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White) else Text("Add")
+                                }, enabled = marketSource.isNotBlank() && !adding, colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent, contentColor = Color.Black)) {
+                                    if (adding) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.Black) else Text("Add", color = Color.Black)
                                 }
                             }
                         }

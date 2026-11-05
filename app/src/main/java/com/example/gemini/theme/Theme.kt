@@ -27,35 +27,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 private val DarkColorScheme = darkColorScheme(
-    primary = ClaudeTerracotta,
-    secondary = ClaudeTerracottaDark,
-    background = ClaudeDarkBg,
-    surface = ClaudeDarkBg,
+    primary = Color(0xFFFAFAFA),
+    secondary = Color(0xFFE4E4E7),
+    background = Color(0xFF000000),
+    surface = Color(0xFF08080A),
     surfaceTint = Color.Transparent,
-    onPrimary = Color.Black,
-    onBackground = TextPrimaryDark,
-    onSurface = TextPrimaryDark,
-    surfaceVariant = ClaudeUserBubbleDark,
-    outline = GraventDarkBorder,
-    outlineVariant = GraventSubtleBorder
+    onPrimary = Color(0xFF000000),
+    onSecondary = Color(0xFF000000),
+    onBackground = Color(0xFFFAFAFA),
+    onSurface = Color(0xFFFAFAFA),
+    surfaceVariant = Color(0xFF131316),
+    outline = Color(0xFF222226),
+    outlineVariant = Color(0xFF161619)
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = ClaudeTerracotta,
-    secondary = ClaudeTerracottaDark,
-    background = ClaudeCream,
-    surface = ClaudeCream,
+private val LightColorScheme = darkColorScheme(
+    primary = Color(0xFFFAFAFA),
+    secondary = Color(0xFFE4E4E7),
+    background = Color(0xFF000000),
+    surface = Color(0xFF08080A),
     surfaceTint = Color.Transparent,
-    onPrimary = Color.White,
-    onBackground = TextPrimaryLight,
-    onSurface = TextPrimaryLight,
-    surfaceVariant = ClaudeUserBubbleLight
+    onPrimary = Color(0xFF000000),
+    onSecondary = Color(0xFF000000),
+    onBackground = Color(0xFFFAFAFA),
+    onSurface = Color(0xFFFAFAFA),
+    surfaceVariant = Color(0xFF131316),
+    outline = Color(0xFF222226),
+    outlineVariant = Color(0xFF161619)
 )
 
-val LocalIsDarkTheme = staticCompositionLocalOf { false }
+val LocalIsDarkTheme = staticCompositionLocalOf { true }
 
 @Composable
-fun isAppInDarkTheme(): Boolean = LocalIsDarkTheme.current
+fun isAppInDarkTheme(): Boolean = true
 
 @Composable
 fun isSystemInDarkThemeRobust(): Boolean {

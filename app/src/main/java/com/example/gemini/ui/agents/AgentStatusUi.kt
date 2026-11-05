@@ -186,15 +186,29 @@ fun AgentStatusDot(top: Color, bottom: Color?, modifier: Modifier = Modifier, si
 /** Round agent mark (tinted with the agent's color) with an optional status badge. */
 @Composable
 fun AgentMark(agent: AgentKind, modifier: Modifier = Modifier, size: Dp = 32.dp, statusColor: Color? = null) {
-    val accent = agent.accent()
     Box(modifier.size(size)) {
         Box(
-            Modifier.size(size).clip(CircleShape).background(accent.copy(alpha = 0.15f)),
+            Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(Color(0xFF141418))
+                .border(1.dp, Color(0xFF26262B), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             when (agent) {
-                AgentKind.AGY -> Icon(Icons.Outlined.RocketLaunch, null, tint = accent, modifier = Modifier.size(size * 0.52f))
-                AgentKind.CLAUDE -> Text("✻", color = accent, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.5f).sp)
+                AgentKind.AGY -> Text(
+                    "AG",
+                    color = Color(0xFFFAFAFA),
+                    fontWeight = FontWeight.Black,
+                    fontSize = (size.value * 0.38f).sp,
+                    letterSpacing = (-0.5).sp
+                )
+                AgentKind.CLAUDE -> Text(
+                    "✻",
+                    color = Color(0xFFFAFAFA),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = (size.value * 0.52f).sp
+                )
             }
         }
         if (statusColor != null) {
@@ -365,7 +379,7 @@ fun AgentSetupPrompt(
             androidx.compose.material3.Button(
                 onClick = onAction,
                 shape = RoundedCornerShape(12.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.Black),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
             ) { Text(actionLabel, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
         }

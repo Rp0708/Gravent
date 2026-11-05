@@ -413,16 +413,16 @@ fun GitSourceControlView(
                                 }
                             },
                             enabled = !isOperating,
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                         ) {
                             if (isOperating) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black, strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(8.dp))
                             } else {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text("Initialize Git Repository", fontWeight = FontWeight.Bold)
+                            Text("Initialize Git Repository", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
                     }
                 }
@@ -953,9 +953,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text(if (configPromptReason != null) "Save & Continue" else "Save")
+                    Text(if (configPromptReason != null) "Save & Continue" else "Save", color = Color.Black)
                 }
             },
             dismissButton = {
@@ -1268,9 +1268,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Unstage All")
+                    Text("Unstage All", color = Color.Black)
                 }
             },
             dismissButton = {
@@ -1305,9 +1305,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Pull")
+                    Text("Pull", color = Color.Black)
                 }
             },
             dismissButton = {
@@ -1346,14 +1346,14 @@ fun GitSourceControlView(
                             if (res.success) {
                                 Toast.makeText(context, "Git Push Successful", Toast.LENGTH_SHORT).show()
                             } else {
-                                executionError = Pair("Git Push Failed", (res.error.ifBlank { res.output }).ifBlank { "Git push failed." })
+                                executionError = Pair("Git Push Failed", (res.error.ifBlank { res.output }).ifBlank { "Git pull failed." })
                             }
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text(if (unpushedCount > 0) "Push ($unpushedCount)" else "Push")
+                    Text(if (unpushedCount > 0) "Push ($unpushedCount)" else "Push", color = Color.Black)
                 }
             },
             dismissButton = {
@@ -1410,9 +1410,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Commit")
+                    Text("Commit", color = Color.Black)
                 }
             },
             dismissButton = {

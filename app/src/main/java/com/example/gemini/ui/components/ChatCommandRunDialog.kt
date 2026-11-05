@@ -156,7 +156,7 @@ private fun CommandConfirmCard(initial: String, onCancel: () -> Unit, onRun: (St
                 Button(
                     onClick = run,
                     enabled = canRun,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     contentPadding = PaddingValues(horizontal = 16.dp)
                 ) {
                     Icon(Icons.Filled.PlayArrow, null, modifier = Modifier.size(18.dp))

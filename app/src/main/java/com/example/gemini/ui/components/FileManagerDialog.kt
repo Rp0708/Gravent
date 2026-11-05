@@ -709,14 +709,14 @@ fun FileManagerDialog(
                                     onDismiss()
                                 },
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(44.dp)
                             ) {
-                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Open this folder as Project", fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
+                                Text("Open this folder as Project", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                         }
                     }
@@ -759,9 +759,9 @@ fun FileManagerDialog(
                         }
                     },
                     enabled = inputName.isNotBlank() && !isOperating,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Create")
+                    Text("Create", color = Color.Black)
                 }
             },
             dismissButton = {
@@ -804,9 +804,9 @@ fun FileManagerDialog(
                         }
                     },
                     enabled = inputName.isNotBlank() && !isOperating,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Create")
+                    Text("Create", color = Color.Black)
                 }
             },
             dismissButton = {
@@ -889,9 +889,9 @@ fun FileManagerDialog(
                         }
                     },
                     enabled = inputName.isNotBlank() && !isOperating,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Create & Open")
+                    Text("Create & Open", color = Color.Black)
                 }
             },
             dismissButton = {

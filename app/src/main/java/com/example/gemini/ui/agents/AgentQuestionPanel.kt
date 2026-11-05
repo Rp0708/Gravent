@@ -256,7 +256,7 @@ fun AgentQuestionPanel(
                     },
                     enabled = !isLast || canSubmit,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.Black),
                     contentPadding = PaddingValues(horizontal = 18.dp)
                 ) {
                     Text(

@@ -225,10 +225,10 @@ fun ChatTelemetryDialog(
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Close", color = Color.White, fontSize = 13.sp)
+                    Text("Close", color = Color.Black, fontSize = 13.sp)
                 }
             }
         }

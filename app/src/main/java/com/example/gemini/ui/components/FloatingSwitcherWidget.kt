@@ -1,5 +1,6 @@
 package com.example.gemini.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -194,15 +195,25 @@ fun FloatingSwitcherWidget(
                     )
                 }
         ) {
+            val currentModeIcon = when (currentViewMode) {
+                AppViewMode.CHAT -> Icons.Outlined.ChatBubbleOutline
+                AppViewMode.IDE -> Icons.Outlined.Code
+                AppViewMode.TERMINAL -> Icons.Outlined.Terminal
+                AppViewMode.BROWSER -> Icons.Outlined.Language
+                AppViewMode.NOTES -> Icons.Outlined.EditNote
+            }
+
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color(0xFF09090B),
                 border = BorderStroke(1.dp, Color(0xFF222226)),
                 shadowElevation = 12.dp,
-                modifier = Modifier.shadow(12.dp, RoundedCornerShape(20.dp))
+                modifier = Modifier
+                    .shadow(12.dp, RoundedCornerShape(20.dp))
+                    .animateContentSize()
             ) {
                 if (!isExpanded) {
-                    // Collapsed Compact Pill with Minimalist Icon
+                    // Collapsed Compact Pill with Active View Mode Icon + Subtle Arrow
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
@@ -210,15 +221,21 @@ fun FloatingSwitcherWidget(
                                 lastInteractionTimestamp = System.currentTimeMillis()
                                 isExpanded = true
                             }
-                            .padding(horizontal = 10.dp, vertical = 10.dp),
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        Icon(
+                            imageVector = currentModeIcon,
+                            contentDescription = "Current Mode",
+                            tint = Color(0xFFFAFAFA),
+                            modifier = Modifier.size(16.dp)
+                        )
                         Icon(
                             imageVector = expandArrowIcon,
                             contentDescription = "Expand Navigation",
-                            tint = Color(0xFFFAFAFA),
-                            modifier = Modifier.size(18.dp)
+                            tint = Color(0xFF71717A),
+                            modifier = Modifier.size(13.dp)
                         )
                     }
                 } else {

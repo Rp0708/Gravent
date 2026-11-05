@@ -218,6 +218,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun checkAgyAuthStatus(userInitiated: Boolean = false) = agyBackend.checkAgyAuthStatus(userInitiated)
     fun loginToAgyHub(force: Boolean = false) = agyBackend.loginToAgyHub(force)
     fun logoutFromAgyHub() = agyBackend.logoutFromAgyHub()
+    val savedAgyAccounts = agyBackend.savedAgyAccounts
+    val activeAgyAccountId = agyBackend.activeAgyAccountId
+    fun switchAgyAccount(account: com.example.gemini.data.agent.agy.SavedAgyAccount) = agyBackend.switchAgyAccount(account)
+    fun startAddAnotherAgyAccount() = agyBackend.startAddAnotherAgyAccount()
+    fun removeSavedAgyAccount(accountId: String) = agyBackend.removeSavedAgyAccount(accountId)
     val activeInstances = agyBackend.activeInstances
     val isAnyGenerationOrTaskActive = agyBackend.isAnyGenerationOrTaskActive
     val isCurrentChatActivelyRunning = byAgent(agyBackend.isCurrentChatActivelyRunning, claudeBackend.isCurrentChatActivelyRunning)

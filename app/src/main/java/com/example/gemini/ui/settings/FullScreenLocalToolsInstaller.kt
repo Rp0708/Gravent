@@ -876,23 +876,24 @@ fun FullScreenLocalToolsInstaller(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Download,
                             contentDescription = null,
+                            tint = Color.Black,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = when (selectedSourceType) {
-                                0 -> if (isTermux) "Download & Install AntiGem (~350MB)" else "Download & Install Ubuntu Base"
+                                0 -> if (isTermux) "Download & Install Gravent (~350MB)" else "Download & Install Ubuntu Base"
                                 1 -> "Download Base Termux (~33MB)"
                                 else -> if (selectedFileUri != null) "Install Local ZIP" else "Choose ZIP File"
                             },
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color.Black
                         )
                     }
 
@@ -926,11 +927,11 @@ fun FullScreenLocalToolsInstaller(
                                 .weight(1f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                         ) {
-                            Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Black)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Confirm & Install", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Confirm & Install", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
 
                         OutlinedButton(
@@ -979,11 +980,11 @@ fun FullScreenLocalToolsInstaller(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                     ) {
-                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Black)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Get Started", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Get Started", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     }
                 }
 
@@ -1007,11 +1008,11 @@ fun FullScreenLocalToolsInstaller(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                         ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Retry Installation", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Retry Installation", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
 
                         Row(

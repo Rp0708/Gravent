@@ -601,10 +601,10 @@ fun ChatInputBar(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                color = if (isDark) Color(0xFF21211E) else Color.White,
+                color = Color(0xFF0D0D10),
                 border = BorderStroke(
                     1.dp,
-                    if (isDark) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    Color(0xFF222226)
                 )
             ) {
                 if (isRecordingAudio) {

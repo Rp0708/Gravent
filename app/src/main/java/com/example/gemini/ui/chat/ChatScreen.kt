@@ -244,6 +244,8 @@ fun ChatScreen(
     val isTerminalLauncherEnabledPref by viewModel.authPreferences.isTerminalLauncherEnabled.collectAsState(initial = true)
     val terminalLauncherStylePref by viewModel.authPreferences.terminalLauncherStyle.collectAsState(initial = com.example.gemini.data.preferences.TerminalLauncherManager.STYLE_ANTITERM)
     val isTranscribingAudio by viewModel.isTranscribingAudio.collectAsState()
+    val savedAgyAccounts by viewModel.savedAgyAccounts.collectAsState()
+    val activeAgyAccountId by viewModel.activeAgyAccountId.collectAsState()
     val pendingLoginUrl by viewModel.pendingLoginUrl.collectAsState()
     val agyLoginIssue by viewModel.agyLoginIssue.collectAsState()
     val hubStatus by viewModel.hubStatus.collectAsState()
@@ -2316,6 +2318,11 @@ fun ChatScreen(
             claude = claudeEntry,
             agyAuth = agyAuthInfo,
             claudeStatus = claudeStatus,
+            savedAgyAccounts = savedAgyAccounts,
+            activeAgyAccountId = activeAgyAccountId,
+            onSwitchAgyAccount = { viewModel.switchAgyAccount(it) },
+            onAddAgyAccount = { viewModel.startAddAnotherAgyAccount() },
+            onRemoveAgyAccount = { viewModel.removeSavedAgyAccount(it) },
             onAgySignOut = { viewModel.logoutFromAgyHub() },
             onAgyCancelSignIn = { viewModel.cancelAgyLogin() },
             onClaudeSignOut = { viewModel.claudeAccount.logout() },

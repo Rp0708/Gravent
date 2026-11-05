@@ -107,7 +107,7 @@ private fun AccountAvatar(
 @Composable
 private fun InitialCircle(initial: Char?, accent: Color, size: Dp) {
     Box(Modifier.fillMaxSize().background(accent), contentAlignment = Alignment.Center) {
-        Text((initial?.uppercaseChar() ?: '•').toString(), fontSize = (size.value * 0.44f).sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text((initial?.uppercaseChar() ?: '•').toString(), fontSize = (size.value * 0.44f).sp, fontWeight = FontWeight.Bold, color = Color.Black)
     }
 }
 
@@ -168,6 +168,11 @@ fun AccountsDialog(
     claude: AgentStatusEntry?,
     agyAuth: AgyHubClient.AgyAuthInfo,
     claudeStatus: ClaudeCliStatus?,
+    savedAgyAccounts: List<com.example.gemini.data.agent.agy.SavedAgyAccount> = emptyList(),
+    activeAgyAccountId: String? = null,
+    onSwitchAgyAccount: (com.example.gemini.data.agent.agy.SavedAgyAccount) -> Unit = {},
+    onAddAgyAccount: () -> Unit = {},
+    onRemoveAgyAccount: (String) -> Unit = {},
     onAgySignOut: () -> Unit,
     onAgyCancelSignIn: () -> Unit,
     onClaudeSignOut: () -> Unit,
@@ -179,6 +184,7 @@ fun AccountsDialog(
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, Color(0xFF222226)),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -190,7 +196,7 @@ fun AccountsDialog(
                     }
                 }
                 Text(
-                    "Each agent signs in on its own.",
+                    "Switch or configure multiple Google & Claude accounts.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                 )
@@ -206,26 +212,103 @@ fun AccountsDialog(
                             agyAuth.userTier.ifBlank { agyAuth.planName }.ifBlank { null }
                         ) else emptyList()
                     ) {
-                        when {
-                            entry.isReady -> {
-                                if (agyAuth.upgradeSubscriptionUri.isNotBlank()) {
-                                    SectionButton(agyAuth.upgradeSubscriptionText.ifBlank { "Manage plan" }, Icons.AutoMirrored.Outlined.OpenInNew) {
-                                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(agyAuth.upgradeSubscriptionUri))) }
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Multi-account switcher list
+                            if (savedAgyAccounts.isNotEmpty()) {
+                                Spacer(Modifier.height(8.dp))
+                                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "CONFIGURED ACCOUNTS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    savedAgyAccounts.forEach { acc ->
+                                        val isActive = (acc.id == activeAgyAccountId) || (agyAuth.email.isNotBlank() && acc.email.equals(agyAuth.email, ignoreCase = true))
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = if (isActive) Color(0xFF141418) else Color(0xFF09090C),
+                                            border = BorderStroke(1.dp, if (isActive) Color(0xFFFAFAFA).copy(alpha = 0.4f) else Color(0xFF222226)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                InitialCircle(acc.displayName.firstOrNull() ?: acc.email.firstOrNull(), AgentKind.AGY.accent(), 26.dp)
+                                                Spacer(Modifier.width(8.dp))
+                                                Column(Modifier.weight(1f)) {
+                                                    Text(acc.displayName.ifBlank { acc.email }, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text(acc.email, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                }
+                                                if (isActive) {
+                                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF22C55E).copy(alpha = 0.15f)) {
+                                                        Text("Active", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                    }
+                                                } else {
+                                                    Surface(
+                                                        onClick = {
+                                                            onSwitchAgyAccount(acc)
+                                                            onDismiss()
+                                                        },
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        color = Color(0xFFFAFAFA),
+                                                        modifier = Modifier.height(26.dp)
+                                                    ) {
+                                                        Text(
+                                                            "Switch",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = Color.Black,
+                                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                                        )
+                                                    }
+                                                    Spacer(Modifier.width(6.dp))
+                                                    IconButton(onClick = { onRemoveAgyAccount(acc.id) }, modifier = Modifier.size(26.dp)) {
+                                                        Icon(Icons.Outlined.Close, "Remove account", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), modifier = Modifier.size(13.dp))
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
-                                SectionButton("Sign out", Icons.AutoMirrored.Outlined.Logout, danger = true) {
-                                    onAgySignOut()
-                                    onDismiss()
-                                }
+                                Spacer(Modifier.height(8.dp))
+                                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                Spacer(Modifier.height(8.dp))
                             }
-                            entry.pending && entry.action != null -> {
-                                entry.action.let { SectionButton(it.label, primary = AgentKind.AGY.accent()) { it.onClick() } }
-                                SectionButton("Cancel") { onAgyCancelSignIn() }
-                            }
-                            else -> entry.action?.let {
-                                SectionButton(it.label, primary = AgentKind.AGY.accent()) {
-                                    it.onClick()
-                                    onDismiss()
+
+                            // Action buttons row
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                when {
+                                    entry.isReady -> {
+                                        SectionButton("+ Add Account", Icons.AutoMirrored.Outlined.Login) {
+                                            onAddAgyAccount()
+                                            onDismiss()
+                                        }
+                                        if (agyAuth.upgradeSubscriptionUri.isNotBlank()) {
+                                            SectionButton(agyAuth.upgradeSubscriptionText.ifBlank { "Manage plan" }, Icons.AutoMirrored.Outlined.OpenInNew) {
+                                                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(agyAuth.upgradeSubscriptionUri))) }
+                                            }
+                                        }
+                                        SectionButton("Sign out", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                                            onAgySignOut()
+                                            onDismiss()
+                                        }
+                                    }
+                                    entry.pending && entry.action != null -> {
+                                        entry.action.let { SectionButton(it.label, primary = AgentKind.AGY.accent()) { it.onClick() } }
+                                        SectionButton("Cancel") { onAgyCancelSignIn() }
+                                    }
+                                    else -> entry.action?.let {
+                                        SectionButton(it.label, primary = AgentKind.AGY.accent()) {
+                                            it.onClick()
+                                            onDismiss()
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -361,7 +444,7 @@ private fun SectionButton(
     }
     if (primary != null) {
         Surface(onClick = onClick, shape = RoundedCornerShape(12.dp), color = primary) {
-            Text(text, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
+            Text(text, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color.Black, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
         }
         return
     }

@@ -1,13 +1,13 @@
 {
-  "version_code": 119,
-  "version_name": "1.0.19",
+  "version_code": 120,
+  "version_name": "1.0.20",
   "min_supported_version_code": 1,
   "changelog": [
-    "Initial Gravent release - ultra-minimalist AI mobile workspace",
-    "Deep AMOLED black theme with crisp platinum contrast and editorial typography",
-    "Overhauled token telemetry badges and sleek obsidian floating switcher",
-    "Custom geometric Gravent splash brand mark",
-    "Independent com.gravent namespace with zero package conflicts"
+    "Fixed color contrast errors: resolved all white-on-white text and button containers across settings, git panels, and dialogs",
+    "Multi-Account Antigravity Support: connect multiple Google accounts using the native sign-in flow with 1-tap switching",
+    "Semantic Icons & Palette: restored purposeful accent colors and intuitive vector icons matching each option name",
+    "Refined Typography & Brand Logos: editorial monograms (AG for Antigravity, ✻ for Claude, G for Gravent)",
+    "Enhanced Floating Switcher: smooth animations and active view mode icon indicator in collapsed state"
   ],
   "is_critical": false
 }

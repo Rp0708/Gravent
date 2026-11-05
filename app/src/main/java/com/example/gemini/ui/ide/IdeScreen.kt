@@ -1463,9 +1463,9 @@ fun IdeScreen(
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                         ) {
-                            Text("Save & Close")
+                            Text("Save & Close", color = Color.Black)
                         }
                     },
                     dismissButton = {
@@ -1519,9 +1519,9 @@ fun IdeScreen(
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                         ) {
-                            Text("Overwrite Disk (Keep Mine)")
+                            Text("Overwrite Disk (Keep Mine)", color = Color.Black)
                         }
                     },
                     dismissButton = {

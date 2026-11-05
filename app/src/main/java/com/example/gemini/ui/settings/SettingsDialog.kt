@@ -258,9 +258,9 @@ fun SettingsDialog(
         }
     }
 
-    val isDark = isAppInDarkTheme()
-    val cardBg = if (isDark) ClaudeDarkSurface else Color.White
-    val cardBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+    val isDark = true
+    val cardBg = Color(0xFF0A0A0C)
+    val cardBorder = BorderStroke(1.dp, Color(0xFF222226))
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -637,8 +637,8 @@ private fun MainSettingsMenu(
 
         SettingsCategoryCard(
             icon = Icons.Outlined.Extension,
-            iconTint = MaterialTheme.colorScheme.primary,
-            title = "Custom AntiGem Plugins",
+            iconTint = Color(0xFF818CF8),
+            title = "Custom Gravent Plugins",
             subtitle = "Install ZIP, update, rename, enable or disable plugins with MCP tools and skills",
             cardBg = cardBg,
             cardBorder = cardBorder,
@@ -647,7 +647,7 @@ private fun MainSettingsMenu(
 
         SettingsCategoryCard(
             icon = Icons.Outlined.Terminal,
-            iconTint = MaterialTheme.colorScheme.primary,
+            iconTint = Color(0xFF38BDF8),
             title = "Slash Commands",
             subtitle = "Create / commands that expand into longer prompts or attach a plugin skill",
             cardBg = cardBg,
@@ -656,7 +656,7 @@ private fun MainSettingsMenu(
         )
 
         if (agyOn) {
-        SettingsGroupHeader("Antigravity", GeminiBlue, "Google Antigravity agent (agy hub)")
+        SettingsGroupHeader("Antigravity", Color(0xFF60A5FA), "Google Antigravity agent (agy hub)")
         // Section 3: MCP Servers & Tools
         val activeMcpCount = mcpServers.count { it.isEnabled }
         val totalMcpCount = mcpServers.size
@@ -666,12 +666,12 @@ private fun MainSettingsMenu(
             else -> "Disabled"
         }
         val mcpColor = when {
-            activeMcpCount > 0 -> QuotaGreen
-            totalMcpCount > 0 -> Color(0xFFFFA000)
-            else -> ClaudeTerracotta
+            activeMcpCount > 0 -> Color(0xFF34D399)
+            totalMcpCount > 0 -> Color(0xFFFBBF24)
+            else -> Color(0xFF71717A)
         }
         SettingsCategoryCard(
-            icon = Icons.Outlined.Extension,
+            icon = Icons.Outlined.Hub,
             iconTint = mcpColor,
             title = "MCP Servers & Tools",
             subtitle = if (totalMcpCount > 0) "$totalMcpCount server(s) • global mcp_config.json" else "Model Context Protocol tools & integrations",
@@ -688,11 +688,11 @@ private fun MainSettingsMenu(
         val skillsBadge = "$totalSkillsCount Skills • $totalPluginsCount Plugins"
         SettingsCategoryCard(
             icon = Icons.Outlined.AutoAwesome,
-            iconTint = GeminiBlue,
+            iconTint = Color(0xFFFBBF24),
             title = "Skills & Plugins",
             subtitle = "Installed skills, Google plugins catalog, and markdown guides",
             badgeText = skillsBadge,
-            badgeColor = GeminiBlue,
+            badgeColor = Color(0xFFFBBF24),
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.SKILLS_PLUGINS) }
@@ -700,13 +700,13 @@ private fun MainSettingsMenu(
 
         // Section 5: Commands & Permissions
         val (policyBadge, policyColor) = when {
-            commandAutoExecutionPolicy.contains("EAGER", ignoreCase = true) -> "⚡ Auto-Run" to QuotaGreen
-            commandAutoExecutionPolicy.contains("AUTO", ignoreCase = true) -> "🛡️ Smart Safety" to Color(0xFF00ACC1)
-            else -> "✋ Ask User" to Color(0xFFF59E0B)
+            commandAutoExecutionPolicy.contains("EAGER", ignoreCase = true) -> "Auto-Run" to Color(0xFF34D399)
+            commandAutoExecutionPolicy.contains("AUTO", ignoreCase = true) -> "Smart Safety" to Color(0xFF38BDF8)
+            else -> "Ask User" to Color(0xFFFBBF24)
         }
         val sandboxSummary = if (commandSandboxEnabled) "Sandbox ON" else "Sandbox OFF"
         SettingsCategoryCard(
-            icon = Icons.Outlined.Security,
+            icon = Icons.Outlined.Shield,
             iconTint = policyColor,
             title = "Commands & Permissions",
             subtitle = "Policy: $policyBadge • $sandboxSummary",
@@ -720,11 +720,11 @@ private fun MainSettingsMenu(
         }
 
         if (claudeGroup != null && claudeOn) {
-            SettingsGroupHeader("Claude Code", ClaudeAccent, "Anthropic Claude Code CLI")
+            SettingsGroupHeader("Claude Code", Color(0xFFF97316), "Anthropic Claude Code CLI")
             claudeGroup()
         }
 
-        SettingsGroupHeader("App", MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), "Shared by both agents")
+        SettingsGroupHeader("App", Color(0xFFA1A1AA), "Shared by both agents")
         // Section 1: Appearance & Display
         val themeLabel = when (themeMode) {
             "DARK" -> "Dark Mode"
@@ -733,23 +733,24 @@ private fun MainSettingsMenu(
         }
         SettingsCategoryCard(
             icon = Icons.Outlined.Palette,
-            iconTint = ClaudeTerracotta,
+            iconTint = Color(0xFFA855F7),
             title = "Appearance & Theme",
             subtitle = "$themeLabel • ${(chatFontScale * 100).toInt()}% text scale",
             badgeText = themeLabel,
+            badgeColor = Color(0xFFA855F7),
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.APPEARANCE) }
         )
 
-
         // Section 5: Terminal & Shell
         SettingsCategoryCard(
             icon = Icons.Outlined.Terminal,
-            iconTint = Color(0xFF00ACC1),
+            iconTint = Color(0xFF22D3EE),
             title = "Terminal & Shell Execution",
             subtitle = if (useSshTerminal) "SSH Mode (Termux sshd)" else "Local Linux Environment",
             badgeText = if (useSshTerminal) "SSH" else "Local",
+            badgeColor = Color(0xFF22D3EE),
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.TERMINAL) }
@@ -759,11 +760,11 @@ private fun MainSettingsMenu(
         if (isLocalToolsInstalled) {
             SettingsCategoryCard(
                 icon = Icons.Outlined.Backup,
-                iconTint = GeminiBlue,
+                iconTint = Color(0xFF60A5FA),
                 title = "Backups & Restore",
                 subtitle = "Backup rootfs environment and AGY chat histories",
                 badgeText = "Rootfs Active",
-                badgeColor = GeminiBlue,
+                badgeColor = Color(0xFF60A5FA),
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.BACKUPS) }
@@ -772,7 +773,7 @@ private fun MainSettingsMenu(
 
         // Section 5.6: Data Loss Protection
         SettingsCategoryCard(
-            icon = Icons.Outlined.Security,
+            icon = Icons.Outlined.AdminPanelSettings,
             iconTint = Color(0xFF10B981),
             title = "Data Loss Protection",
             subtitle = "Accidental uninstall shield & App Info clear data protection",
@@ -785,10 +786,10 @@ private fun MainSettingsMenu(
 
         // Section 6: Diagnostics & Performance
         val diagBadge = if (isFloatingDiagnosticsEnabled) "HUD ON" else "HUD OFF"
-        val diagColor = if (isFloatingDiagnosticsEnabled) QuotaGreen else Color.Gray
+        val diagColor = if (isFloatingDiagnosticsEnabled) Color(0xFF34D399) else Color(0xFF71717A)
         SettingsCategoryCard(
             icon = Icons.Outlined.Speed,
-            iconTint = if (isFloatingDiagnosticsEnabled) QuotaGreen else Color(0xFF00ACC1),
+            iconTint = if (isFloatingDiagnosticsEnabled) Color(0xFF34D399) else Color(0xFFFB7185),
             title = "Diagnostics & Performance",
             subtitle = if (isFloatingDiagnosticsEnabled) "Floating live metrics HUD enabled" else "Live network connections, active streams & thread HUD",
             badgeText = diagBadge,
@@ -798,12 +799,13 @@ private fun MainSettingsMenu(
             onClick = { onNavigate(SettingsSection.DIAGNOSTICS) }
         )
 
-        SettingsGroupHeader("Utilities", Color(0xFF00ACC1), "Handy device tools")
+        SettingsGroupHeader("Utilities", Color(0xFFFB923C), "Handy device tools")
         SettingsCategoryCard(
             icon = Icons.Outlined.Handyman,
-            iconTint = Color(0xFF00ACC1),
+            iconTint = Color(0xFFFB923C),
             title = "Utilities",
             subtitle = "ADB Connect, Android Automation",
+            badgeColor = Color(0xFFFB923C),
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.UTILITIES) }
@@ -813,11 +815,11 @@ private fun MainSettingsMenu(
         val variantLabel = if (BuildConfig.IS_SHARED_USER_ID) "Shared UID" else "Standalone"
         SettingsCategoryCard(
             icon = Icons.Outlined.Info,
-            iconTint = Color(0xFF8B5CF6),
-            title = "About & Info",
+            iconTint = Color(0xFF818CF8),
+            title = "About Gravent",
             subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) • ${BuildConfig.APPLICATION_ID} [$variantLabel]",
             badgeText = "v${BuildConfig.VERSION_NAME} ($variantLabel)",
-            badgeColor = if (BuildConfig.IS_SHARED_USER_ID) QuotaGreen else Color(0xFF8B5CF6),
+            badgeColor = if (BuildConfig.IS_SHARED_USER_ID) QuotaGreen else Color(0xFF818CF8),
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.ABOUT) }
@@ -1951,10 +1953,10 @@ private fun ServersSubScreen(
             confirmButton = {
                 Button(
                     onClick = { showUnsavedDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Keep Editing", fontWeight = FontWeight.Bold)
+                    Text("Keep Editing", fontWeight = FontWeight.Bold, color = Color.Black)
                 }
             },
             dismissButton = {
@@ -1992,7 +1994,7 @@ private fun ServersSubScreen(
             },
             title = {
                 Text(
-                    text = "Reopen AntiGem?",
+                    text = "Reopen Gravent?",
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp
                 )
@@ -2017,10 +2019,10 @@ private fun ServersSubScreen(
                             Runtime.getRuntime().exit(0)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Reopen Now", fontWeight = FontWeight.Bold)
+                    Text("Reopen Now", fontWeight = FontWeight.Bold, color = Color.Black)
                 }
             },
             dismissButton = {
@@ -2423,11 +2425,11 @@ private fun ServersSubScreen(
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
         ) {
-            Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Save Server & Security Settings", fontWeight = FontWeight.Bold)
+            Text("Save Server & Security Settings", fontWeight = FontWeight.Bold, color = Color.Black)
         }
     }
 }
@@ -2687,16 +2689,17 @@ private fun McpSubScreen(
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                         contentPadding = PaddingValues(vertical = 10.dp, horizontal = 12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
+                            tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add Server", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("Add Server", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     }
                 }
 
@@ -3866,9 +3869,9 @@ private fun AddEditMcpServerDialog(
                         onSave(spec, null)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
             ) {
-                Text("Save", fontWeight = FontWeight.Bold)
+                Text("Save", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         },
         dismissButton = {
@@ -4117,11 +4120,11 @@ private fun TerminalSubScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                     ) {
-                        Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save SSH Settings", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("Save SSH Settings", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Black)
                     }
                 } else {
                     // Local tools mode details
@@ -4168,9 +4171,9 @@ private fun TerminalSubScreen(
                                 onClick = onInstallLocalTools,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                             ) {
-                                Text("Download & Install Local Tools", fontSize = 12.5.sp)
+                                Text("Download & Install Local Tools", fontSize = 12.5.sp, color = Color.Black)
                             }
                         }
                     }
@@ -4448,11 +4451,11 @@ private fun TerminalSubScreen(
             onClick = onOpenLocalTerminal,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
         ) {
-            Icon(imageVector = Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(imageVector = Icons.Default.Terminal, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Launch Terminal Now", fontWeight = FontWeight.Bold)
+            Text("Launch Terminal Now", fontWeight = FontWeight.Bold, color = Color.Black)
         }
     }
 
@@ -4509,12 +4512,12 @@ private fun TerminalSubScreen(
                         showExternalApiInstructionDialog = false
                         activeCommandExecution = "Reinstall Termux:API Package" to "pkg reinstall -y termux-api"
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Black)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Reinstall Now", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Reinstall Now", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -5094,12 +5097,12 @@ private fun BackupsSubScreen(
                         }
                     },
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.CloudUpload, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Backup AGY Chats (backup_chats)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Backup AGY Chats (backup_chats)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
                 }
             }
         }
@@ -5335,9 +5338,9 @@ private fun BackupsSubScreen(
                             )
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
-                    Text("Start Backup", fontWeight = FontWeight.Bold)
+                    Text("Start Backup", fontWeight = FontWeight.Bold, color = Color.Black)
                 }
             },
             dismissButton = {
@@ -7170,11 +7173,11 @@ private fun CommandsSubScreen(
                         Button(
                             onClick = onRefreshSecurityAndProjects,
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Retry Connection", fontWeight = FontWeight.Bold)
+                            Text("Retry Connection", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
                     }
                 }
@@ -7706,12 +7709,12 @@ private fun CommandsSubScreen(
                 Button(
                     onClick = { showAddRuleDialog = true },
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Rule", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Add Rule", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 }
             }
 
@@ -8371,9 +8374,9 @@ private fun AddPermissionRuleDialog(
                 onClick = { onAdd(selectedAction, patternText.trim(), selectedDecision) },
                 enabled = patternText.isNotBlank(),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
             ) {
-                Text("Save Rule", fontWeight = FontWeight.Bold)
+                Text("Save Rule", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         },
         dismissButton = {
@@ -8890,29 +8893,31 @@ private fun AboutSubScreen(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
-                    border = BorderStroke(1.5.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f)),
+                    color = Color(0xFF141418),
+                    border = BorderStroke(1.dp, Color(0xFF26262B)),
                     modifier = Modifier.size(64.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null,
-                            tint = Color(0xFF8B5CF6),
-                            modifier = Modifier.size(32.dp)
+                        Text(
+                            text = "G",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Serif,
+                            color = Color(0xFFFAFAFA)
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "AntiGem",
-                    fontSize = 20.sp,
+                    text = "Gravent",
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = (-0.5).sp
                 )
                 Text(
-                    text = "Antigravity Mobile Hub & AI Pair Programmer",
-                    fontSize = 12.sp,
+                    text = "Autonomous AI Mobile Workspace",
+                    fontSize = 12.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
@@ -9117,8 +9122,8 @@ private fun AboutSubScreen(
                                         updateCheckResultText = null
                                     } else {
                                         isUpdateCheckError = false
-                                        updateCheckResultText = "AntiGem is up to date (v${BuildConfig.VERSION_NAME})."
-                                        Toast.makeText(context, "AntiGem is up to date!", Toast.LENGTH_SHORT).show()
+                                        updateCheckResultText = "Gravent is up to date (v${BuildConfig.VERSION_NAME})."
+                                        Toast.makeText(context, "Gravent is up to date!", Toast.LENGTH_SHORT).show()
                                     }
                                 }.onFailure { err ->
                                     isUpdateCheckError = true
@@ -9132,16 +9137,16 @@ private fun AboutSubScreen(
                     enabled = !isCheckingUpdate,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
                 ) {
                     if (isCheckingUpdate) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = Color.White,
+                            color = Color.Black,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Checking GitHub...")
+                        Text("Checking GitHub...", color = Color.Black)
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
