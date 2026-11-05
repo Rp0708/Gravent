@@ -24,6 +24,7 @@ import com.example.gemini.theme.isAppInDarkTheme
 import androidx.compose.ui.graphics.Color
 import com.example.gemini.domain.model.ThinkingLevel
 import com.example.gemini.domain.model.ThinkingPreference
+import com.example.gemini.theme.ClaudeDarkBorder
 import com.example.gemini.theme.ClaudeDarkSurface
 import com.example.gemini.theme.ClaudeTerracotta
 
@@ -81,6 +82,8 @@ fun ThinkingSelectorBottomSheet(
 
             // Level Options
             ThinkingLevel.values().forEach { level ->
+                val isSelected = selectedLevel == level
+                val borderColor = if (isSelected) ClaudeTerracotta else ClaudeDarkBorder
                 val unselectedBg = ClaudeDarkSurface
                 val bgColor = if (isSelected) ClaudeTerracotta.copy(alpha = 0.08f) else unselectedBg
 

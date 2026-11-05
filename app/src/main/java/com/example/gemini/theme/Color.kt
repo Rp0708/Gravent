@@ -25,6 +25,7 @@ val ClaudeThinkingLight = Color(0xFFF4F4F5)
 
 val ClaudeDarkBg = Color(0xFF000000)
 val ClaudeDarkSurface = Color(0xFF0A0A0C)
+val ClaudeDarkBorder = GraventDarkBorder
 val ClaudeUserBubbleDark = Color(0xFF141417)
 val ClaudeThinkingDark = Color(0xFF09090B)
 

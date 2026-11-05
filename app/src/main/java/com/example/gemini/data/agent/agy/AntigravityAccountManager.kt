@@ -148,10 +148,10 @@ object AntigravityAccountManager {
         }
 
         try {
-            val savedViaIde = IdeApiClient.saveFileDetailed(TOKEN_FILE_REL, tokenJson).success
+            val savedViaIde = IdeApiClient.saveFile(TOKEN_FILE_REL, tokenJson)
             written = written || savedViaIde
         } catch (e: Exception) {
-            Log.w(TAG, "IdeApiClient saveFileDetailed error: ${e.message}")
+            Log.w(TAG, "IdeApiClient saveFile error: ${e.message}")
         }
 
         written
