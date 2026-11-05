@@ -33,7 +33,7 @@ android {
         create("release") {
             storeFile = file("release.jks")
             storePassword = "123456"
-            keyAlias = "antigem"
+            keyAlias = "gravent"
             keyPassword = "123456"
         }
     }
@@ -83,7 +83,7 @@ android {
     }
 
     base {
-        archivesName.set("antiGem")
+        archivesName.set("Gravent")
     }
 
     compileOptions {
