@@ -1021,7 +1021,16 @@ fun ChatScreen(
                         rename = { id, title -> viewModel.renameConversation(id, title) },
                         restart = { id, onDone -> viewModel.claudeBackend.restartChat(id, onDone) }
                     )
-                }
+                },
+                currentChatArtifacts = artifacts,
+                onOpenFile = { path ->
+                    fileLinkHandler.onOpenFile(path)
+                    scope.launch { drawerState.close() }
+                },
+                onShowFileDetails = { path ->
+                    fileLinkHandler.onShowDetails(path)
+                },
+                activeFilePath = activeFileDetailsPath ?: activeMarkdownDoc?.first
             )
         }
     ) {

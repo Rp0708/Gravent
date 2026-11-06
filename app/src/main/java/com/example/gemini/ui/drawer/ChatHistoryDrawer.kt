@@ -46,6 +46,12 @@ import com.example.gemini.ui.components.BranchedMenuChild
 import com.example.gemini.ui.components.BranchedMenuItem
 import com.example.gemini.ui.components.DEFAULT_BRANCHED_MENU_ITEMS
 import com.example.gemini.ui.components.GRAVENT_HUB_MENU_ITEMS
+import com.example.gemini.domain.model.ArtifactSnapshot
+import com.example.gemini.ui.components.BranchedChildrenTree
+import com.example.gemini.ui.components.DrawerFileNode
+import com.example.gemini.ui.components.discoverConversationFiles
+import com.example.gemini.ui.components.createFileForConversation
+import com.example.gemini.ui.components.BranchedMenuEaseOut
 import android.widget.Toast
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Settings
@@ -116,6 +122,10 @@ fun ChatHistoryDrawer(
     /** Antigravity runs: its hub start-up and first sync drive the list's loading states. */
     agyEnabled: Boolean = true,
     claudeActions: ClaudeDrawerActions? = null,
+    currentChatArtifacts: List<ArtifactSnapshot> = emptyList(),
+    onOpenFile: (String) -> Unit = {},
+    onShowFileDetails: ((String) -> Unit)? = null,
+    activeFilePath: String? = null,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -131,6 +141,9 @@ fun ChatHistoryDrawer(
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<Conversation?>(null) }
     var showBranchedMenuDialog by remember { mutableStateOf(false) }
+    var fileToCreateConv by remember { mutableStateOf<Conversation?>(null) }
+    var newFileNameInput by remember { mutableStateOf("notes.md") }
+    var newFileContentInput by remember { mutableStateOf("") }
     var isInitialGracePeriod by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -227,8 +240,9 @@ fun ChatHistoryDrawer(
         }
 
         val targetIndex = if (!groupByWorkspace) {
-            val visibleTree = buildVisibleChatTree(topLevelChats, subagentsByParent, expandedParentIds)
-            visibleTree.indexOfFirst { it.conv.id == currentConversationId }
+            topLevelChats.indexOfFirst { top ->
+                top.id == currentConversationId || subagentsByParent[top.id]?.any { it.id == currentConversationId } == true
+            }
         } else {
             val targetGroup = grouped.entries.firstOrNull { (_, chats) ->
                 chats.any { top ->
@@ -268,13 +282,14 @@ fun ChatHistoryDrawer(
                 index++ // item(key = "hdr_$groupName")
                 val isExp = currentExpanded.contains(groupName)
                 val displayChats = if (isExp) chats else chats.take(5)
-                val groupTree = buildVisibleChatTree(displayChats, subagentsByParent, expandedParentIds)
-                val idxInTree = groupTree.indexOfFirst { it.conv.id == currentConversationId }
-                if (idxInTree != -1) {
-                    foundIndex = index + idxInTree
+                val idxInList = displayChats.indexOfFirst { top ->
+                    top.id == currentConversationId || subagentsByParent[top.id]?.any { it.id == currentConversationId } == true
+                }
+                if (idxInList != -1) {
+                    foundIndex = index + idxInList
                     break
                 }
-                index += groupTree.size
+                index += displayChats.size
                 if (chats.size > 5) {
                     index++ // item(key = "more_$groupName")
                 }
@@ -562,6 +577,113 @@ fun ChatHistoryDrawer(
             dismissButton = {
                 TextButton(
                     onClick = { conversationToDelete = null },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Cancel", fontSize = 13.5.sp)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    if (fileToCreateConv != null) {
+        val targetConv = fileToCreateConv!!
+        val isWorkspace = targetConv.workspaceUri.isNotBlank()
+        val locationHint = if (isWorkspace) {
+            "Workspace: " + java.io.File(targetConv.workspaceUri.removePrefix("file://")).name
+        } else {
+            "Chat Brain Storage (General / Outside Workspace)"
+        }
+        AlertDialog(
+            onDismissRequest = { fileToCreateConv = null },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = ClaudeTerracotta,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "New File in \"${targetConv.title.ifBlank { "Chat" }}\"",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = locationHint,
+                        fontSize = 12.sp,
+                        color = ClaudeTerracotta,
+                        fontWeight = FontWeight.Medium
+                    )
+                    OutlinedTextField(
+                        value = newFileNameInput,
+                        onValueChange = { newFileNameInput = it },
+                        label = { Text("File Name") },
+                        placeholder = { Text("e.g. notes.md, demo.md, test.py") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    OutlinedTextField(
+                        value = newFileContentInput,
+                        onValueChange = { newFileContentInput = it },
+                        label = { Text("Initial Content (Optional)") },
+                        placeholder = { Text("# My Notes\n...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(110.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val created = createFileForConversation(
+                            conv = targetConv,
+                            fileName = newFileNameInput,
+                            content = newFileContentInput
+                        )
+                        if (created != null) {
+                            expandedParentIds = expandedParentIds + targetConv.id
+                            onOpenFile(created.absolutePath)
+                            Toast.makeText(context, "Created ${created.name}", Toast.LENGTH_SHORT).show()
+                        }
+                        fileToCreateConv = null
+                        newFileNameInput = "notes.md"
+                        newFileContentInput = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ClaudeTerracotta,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Create & Open", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { fileToCreateConv = null },
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text("Cancel", fontSize = 13.5.sp)
@@ -929,25 +1051,35 @@ fun ChatHistoryDrawer(
                     }
                 }
 
-                // Branched Menu Button (React Bits Animated Component)
+                // Branched Menu Button (React Bits Animated Component: Toggles sidebar branches)
+                val hasExpandedBranches = expandedParentIds.isNotEmpty()
                 Surface(
-                    onClick = { showBranchedMenuDialog = true },
+                    onClick = {
+                        val allIds = topLevelChats.map { it.id }.toSet()
+                        val shouldCollapse = hasExpandedBranches
+                        expandedParentIds = if (shouldCollapse) emptySet() else allIds
+                        Toast.makeText(
+                            context,
+                            if (shouldCollapse) "Collapsed all branches" else "Expanded all branches (${allIds.size} chats)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
                     modifier = Modifier.size(36.dp),
                     shape = RoundedCornerShape(10.dp),
-                    color = if (showBranchedMenuDialog) ClaudeTerracotta.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                    color = if (hasExpandedBranches) ClaudeTerracotta.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                         alpha = 0.5f
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (showBranchedMenuDialog) ClaudeTerracotta.copy(alpha = 0.5f)
+                        if (hasExpandedBranches) ClaudeTerracotta.copy(alpha = 0.5f)
                         else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                     )
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.CallSplit,
-                            contentDescription = "Branched Menu",
-                            tint = if (showBranchedMenuDialog) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            contentDescription = "Toggle Branches",
+                            tint = if (hasExpandedBranches) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.85f
                             ),
                             modifier = Modifier.size(17.dp)
@@ -1188,15 +1320,17 @@ fun ChatHistoryDrawer(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             if (!groupByWorkspace) {
-                                val visibleTree =
-                                    buildVisibleChatTree(topLevelChats, subagentsByParent, expandedParentIds)
-                                items(visibleTree, key = { it.conv.id }) { item ->
-                                    val conv = item.conv
+                                items(topLevelChats, key = { it.id }) { conv ->
                                     val isSelected = conv.id == currentConversationId
                                     val activeInst = activeInstances.find { it.conversationId == conv.id }
                                     val isActivelyRunning = conv.isRunning && (systemConnectionState.isHubOnline || conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE)
                                     val isScheduledOrBackground =
                                         systemConnectionState.isHubOnline && !isActivelyRunning && (conv.notFullyIdle || conv.hasActivity || activeInst != null)
+                                    val subagents = subagentsByParent[conv.id] ?: emptyList()
+                                    val isExpanded = expandedParentIds.contains(conv.id)
+                                    val files = remember(conv.id, currentChatArtifacts, currentConversationId) {
+                                        discoverConversationFiles(conv, currentConversationId, currentChatArtifacts)
+                                    }
 
                                     ChatHistoryItemRow(
                                         conv = conv,
@@ -1204,19 +1338,17 @@ fun ChatHistoryDrawer(
                                         activeInst = activeInst,
                                         isActivelyRunning = isActivelyRunning,
                                         isScheduledOrBackground = isScheduledOrBackground,
-                                        depth = item.depth,
-                                        displayName = if (item.depth > 0) conv.subagentRole?.takeIf { it.isNotBlank() }
-                                            ?: conv.title else conv.title,
-                                        subagents = item.subagents,
-                                        isSubagentsExpanded = item.isExpanded,
-                                        onToggleSubagents = if (item.subagents.isNotEmpty()) {
-                                            {
-                                                expandedParentIds =
-                                                    if (item.isExpanded) expandedParentIds - conv.id else expandedParentIds + conv.id
-                                            }
-                                        } else null,
+                                        depth = 0,
+                                        displayName = conv.title,
+                                        subagents = subagents,
+                                        files = files,
+                                        isSubagentsExpanded = isExpanded,
+                                        onToggleSubagents = {
+                                            expandedParentIds =
+                                                if (isExpanded) expandedParentIds - conv.id else expandedParentIds + conv.id
+                                        },
                                         onSelectConversation = {
-                                            if (item.subagents.isNotEmpty()) {
+                                            if (subagents.isNotEmpty() || files.isNotEmpty()) {
                                                 expandedParentIds = expandedParentIds + conv.id
                                             }
                                             Log.d(
@@ -1230,7 +1362,12 @@ fun ChatHistoryDrawer(
                                         claudeActions = claudeActions,
                                         onTerminateInstance = { inst, title ->
                                             instanceToTerminate = inst to title
-                                        }
+                                        },
+                                        currentConversationId = currentConversationId,
+                                        activeFilePath = activeFilePath,
+                                        onOpenFile = onOpenFile,
+                                        onShowFileDetails = onShowFileDetails,
+                                        onAddFile = { fileToCreateConv = it }
                                     )
                                 }
                             } else {
@@ -1297,15 +1434,17 @@ fun ChatHistoryDrawer(
                                         }
                                     }
 
-                                    val groupTree =
-                                        buildVisibleChatTree(displayChats, subagentsByParent, expandedParentIds)
-                                    items(groupTree, key = { it.conv.id }) { item ->
-                                        val conv = item.conv
+                                    items(displayChats, key = { it.id }) { conv ->
                                         val isSelected = conv.id == currentConversationId
                                         val activeInst = activeInstances.find { it.conversationId == conv.id }
                                         val isActivelyRunning = conv.isRunning && (systemConnectionState.isHubOnline || conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE)
                                         val isScheduledOrBackground =
                                             systemConnectionState.isHubOnline && !isActivelyRunning && (conv.notFullyIdle || conv.hasActivity || activeInst != null)
+                                        val subagents = subagentsByParent[conv.id] ?: emptyList()
+                                        val isExpanded = expandedParentIds.contains(conv.id)
+                                        val files = remember(conv.id, currentChatArtifacts, currentConversationId) {
+                                            discoverConversationFiles(conv, currentConversationId, currentChatArtifacts)
+                                        }
 
                                         ChatHistoryItemRow(
                                             conv = conv,
@@ -1313,19 +1452,17 @@ fun ChatHistoryDrawer(
                                             activeInst = activeInst,
                                             isActivelyRunning = isActivelyRunning,
                                             isScheduledOrBackground = isScheduledOrBackground,
-                                            depth = item.depth,
-                                            displayName = if (item.depth > 0) conv.subagentRole?.takeIf { it.isNotBlank() }
-                                                ?: conv.title else conv.title,
-                                            subagents = item.subagents,
-                                            isSubagentsExpanded = item.isExpanded,
-                                            onToggleSubagents = if (item.subagents.isNotEmpty()) {
-                                                {
-                                                    expandedParentIds =
-                                                        if (item.isExpanded) expandedParentIds - conv.id else expandedParentIds + conv.id
-                                                }
-                                            } else null,
+                                            depth = 0,
+                                            displayName = conv.title,
+                                            subagents = subagents,
+                                            files = files,
+                                            isSubagentsExpanded = isExpanded,
+                                            onToggleSubagents = {
+                                                expandedParentIds =
+                                                    if (isExpanded) expandedParentIds - conv.id else expandedParentIds + conv.id
+                                            },
                                             onSelectConversation = {
-                                                if (item.subagents.isNotEmpty()) {
+                                                if (subagents.isNotEmpty() || files.isNotEmpty()) {
                                                     expandedParentIds = expandedParentIds + conv.id
                                                 }
                                                 Log.d(
@@ -1339,7 +1476,12 @@ fun ChatHistoryDrawer(
                                             claudeActions = claudeActions,
                                             onTerminateInstance = { inst, title ->
                                                 instanceToTerminate = inst to title
-                                            }
+                                            },
+                                            currentConversationId = currentConversationId,
+                                            activeFilePath = activeFilePath,
+                                            onOpenFile = onOpenFile,
+                                            onShowFileDetails = onShowFileDetails,
+                                            onAddFile = { fileToCreateConv = it }
                                         )
                                     }
 
@@ -1673,13 +1815,19 @@ private fun ChatHistoryItemRow(
     depth: Int = 0,
     displayName: String = conv.title,
     subagents: List<Conversation> = emptyList(),
+    files: List<DrawerFileNode> = emptyList(),
     isSubagentsExpanded: Boolean = false,
     onToggleSubagents: (() -> Unit)? = null,
     onSelectConversation: (String) -> Unit,
     onForkConversation: (String) -> Unit,
     onRequestDelete: (Conversation) -> Unit,
     onTerminateInstance: (com.example.gemini.data.remote.AgyActiveInstance, String) -> Unit,
-    claudeActions: ClaudeDrawerActions? = null
+    claudeActions: ClaudeDrawerActions? = null,
+    currentConversationId: String? = null,
+    activeFilePath: String? = null,
+    onOpenFile: (String) -> Unit = {},
+    onShowFileDetails: ((String) -> Unit)? = null,
+    onAddFile: (Conversation) -> Unit = {}
 ) {
     val isSubagent = depth > 0
     val startPadding = if (isSubagent) (12 + (depth * 14)).dp else 0.dp
@@ -1688,7 +1836,10 @@ private fun ChatHistoryItemRow(
         isScheduledOrBackground -> Color(0xFFFFB300)
         else -> null
     }
-    Row(
+    val totalChildren = files.size + subagents.size
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
@@ -1774,38 +1925,44 @@ private fun ChatHistoryItemRow(
                 if (conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE) {
                     com.example.gemini.ui.components.ClaudeBadge(modifier = Modifier.padding(start = 6.dp))
                 }
-                if (subagents.isNotEmpty()) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSubagentsExpanded) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(
-                            alpha = 0.7f
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSubagentsExpanded) ClaudeTerracotta.copy(alpha = 0.4f) else Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onToggleSubagents?.invoke() }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSubagentsExpanded) ClaudeTerracotta.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                        alpha = 0.65f
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSubagentsExpanded) ClaudeTerracotta.copy(alpha = 0.45f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                    ),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onToggleSubagents?.invoke() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.CallSplit,
+                            contentDescription = null,
+                            tint = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        if (totalChildren > 0) {
                             Text(
-                                text = "${subagents.size}",
+                                text = "$totalChildren",
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = if (isSubagentsExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = if (isSubagentsExpanded) "Collapse subagents" else "Expand subagents",
-                                tint = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(13.dp)
-                            )
                         }
+                        Icon(
+                            imageVector = if (isSubagentsExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isSubagentsExpanded) "Collapse branches" else "Expand branches",
+                            tint = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier.size(12.dp)
+                        )
                     }
                 }
 
@@ -2053,6 +2210,21 @@ private fun ChatHistoryItemRow(
                         }
                     }
                 )
+                DropdownMenuItem(
+                    text = { Text("New Note / File...", fontSize = 13.5.sp) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = ClaudeTerracotta,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onAddFile(conv)
+                    }
+                )
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -2081,6 +2253,30 @@ private fun ChatHistoryItemRow(
             }
         }
     }
+
+    // React Bits Branched Children Tree (Files & Subagents)
+    AnimatedVisibility(
+        visible = isSubagentsExpanded,
+        enter = expandVertically(
+            animationSpec = tween(durationMillis = 260, easing = BranchedMenuEaseOut)
+        ) + fadeIn(animationSpec = tween(180)),
+        exit = shrinkVertically(
+            animationSpec = tween(durationMillis = 220, easing = BranchedMenuEaseOut)
+        ) + fadeOut(animationSpec = tween(140))
+    ) {
+        BranchedChildrenTree(
+            files = files,
+            subagents = subagents,
+            activeFileId = activeFilePath,
+            selectedConversationId = currentConversationId,
+            onOpenFile = onOpenFile,
+            onSelectSubagent = onSelectConversation,
+            onAddFileClick = { onAddFile(conv) },
+            accentColor = ClaudeTerracotta,
+            modifier = Modifier.padding(start = startPadding)
+        )
+    }
+}
 }
 
 @Composable

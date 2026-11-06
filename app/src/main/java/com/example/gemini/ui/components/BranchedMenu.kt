@@ -24,14 +24,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DataObject
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
@@ -46,6 +50,14 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.offset
+import java.io.File
+import com.example.gemini.domain.model.ArtifactSnapshot
+import com.example.gemini.domain.model.Conversation
+import com.example.gemini.theme.GeminiBlue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -412,7 +424,7 @@ fun BranchedMenu(
  * Renders the canvas branch curves, animated reach stroke, and interactive child item buttons.
  */
 @Composable
-private fun BranchedMenuSectionTree(
+fun BranchedMenuSectionTree(
     kids: List<BranchedMenuChild>,
     active: String,
     onSelect: (String, BranchedMenuChild) -> Unit,
@@ -690,3 +702,555 @@ val GRAVENT_HUB_MENU_ITEMS: List<BranchedMenuItem> = listOf(
         )
     )
 )
+
+/**
+ * File node discovered under a conversation or workspace.
+ */
+data class DrawerFileNode(
+    val id: String,
+    val name: String,
+    val path: String,
+    val extension: String,
+    val isArtifact: Boolean = false,
+    val summary: String? = null,
+    val sizeBytes: Long = 0L,
+    val lastModified: Long = 0L
+)
+
+/**
+ * Discovers files associated with a conversation:
+ * 1. Live artifacts emitted in memory for the active conversation
+ * 2. Brain directory on disk (~/.gemini/antigravity-cli/brain/<convId>/) including scratch/ and .user_uploaded/
+ * 3. Workspace root files or scratch directory files for general chats
+ */
+fun discoverConversationFiles(
+    conv: Conversation,
+    currentConvId: String?,
+    currentChatArtifacts: List<ArtifactSnapshot> = emptyList()
+): List<DrawerFileNode> {
+    val results = mutableListOf<DrawerFileNode>()
+    val seenPaths = mutableSetOf<String>()
+
+    // 1. Live artifacts if this conversation is active
+    if (conv.id == currentConvId && currentChatArtifacts.isNotEmpty()) {
+        currentChatArtifacts.forEach { snap ->
+            val uriOrPath = snap.absoluteUri.ifBlank { snap.name }
+            val cleanPath = uriOrPath.removePrefix("file://")
+            val f = File(cleanPath)
+            val name = f.name.ifBlank { snap.name.substringAfterLast("/") }
+            val ext = if (name.contains(".")) name.substringAfterLast(".").lowercase() else ""
+            if (seenPaths.add(cleanPath)) {
+                results.add(
+                    DrawerFileNode(
+                        id = cleanPath,
+                        name = name,
+                        path = cleanPath,
+                        extension = ext,
+                        isArtifact = true,
+                        summary = snap.summary.ifBlank { null },
+                        sizeBytes = if (f.exists()) f.length() else 0L,
+                        lastModified = if (f.exists()) f.lastModified() else 0L
+                    )
+                )
+            }
+        }
+    }
+
+    // 2. Scan conversation brain directory
+    try {
+        val brainDir = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/brain/${conv.id}")
+        if (brainDir.exists() && brainDir.isDirectory) {
+            // Root brain files (artifacts, notes, plans)
+            brainDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
+                if (seenPaths.add(f.absolutePath)) {
+                    val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                    results.add(
+                        DrawerFileNode(
+                            id = f.absolutePath,
+                            name = f.name,
+                            path = f.absolutePath,
+                            extension = ext,
+                            isArtifact = true,
+                            sizeBytes = f.length(),
+                            lastModified = f.lastModified()
+                        )
+                    )
+                }
+            }
+
+            // Scratch directory in brain
+            val scratchDir = File(brainDir, "scratch")
+            if (scratchDir.exists() && scratchDir.isDirectory) {
+                scratchDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
+                    if (seenPaths.add(f.absolutePath)) {
+                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                        results.add(
+                            DrawerFileNode(
+                                id = f.absolutePath,
+                                name = f.name,
+                                path = f.absolutePath,
+                                extension = ext,
+                                isArtifact = false,
+                                sizeBytes = f.length(),
+                                lastModified = f.lastModified()
+                            )
+                        )
+                    }
+                }
+            }
+
+            // User uploaded files (.user_uploaded)
+            val uploadsDir = File(brainDir, ".user_uploaded")
+            if (uploadsDir.exists() && uploadsDir.isDirectory) {
+                uploadsDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
+                    if (seenPaths.add(f.absolutePath)) {
+                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                        results.add(
+                            DrawerFileNode(
+                                id = f.absolutePath,
+                                name = f.name,
+                                path = f.absolutePath,
+                                extension = ext,
+                                isArtifact = false,
+                                sizeBytes = f.length(),
+                                lastModified = f.lastModified()
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    } catch (_: Exception) {}
+
+    // 3. Workspace root files or scratch directory files
+    try {
+        if (conv.workspaceUri.isNotBlank()) {
+            val wsPath = conv.workspaceUri.removePrefix("file://")
+            val wsDir = File(wsPath)
+            if (wsDir.exists() && wsDir.isDirectory) {
+                wsDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.take(8)?.forEach { f ->
+                    if (seenPaths.add(f.absolutePath)) {
+                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                        results.add(
+                            DrawerFileNode(
+                                id = f.absolutePath,
+                                name = f.name,
+                                path = f.absolutePath,
+                                extension = ext,
+                                isArtifact = false,
+                                sizeBytes = f.length(),
+                                lastModified = f.lastModified()
+                            )
+                        )
+                    }
+                }
+            }
+        } else {
+            // General / Outside workspace: check scratch folder
+            val generalScratch = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/scratch")
+            if (generalScratch.exists() && generalScratch.isDirectory) {
+                generalScratch.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.take(8)?.forEach { f ->
+                    if (seenPaths.add(f.absolutePath)) {
+                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                        results.add(
+                            DrawerFileNode(
+                                id = f.absolutePath,
+                                name = f.name,
+                                path = f.absolutePath,
+                                extension = ext,
+                                isArtifact = false,
+                                sizeBytes = f.length(),
+                                lastModified = f.lastModified()
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    } catch (_: Exception) {}
+
+    return results
+}
+
+/**
+ * Creates a new file / note for a conversation directly on disk.
+ */
+fun createFileForConversation(
+    conv: Conversation,
+    fileName: String,
+    content: String = ""
+): File? {
+    return try {
+        val cleanName = fileName.trim().ifBlank { "notes.md" }
+        val targetDir = if (conv.workspaceUri.isNotBlank()) {
+            File(conv.workspaceUri.removePrefix("file://"))
+        } else {
+            val brainDir = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/brain/${conv.id}/scratch")
+            if (!brainDir.exists()) brainDir.mkdirs()
+            brainDir
+        }
+        if (!targetDir.exists()) targetDir.mkdirs()
+        val targetFile = File(targetDir, cleanName)
+        if (!targetFile.exists()) {
+            val defaultContent = if (content.isNotBlank()) content else {
+                if (cleanName.endsWith(".md", ignoreCase = true)) {
+                    "# ${cleanName.substringBeforeLast(".")}\n\n*Created for ${conv.title.ifBlank { "Conversation" }}*\n\n"
+                } else {
+                    "// ${cleanName}\n"
+                }
+            }
+            targetFile.writeText(defaultContent)
+        }
+        targetFile
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
+ * Unified entry in the [BranchedChildrenTree].
+ */
+sealed class BranchedChildEntry {
+    abstract val key: String
+    abstract val label: String
+    abstract val badge: String?
+    abstract val badgeColor: Color
+    abstract val isActive: Boolean
+    abstract val onClick: () -> Unit
+    @Composable abstract fun IconContent()
+
+    data class FileEntry(
+        val file: DrawerFileNode,
+        override val isActive: Boolean,
+        override val onClick: () -> Unit
+    ) : BranchedChildEntry() {
+        override val key: String = "file_${file.path}"
+        override val label: String = file.name
+        override val badge: String = when (file.extension) {
+            "md", "markdown" -> "MD"
+            "kt", "kts" -> "KT"
+            "java" -> "JAVA"
+            "py" -> "PY"
+            "json" -> "JSON"
+            "yaml", "yml" -> "YAML"
+            "png", "jpg", "jpeg", "webp" -> "IMG"
+            "sh", "bash" -> "SH"
+            "ts" -> "TS"
+            "js" -> "JS"
+            "" -> "FILE"
+            else -> file.extension.uppercase().take(4)
+        }
+        override val badgeColor: Color = when (file.extension) {
+            "md", "markdown" -> ClaudeTerracotta
+            "kt", "kts", "ts", "js", "java" -> GeminiBlue
+            "py" -> Color(0xFFFFB300)
+            "json", "yaml", "yml" -> Color(0xFF26A69A)
+            "png", "jpg", "jpeg", "webp" -> Color(0xFF66BB6A)
+            "sh", "bash" -> Color(0xFF4CAF50)
+            else -> Color(0xFF9E9E9E)
+        }
+
+        @Composable
+        override fun IconContent() {
+            val vec = when (file.extension) {
+                "md", "markdown" -> Icons.Outlined.Description
+                "kt", "kts", "ts", "js", "java", "py" -> Icons.Outlined.Code
+                "json", "yaml", "yml" -> Icons.Outlined.DataObject
+                "png", "jpg", "jpeg", "webp" -> Icons.Outlined.Image
+                "sh", "bash" -> Icons.Outlined.Terminal
+                else -> Icons.Outlined.Description
+            }
+            Icon(
+                imageVector = vec,
+                contentDescription = null,
+                tint = if (isActive) ClaudeTerracotta else badgeColor,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+
+    data class SubagentEntry(
+        val subagent: Conversation,
+        override val isActive: Boolean,
+        override val onClick: () -> Unit
+    ) : BranchedChildEntry() {
+        override val key: String = "sub_${subagent.id}"
+        override val label: String = subagent.subagentRole?.takeIf { it.isNotBlank() } ?: subagent.title
+        override val badge: String = "SUB"
+        override val badgeColor: Color = Color(0xFFFF9800)
+
+        @Composable
+        override fun IconContent() {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.CallSplit,
+                    contentDescription = null,
+                    tint = if (isActive) ClaudeTerracotta else Color(0xFFFF9800),
+                    modifier = Modifier.size(15.dp)
+                )
+                if (subagent.isRunning) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .align(Alignment.TopEnd)
+                            .offset(x = 1.dp, y = (-1).dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                    )
+                }
+            }
+        }
+    }
+
+    data class AddActionEntry(
+        override val onClick: () -> Unit
+    ) : BranchedChildEntry() {
+        override val key: String = "action_add_file"
+        override val label: String = "New Note / File..."
+        override val badge: String = "+"
+        override val badgeColor: Color = Color(0xFF888888)
+        override val isActive: Boolean = false
+
+        @Composable
+        override fun IconContent() {
+            Icon(
+                imageVector = Icons.Outlined.Add,
+                contentDescription = null,
+                tint = Color(0xFF888888),
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Renders the React Bits branched tree for children of a conversation (files + subagents).
+ * Displays bezier branch connectors from the trunk rail into each item, with animated reach strokes.
+ */
+@Composable
+fun BranchedChildrenTree(
+    files: List<DrawerFileNode>,
+    subagents: List<Conversation>,
+    activeFileId: String? = null,
+    selectedConversationId: String? = null,
+    onOpenFile: (String) -> Unit,
+    onSelectSubagent: (String) -> Unit,
+    onAddFileClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accentColor: Color = ClaudeTerracotta,
+    lineColor: Color = Color(0xFF3F3F46),
+    rowHeight: Dp = 34.dp,
+    indent: Dp = 38.dp,
+    trunk: Dp = 14.dp,
+    radius: Dp = 9.dp,
+    lineWidth: Dp = 1.4.dp,
+    drawDurationMs: Int = 350
+) {
+    val entries = remember(files, subagents, activeFileId, selectedConversationId) {
+        val list = mutableListOf<BranchedChildEntry>()
+        files.forEach { f ->
+            val isAct = activeFileId != null && (
+                activeFileId == f.path ||
+                activeFileId.removePrefix("file://") == f.path.removePrefix("file://")
+            )
+            list.add(BranchedChildEntry.FileEntry(f, isAct) { onOpenFile(f.path) })
+        }
+        subagents.forEach { s ->
+            val isAct = selectedConversationId == s.id
+            list.add(BranchedChildEntry.SubagentEntry(s, isAct) { onSelectSubagent(s.id) })
+        }
+        list.add(BranchedChildEntry.AddActionEntry(onAddFileClick))
+        list
+    }
+
+    val density = LocalDensity.current
+    val rowHeightPx = with(density) { rowHeight.toPx() }
+    val trunkPx = with(density) { trunk.toPx() }
+    val indentPx = with(density) { indent.toPx() }
+    val radiusPx = with(density) { radius.toPx() }
+    val lineWidthPx = with(density) { lineWidth.toPx() }
+    val padPx = with(density) { 4.dp.toPx() }
+
+    val rPx = remember(radiusPx, rowHeightPx) {
+        minOf(radiusPx, (rowHeightPx / 2f) - 2f)
+    }
+    val endXPx = remember(indentPx) {
+        indentPx - with(density) { 8.dp.toPx() }
+    }
+
+    val rowYPositions = remember(entries.size, rowHeightPx, padPx) {
+        FloatArray(entries.size) { k ->
+            padPx + k * rowHeightPx + (rowHeightPx / 2f)
+        }
+    }
+
+    val pathMeasure = remember { PathMeasure() }
+    val segmentPath = remember { Path() }
+
+    val branchPaths = remember(entries, trunkPx, rowYPositions, rPx, endXPx) {
+        entries.indices.map { k ->
+            val rowY = rowYPositions[k]
+            Path().apply {
+                moveTo(trunkPx, (rowY - rPx).coerceAtLeast(0f))
+                quadraticBezierTo(trunkPx, rowY, trunkPx + rPx, rowY)
+                lineTo(endXPx, rowY)
+            }
+        }
+    }
+
+    val reachPaths = remember(entries, trunkPx, rowYPositions, rPx, endXPx) {
+        entries.indices.map { k ->
+            val rowY = rowYPositions[k]
+            Path().apply {
+                moveTo(trunkPx, 0f)
+                lineTo(trunkPx, (rowY - rPx).coerceAtLeast(0f))
+                quadraticBezierTo(trunkPx, rowY, trunkPx + rPx, rowY)
+                lineTo(endXPx, rowY)
+            }
+        }
+    }
+
+    val reachAnimatables = remember(entries) {
+        entries.associate { it.key to Animatable(if (it.isActive) 1f else 0f) }
+    }
+
+    LaunchedEffect(entries) {
+        entries.forEach { entry ->
+            val anim = reachAnimatables[entry.key] ?: return@forEach
+            val target = if (entry.isActive) 1f else 0f
+            if (anim.targetValue != target) {
+                launch {
+                    anim.animateTo(
+                        targetValue = target,
+                        animationSpec = tween(
+                            durationMillis = drawDurationMs,
+                            easing = BranchedMenuEaseOut
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    ) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            if (entries.isEmpty()) return@Canvas
+            val lastRowY = rowYPositions.lastOrNull() ?: 0f
+            val stemEndY = (lastRowY - rPx).coerceAtLeast(0f)
+
+            // Vertical stem line from trunk top down to last branch curve
+            drawLine(
+                color = lineColor,
+                start = Offset(x = trunkPx, y = 0f),
+                end = Offset(x = trunkPx, y = stemEndY),
+                strokeWidth = lineWidthPx,
+                cap = StrokeCap.Round
+            )
+
+            // Curved branch connectors
+            branchPaths.forEach { bPath ->
+                drawPath(
+                    path = bPath,
+                    color = lineColor,
+                    style = Stroke(
+                        width = lineWidthPx,
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
+            }
+
+            // Neon reach laser stroke for active item
+            entries.indices.forEach { k ->
+                val entry = entries[k]
+                val progress = reachAnimatables[entry.key]?.value ?: 0f
+                if (progress > 0.005f) {
+                    val reachPath = reachPaths[k]
+                    segmentPath.reset()
+                    pathMeasure.setPath(reachPath, false)
+                    val totalLen = pathMeasure.length
+                    if (totalLen > 0f) {
+                        pathMeasure.getSegment(0f, totalLen * progress, segmentPath, true)
+                        // Ambient glow halo
+                        drawPath(
+                            path = segmentPath,
+                            color = accentColor.copy(alpha = 0.35f * progress),
+                            style = Stroke(
+                                width = lineWidthPx * 3.2f,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                        // Core laser
+                        drawPath(
+                            path = segmentPath,
+                            color = accentColor.copy(alpha = progress),
+                            style = Stroke(
+                                width = lineWidthPx,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            entries.forEach { entry ->
+                val isAct = entry.isActive
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(rowHeight)
+                        .padding(start = indent, end = 8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isAct) accentColor.copy(alpha = 0.12f) else Color.Transparent)
+                        .clickable { entry.onClick() }
+                        .padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        entry.IconContent()
+                        Text(
+                            text = entry.label,
+                            fontSize = 12.5.sp,
+                            fontWeight = if (isAct) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isAct) accentColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (entry.badge != null) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (isAct) accentColor.copy(alpha = 0.20f) else entry.badgeColor.copy(alpha = 0.12f),
+                            border = BorderStroke(0.6.dp, if (isAct) accentColor.copy(alpha = 0.5f) else entry.badgeColor.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = entry.badge,
+                                color = if (isAct) accentColor else entry.badgeColor,
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
