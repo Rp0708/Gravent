@@ -94,8 +94,7 @@ fun FloatingLines(
     LaunchedEffect(animationSpeed) {
         var lastNanos = 0L
         while (true) {
-            withInfiniteAnimationFrameMillis { frameMillis ->
-                val currentNanos = frameMillis * 1_000_000L
+            withFrameNanos { currentNanos ->
                 if (lastNanos != 0L) {
                     val dt = ((currentNanos - lastNanos) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
                     timeSeconds += dt * animationSpeed
