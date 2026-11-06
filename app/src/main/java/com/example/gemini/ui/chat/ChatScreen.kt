@@ -96,6 +96,7 @@ import com.example.gemini.ui.components.AssistantMessageFooter
 import com.example.gemini.ui.components.ThinkingAccordion
 import com.example.gemini.ui.components.ModelTypingIndicator
 import com.example.gemini.ui.components.ConnectionStatusBadge
+import com.example.gemini.ui.components.DecryptedText
 import com.example.gemini.ui.components.FileLinkHandler
 import com.example.gemini.ui.components.LocalFileLinkHandler
 import com.example.gemini.ui.components.FileDetailsDialog
@@ -1154,11 +1155,11 @@ fun ChatScreen(
                         }
 
                         Column {
-                            Text(
+                            DecryptedText(
                                 text = displayedChatTitle,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                revealedColor = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

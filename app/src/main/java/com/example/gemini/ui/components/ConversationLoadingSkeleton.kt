@@ -51,7 +51,7 @@ fun EngineWarmingUpView(
             lineDistance = 5.4f,
             animationSpeed = 0.95f,
             amplitude = 1.15f,
-            lineWidth = 1.3.dp,
+            lineWidth = 1.2f,
             glow = 1.15f,
             interactive = true,
             clickSwirl = true
@@ -82,11 +82,12 @@ fun EngineWarmingUpView(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
+            ShinyText(
                 text = "Waking up Antigravity...",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                baseColor = MaterialTheme.colorScheme.onSurface,
+                shinyColor = Color(0xFF38BDF8),
                 textAlign = TextAlign.Center
             )
 
@@ -124,7 +125,7 @@ fun DrawerEngineWarmingUpView(
             lineDistance = 6.0f,
             animationSpeed = 0.8f,
             amplitude = 0.8f,
-            lineWidth = 1.0.dp,
+            lineWidth = 1.0f,
             glow = 0.8f,
             interactive = false,
             clickSwirl = false
@@ -155,11 +156,12 @@ fun DrawerEngineWarmingUpView(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
+            ShinyText(
                 text = "Waking up Antigravity...",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                baseColor = MaterialTheme.colorScheme.onSurface,
+                shinyColor = Color(0xFF38BDF8),
                 textAlign = TextAlign.Center
             )
 

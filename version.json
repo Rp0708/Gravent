@@ -1,11 +1,12 @@
 {
-  "version_code": 133,
-  "version_name": "1.0.33",
+  "version_code": 134,
+  "version_name": "1.0.34",
   "min_supported_version_code": 1,
   "changelog": [
-    "React Bits Floating Lines: Luminous ribbons of glowing harmonic wave lines with interactive touch repulsion and tap swirl vortex curls",
-    "Interactive Startup & Warming Up Screen: Replaced static engine loading screen with interactive Floating Lines background while Antigravity wakes up",
-    "Drawer Engine Ambience: Added glowing wave ribbons in sidebar drawer during background engine connection"
+    "React Bits Floating Lines (GLES 3.0 GPU Hardware-Accelerated): High-performance OpenGL ES 3.0 TextureView with volumetric bloom, infinite ribbon distance fields, touch deflection, and swirl vortex curls at locked 60 fps",
+    "React Bits DecryptedText: Cybernetic glyph decryption scramble on conversation titles with sequential letter resolution",
+    "React Bits ShinyText: Glistening metallic light beam sweeping across engine warming-up status headers",
+    "React Bits StarBorder: Orbiting neon star particle traveling smoothly around the chat input card perimeter while active or generating"
   ],
   "is_critical": false
 }
