@@ -806,7 +806,7 @@ class TrajectoryEngine {
             return
         }
 
-        val toolCall = extractToolCallFromStep(step, stepIndex)
+        val toolCall = extractToolCallFromStep(step, stepIndex, isStreaming)
         if (toolCall != null) {
             blocks.add(TurnBlock.Tool(stepIndex = stepIndex, toolCall = toolCall))
         }
@@ -815,7 +815,7 @@ class TrajectoryEngine {
     /**
      * Extracts a domain ToolCall from a typed Step protobuf model without regex.
      */
-    private fun extractToolCallFromStep(step: Step, stepIndex: Int): ToolCall? {
+    private fun extractToolCallFromStep(step: Step, stepIndex: Int, isStreaming: Boolean): ToolCall? {
         val meta = step.metadata
         val tcMeta = meta?.tool_call
 
@@ -896,8 +896,16 @@ class TrajectoryEngine {
                     ?: "run_command"
                 command = cmd
                 output = runCmd?.combined_output?.full?.takeIf { it.isNotBlank() }
-                    ?: runCmd?.stdout ?: ""
-                exitCode = runCmd?.exit_code
+                    ?: runCmd?.stdout?.takeIf { it.isNotBlank() }
+                    ?: step.generic?.result?.result
+                    ?: ""
+                exitCode = runCmd?.exit_code ?: run {
+                    if (output.contains("exited with code 0", ignoreCase = true) || output.contains("exit code 0", ignoreCase = true)) {
+                        0
+                    } else if (output.contains("exited with code", ignoreCase = true)) {
+                        Regex("""exited with code (\d+)""", RegexOption.IGNORE_CASE).find(output)?.groupValues?.get(1)?.toIntOrNull()
+                    } else null
+                }
             }
             "view_file" -> {
                 val rawPath = (argsMap["AbsolutePath"]
@@ -1117,16 +1125,18 @@ class TrajectoryEngine {
             command = meta?.tool_action?.ifBlank { meta.tool_summary.ifBlank { rawName } } ?: rawName
         }
 
-        val status = when (step.status) {
-            CortexStepStatus.CORTEX_STEP_STATUS_DONE -> {
-                userRespondedStepIndices.remove(stepIndex)
-                "SUCCESS"
-            }
-            CortexStepStatus.CORTEX_STEP_STATUS_ERROR -> {
+        val hasSubsequentStep = activeStepsMap.keys.any { it > stepIndex }
+        val isExplicitSuccess = step.status == CortexStepStatus.CORTEX_STEP_STATUS_DONE
+        val isExplicitError = step.status == CortexStepStatus.CORTEX_STEP_STATUS_ERROR
+        val isExplicitCanceled = step.status == CortexStepStatus.CORTEX_STEP_STATUS_CANCELED
+        val turnFinished = (!isRunning && !isWaitingInteraction) || !isStreaming
+
+        val status = when {
+            isExplicitError || (exitCode != null && exitCode != 0) -> {
                 userRespondedStepIndices.remove(stepIndex)
                 "FAILED"
             }
-            CortexStepStatus.CORTEX_STEP_STATUS_CANCELED -> {
+            isExplicitCanceled -> {
                 userRespondedStepIndices.remove(stepIndex)
                 when {
                     output.contains("rejected", ignoreCase = true) -> "REJECTED"
@@ -1135,33 +1145,40 @@ class TrajectoryEngine {
                     else -> "TERMINATED"
                 }
             }
-            CortexStepStatus.CORTEX_STEP_STATUS_WAITING -> {
+            isExplicitSuccess || (exitCode == 0) || (hasSubsequentStep && !isExplicitCanceled) || (turnFinished && !isExplicitCanceled) -> {
+                userRespondedStepIndices.remove(stepIndex)
+                "SUCCESS"
+            }
+            step.status == CortexStepStatus.CORTEX_STEP_STATUS_WAITING || step.requested_interaction != null -> {
                 if (toolType == ToolType.ASK_CHOICE) {
                     if (userRespondedStepIndices.contains(stepIndex)) "RUNNING" else "AWAITING_CHOICE"
                 } else {
                     if (userRespondedStepIndices.contains(stepIndex)) "RUNNING" else "PENDING_APPROVAL"
                 }
             }
-            CortexStepStatus.CORTEX_STEP_STATUS_RUNNING,
-            CortexStepStatus.CORTEX_STEP_STATUS_PENDING,
-            CortexStepStatus.CORTEX_STEP_STATUS_GENERATING,
-            CortexStepStatus.CORTEX_STEP_STATUS_QUEUED -> {
-                if (toolType == ToolType.ASK_CHOICE && !userRespondedStepIndices.contains(stepIndex)) {
-                    "AWAITING_CHOICE"
-                } else {
-                    "RUNNING"
-                }
-            }
-            else -> if (step.requested_interaction != null || toolType == ToolType.ASK_CHOICE) {
-                if (userRespondedStepIndices.contains(stepIndex)) "RUNNING" else if (toolType == ToolType.ASK_CHOICE) "AWAITING_CHOICE" else "PENDING_APPROVAL"
-            } else "RUNNING"
+            toolType == ToolType.ASK_CHOICE && !userRespondedStepIndices.contains(stepIndex) -> "AWAITING_CHOICE"
+            else -> "RUNNING"
         }
+
+        val resolvedExitCode = if (status == "SUCCESS" && exitCode == null && toolType == ToolType.BASH) 0 else exitCode
 
         val startMs = parseTimestampToMillis(step.metadata?.started_at) ?: parseTimestampToMillis(step.metadata?.created_at)
         val endMs = parseTimestampToMillis(step.metadata?.completed_at) ?: parseTimestampToMillis(step.metadata?.finished_generating_at)
         val toolDurationMs = if (startMs != null && endMs != null && endMs >= startMs) {
             endMs - startMs
-        } else null
+        } else {
+            try {
+                if (output.contains("Created At:") && output.contains("Completed At:")) {
+                    val createdStr = output.substringAfter("Created At:").substringBefore("\n").trim()
+                    val completedStr = output.substringAfter("Completed At:").substringBefore("\n").trim()
+                    val cTime = java.time.Instant.parse(createdStr).toEpochMilli()
+                    val compTime = java.time.Instant.parse(completedStr).toEpochMilli()
+                    if (compTime >= cTime) compTime - cTime else null
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }
 
         return ToolCall(
             id = toolId,
@@ -1170,7 +1187,7 @@ class TrajectoryEngine {
             command = command,
             output = output,
             status = status,
-            exitCode = exitCode,
+            exitCode = resolvedExitCode,
             durationMs = toolDurationMs,
             stepIndex = stepIndex,
             trajectoryId = trajectoryId,

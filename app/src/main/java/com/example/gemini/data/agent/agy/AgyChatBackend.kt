@@ -38,6 +38,7 @@ import com.example.gemini.data.agent.AgentChatBackend
 import com.example.gemini.domain.model.AgentKind
 import com.example.gemini.data.agent.ChatSessionStore
 import com.example.gemini.ui.chat.PendingToolApproval
+import exa.language_server_pb.CascadeRunStatus
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -1029,6 +1030,41 @@ class AgyChatBackend(
         persistentStreamJob = backendScope.launch(Dispatchers.IO) {
             val hubUrl = AuthPreferences.currentHubUrl
             var isFirstChunk = true
+            var lastUiDispatchTime = 0L
+            val STREAM_THROTTLE_MS = 32L // ~30 fps cadence for rapid, butter-smooth streaming
+            var pendingFlushJob: Job? = null
+
+            suspend fun flushUiUpdate(forceTerminal: Boolean = false) {
+                if (activeStreamConversationId != conversationId) return
+                val isRunning = trajectoryEngine.isRunning
+                val isWaiting = trajectoryEngine.isWaitingInteraction
+                val msgs = trajectoryEngine.toChatMessages(conversationId)
+
+                withContext(Dispatchers.Main) {
+                    if (activeStreamConversationId != conversationId) return@withContext
+                    _isServerOnline.value = true
+                    _conversationError.value = null
+                    _isLoadingConversation.value = false
+                    _isReconnecting.value = false
+                    _isStreaming.value = isRunning && !isWaiting
+                    _messages.value = msgs
+
+                    if (msgs.isNotEmpty() && forceTerminal) {
+                        backendScope.launch(Dispatchers.Default) {
+                            com.example.gemini.ui.chat.ChatFeedCache.prewarm(msgs)
+                        }
+                        msgs.flatMap { it.toolCalls }.filter {
+                            it.toolType == com.example.gemini.domain.model.ToolType.GENERATE_IMAGE && it.output.isNotBlank()
+                        }.forEach { tc ->
+                            com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, tc.output, agyHubClient, hubUrl)
+                        }
+                        msgs.flatMap { it.attachments }.filter { it.isImage && it.path.isNotBlank() }.forEach { att ->
+                            val rawUri = if (att.path.startsWith("file://") || att.path.startsWith("http")) att.path else "file://${att.path}"
+                            com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, rawUri, agyHubClient, hubUrl)
+                        }
+                    }
+                }
+            }
 
             if (trajectoryEngine.conversationId != conversationId || _messages.value.isEmpty()) {
                 trajectoryEngine.reset(conversationId)
@@ -1048,40 +1084,41 @@ class AgyChatBackend(
                         val statusStr = update?.status?.name ?: ""
                         val stepsCount = update?.main_trajectory_update?.steps_update?.steps?.size ?: 0
                         Log.d("CHAT_OPEN_DEBUG", "📥 [ChatViewModel Stream Frame] convId=$conversationId, isFirstChunk=$isFirstChunk, status=$statusStr, stepsCount=$stepsCount")
-                        isFirstChunk = false
-                        val turns = if (update != null) trajectoryEngine.ingestAgentStateUpdate(update) else emptyList()
-                        val msgs = trajectoryEngine.toChatMessages(conversationId)
 
+                        if (update != null) {
+                            trajectoryEngine.ingestAgentStateUpdate(update)
+                        }
 
-                        withContext(Dispatchers.Main) {
-                            if (activeStreamConversationId != conversationId) return@withContext
-                            _isServerOnline.value = true
-                            _conversationError.value = null
-                            _isLoadingConversation.value = false
-                            _isReconnecting.value = false
+                        val isRunning = trajectoryEngine.isRunning
+                        val isWaiting = trajectoryEngine.isWaitingInteraction
+                        val isTerminalFrame = !isRunning || isWaiting ||
+                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_DONE ||
+                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_ERROR ||
+                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_CANCELED
 
-                            val isRunning = trajectoryEngine.isRunning
-                            val isWaiting = trajectoryEngine.isWaitingInteraction
-                            _isStreaming.value = isRunning && !isWaiting
-
-                            Log.d("CHAT_OPEN_DEBUG", "✨ [ChatViewModel State Update] convId=$conversationId, turnsCount=${turns.size}, msgsCount=${msgs.size}, isRunning=$isRunning, isWaiting=$isWaiting")
-
-                            _messages.value = msgs
-                            if (msgs.isNotEmpty()) {
-                                com.example.gemini.ui.chat.ChatFeedCache.prewarm(msgs)
-
-                                msgs.flatMap { it.toolCalls }.filter {
-                                    it.toolType == com.example.gemini.domain.model.ToolType.GENERATE_IMAGE && it.output.isNotBlank()
-                                }.forEach { tc ->
-                                    com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, tc.output, agyHubClient, hubUrl)
-                                }
-                                msgs.flatMap { it.attachments }.filter { it.isImage && it.path.isNotBlank() }.forEach { att ->
-                                    val rawUri = if (att.path.startsWith("file://") || att.path.startsWith("http")) att.path else "file://${att.path}"
-                                    com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, rawUri, agyHubClient, hubUrl)
+                        val now = System.currentTimeMillis()
+                        if (isFirstChunk || isTerminalFrame || (now - lastUiDispatchTime >= STREAM_THROTTLE_MS)) {
+                            pendingFlushJob?.cancel()
+                            pendingFlushJob = null
+                            lastUiDispatchTime = now
+                            isFirstChunk = false
+                            flushUiUpdate(forceTerminal = isTerminalFrame)
+                        } else {
+                            if (pendingFlushJob == null) {
+                                pendingFlushJob = backendScope.launch {
+                                    delay(STREAM_THROTTLE_MS)
+                                    if (activeStreamConversationId == conversationId) {
+                                        lastUiDispatchTime = System.currentTimeMillis()
+                                        flushUiUpdate(forceTerminal = false)
+                                    }
                                 }
                             }
                         }
                     }
+
+                    pendingFlushJob?.cancel()
+                    pendingFlushJob = null
+                    flushUiUpdate(forceTerminal = true)
 
                     if (isFirstChunk) {
                         if (activeStreamConversationId != conversationId) break
