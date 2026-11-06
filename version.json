@@ -1,13 +1,12 @@
 {
-  "version_code": 128,
-  "version_name": "1.0.28",
+  "version_code": 129,
+  "version_name": "1.0.29",
   "min_supported_version_code": 1,
   "changelog": [
-    "Nested Folder Visibility & Recursive Bezier Branching: Subdirectories like src/ now appear directly in the sidebar tree with DIR badges and chevron indicators, unfolding children along nested curved bezier branches",
-    "Project Root Tree Representation: Repository and workspace root folder names (e.g. rp-clothing) are prominently displayed as root directory nodes with PROJECT badges in the branching tree",
-    "Codex-Style Multi-Chat Projects: Support multiple independent conversations per project; selecting a workspace now presents a smart picker to start a new chat or continue existing threads",
-    "One-Tap Workspace New Chat: Added a '+' action button directly on workspace group headers in the sidebar drawer to spin up new scoped conversations instantly",
-    "Smart Build Noise Filter: Automatically ignores noisy directories (.git, node_modules, build, .gradle, dist) to keep the sidebar responsive and source-focused"
+    "Native .gravent Chat Sharing & Trajectory Format: Export conversations natively as .gravent archives with direct save to Downloads/Gravent/Exports",
+    "Dual Compatibility: Full backwards compatibility for importing and resuming legacy .antigem and .jsonl.antigem chat files",
+    "System Intent Associations: Registered .gravent, .jsonl.gravent, and .antigem file extensions with Android system share and file viewer intents",
+    "Seamless Workspace Association: Added dual configuration discovery for ~/.gravent/projects.json and ~/.antigem/projects.json alongside auto-discovery in ~/projects"
   ],
   "is_critical": false
 }

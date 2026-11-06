@@ -542,7 +542,7 @@ func (h *Handler) ExportConversationArchiveHandler(w http.ResponseWriter, r *htt
 
 	manifest := map[string]interface{}{
 		"version":         1,
-		"format":          "antigem_chat_archive",
+		"format":          "gravent_chat_archive",
 		"conversation_id": convID,
 		"title":           title,
 		"exported_at":     time.Now().UTC().Format(time.RFC3339),
@@ -556,7 +556,7 @@ func (h *Handler) ExportConversationArchiveHandler(w http.ResponseWriter, r *htt
 	if sanitizedTitle == "" {
 		sanitizedTitle = "conversation"
 	}
-	fileName := fmt.Sprintf("%s_%s.antigem", sanitizedTitle, time.Now().Format("20060102_150405"))
+	fileName := fmt.Sprintf("%s_%s.gravent", sanitizedTitle, time.Now().Format("20060102_150405"))
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
@@ -705,7 +705,7 @@ func (h *Handler) RestoreConversationHandler(w http.ResponseWriter, r *http.Requ
 
 	zipReader, err := zip.NewReader(readerAt, size)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid zip/.antigem format: " + err.Error()})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid zip/.gravent/.antigem format: " + err.Error()})
 		return
 	}
 
@@ -926,6 +926,10 @@ func (h *Handler) getSavedProjectsPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = h.Cfg.HomeDir
+	}
+	graventPath := filepath.Join(home, ".gravent", "projects.json")
+	if _, err := os.Stat(graventPath); err == nil {
+		return graventPath
 	}
 	return filepath.Join(home, ".antigem", "projects.json")
 }

@@ -68,7 +68,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
-            <!-- Open / View .antigem and trajectory chat files -->
+            <!-- Open / View .gravent, .antigem, and trajectory chat files -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -76,6 +76,8 @@
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.gravent" />
+                <data android:pathPattern=".*\\.jsonl\\.gravent" />
                 <data android:pathPattern=".*\\.antigem" />
                 <data android:pathPattern=".*\\.jsonl\\.antigem" />
                 <data android:pathPattern=".*\\.jsonl" />

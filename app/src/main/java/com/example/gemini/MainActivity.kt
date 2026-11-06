@@ -530,17 +530,18 @@ class MainActivity : ComponentActivity() {
                 resolvedMime.contains("markdown") || displayName.endsWith(".md") || displayName.endsWith(".markdown") || uriPath.endsWith(
                     ".md"
                 ) || uriPath.endsWith(".markdown")
-            val isAntigem =
-                displayName.endsWith(".antigem") || displayName.endsWith(".jsonl.antigem") || uriPath.endsWith(".antigem") || uriPath.endsWith(
-                    ".jsonl.antigem"
-                )
+            val isSharedChat =
+                displayName.endsWith(".gravent") || displayName.endsWith(".jsonl.gravent") ||
+                displayName.endsWith(".antigem") || displayName.endsWith(".jsonl.antigem") ||
+                uriPath.endsWith(".gravent") || uriPath.endsWith(".jsonl.gravent") ||
+                uriPath.endsWith(".antigem") || uriPath.endsWith(".jsonl.antigem")
 
             when {
                 isMarkdown -> {
                     chatViewModel.loadMarkdownFromUri(this, uri)
                 }
 
-                isAntigem -> {
+                isSharedChat -> {
                     chatViewModel.loadSharedConversationFromUri(this, uri)
                 }
 
@@ -554,14 +555,14 @@ class MainActivity : ComponentActivity() {
                 }
 
                 else -> {
-                    // Probe if text or antigem trajectory header
+                    // Probe if text, gravent, or antigem trajectory header
                     try {
                         val headerSample = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use {
                             val chars = CharArray(150)
                             val read = it.read(chars, 0, 150)
                             if (read > 0) String(chars, 0, read) else ""
                         } ?: ""
-                        if (headerSample.contains("\"antigem_trajectory\"")) {
+                        if (headerSample.contains("\"gravent_trajectory\"") || headerSample.contains("\"antigem_trajectory\"")) {
                             chatViewModel.loadSharedConversationFromUri(this, uri)
                         } else {
                             chatViewModel.openFileInIdeDirectly(this, uri)

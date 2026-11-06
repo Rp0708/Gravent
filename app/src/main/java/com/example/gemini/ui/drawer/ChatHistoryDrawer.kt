@@ -2223,7 +2223,7 @@ private fun ChatHistoryItemRow(
                     },
                     onClick = {
                         menuExpanded = false
-                        com.example.gemini.ui.components.AppToastHelper.showToast("Preparing .antigem share...", com.example.gemini.ui.components.ChatToastType.INFO)
+                        com.example.gemini.ui.components.AppToastHelper.showToast("Preparing .gravent share...", com.example.gemini.ui.components.ChatToastType.INFO)
                         scope.launch(Dispatchers.IO) {
                             ConversationShareHelper.shareConversation(
                                 context = context,

@@ -607,7 +607,7 @@ class AgyBridgeService(
                 if (filename.isBlank()) {
                     val sanitized = title.replace(Regex("[^a-zA-Z0-9._-]"), "_").take(40).ifBlank { "conversation" }
                     val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
-                    filename = "${sanitized}_${timeStamp}.antigem"
+                    filename = "${sanitized}_${timeStamp}.gravent"
                 }
 
                 Result.success(ExportedArchiveResult(bytes, filename, title))
