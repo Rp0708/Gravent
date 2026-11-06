@@ -129,6 +129,22 @@ object IdeApiClient {
         }
     }
 
+    suspend fun restartHub(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val emptyBody = "{}".toRequestBody(JSON_MEDIA_TYPE)
+            val request = Request.Builder()
+                .url("$baseUrl/api/hub/restart")
+                .post(emptyBody)
+                .build()
+            client.newCall(request).execute().use { response ->
+                response.isSuccessful
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "restartHub failed: ${e.message}")
+            false
+        }
+    }
+
     suspend fun getProjects(): List<ProjectItem> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()

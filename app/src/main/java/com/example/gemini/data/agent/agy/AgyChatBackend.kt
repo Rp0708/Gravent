@@ -445,20 +445,52 @@ class AgyChatBackend(
         if (_isAuthBusy.value) return
         _isAuthBusy.value = true
         backendScope.launch {
-            _authFeedbackMessage.tryEmit("Switching to ${account.displayName.ifBlank { account.email }}...")
-            AntigravityAccountManager.switchAccount(application, account) {
+            try {
+                _authFeedbackMessage.tryEmit("Switching to ${account.displayName.ifBlank { account.email }}...")
+
+                // 1. Preserve current account token before switching
+                val currentAuth = _agyAuthInfo.value
+                if (currentAuth.isLoggedIn) {
+                    AntigravityAccountManager.syncCurrentAccount(application, currentAuth)
+                }
+
+                // 2. Write new account credentials to disk
+                val writeOk = AntigravityAccountManager.switchAccount(application, account)
+                if (!writeOk) {
+                    _authFeedbackMessage.tryEmit("Failed to write credentials to disk.")
+                    _isAuthBusy.value = false
+                    return@launch
+                }
+
+                // 3. Restart agy --hub daemon so it picks up the new token
+                val restarted = com.example.gemini.data.daemon.IdeApiClient.restartHub()
+                if (!restarted) {
+                    com.example.gemini.data.local.LocalServerManager.restartServerAndWait(application)
+                }
+
+                // 4. Poll auth info to verify the switch
                 val hubUrl = AuthPreferences.currentHubUrl
-                val res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
-                if (res.isSuccess && res.getOrThrow().isLoggedIn) {
-                    val authed = res.getOrThrow()
-                    _agyAuthInfo.value = authed
-                    agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
-                    _authFeedbackMessage.tryEmit("Switched to ${authed.displayName}!")
-                    refreshQuotas(force = true)
-                } else {
+                var switched = false
+                for (attempt in 1..12) {
+                    delay(300)
+                    val res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
+                    if (res.isSuccess && res.getOrThrow().isLoggedIn) {
+                        val authed = res.getOrThrow()
+                        _agyAuthInfo.value = authed
+                        agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
+                        _authFeedbackMessage.tryEmit("Switched to ${authed.displayName.ifBlank { authed.email }}!")
+                        refreshQuotas(force = true)
+                        switched = true
+                        break
+                    }
+                }
+                if (!switched) {
                     _authFeedbackMessage.tryEmit("Switched credentials on disk. Reconnecting...")
                     refreshQuotas(force = true)
                 }
+            } catch (e: Exception) {
+                _authFeedbackMessage.tryEmit("Switch error: ${e.message}")
+            } finally {
                 _isAuthBusy.value = false
             }
         }

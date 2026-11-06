@@ -125,6 +125,25 @@ func (h *Handler) StatusHandler(w http.ResponseWriter, r *http.Request) {
 			"instances":      []interface{}{},
 		},
 	})
+func (h *Handler) HubRestartHandler(w http.ResponseWriter, r *http.Request) {
+	if h.HubManager == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"error":   "Hub manager not initialized",
+		})
+		return
+	}
+	if err := h.HubManager.Restart(); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "AGY Hub restarted successfully",
+	})
 }
 
 func (h *Handler) ModelsHandler(w http.ResponseWriter, r *http.Request) {

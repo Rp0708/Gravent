@@ -665,6 +665,14 @@ func (m *HubManager) Stop() {
 	m.setStatus(HubStatusStopped, "")
 }
 
+// Restart cleanly stops the agy --hub process, clears any lingering instances, and starts fresh.
+func (m *HubManager) Restart() error {
+	m.Stop()
+	_ = exec.Command("pkill", "-9", "-f", "agy --hub").Run()
+	time.Sleep(300 * time.Millisecond)
+	return m.Start()
+}
+
 func (m *HubManager) handleHubLine(line string) {
 	trimmed := strings.TrimSpace(line)
 	if trimmed == "" {

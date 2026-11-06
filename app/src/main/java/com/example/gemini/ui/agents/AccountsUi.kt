@@ -20,11 +20,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Close
@@ -107,55 +118,161 @@ private fun AccountAvatar(
 
 @Composable
 private fun InitialCircle(initial: Char?, accent: Color, size: Dp) {
-    Box(Modifier.fillMaxSize().background(accent), contentAlignment = Alignment.Center) {
+    Box(
+        Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(accent),
+        contentAlignment = Alignment.Center
+    ) {
         Text((initial?.uppercaseChar() ?: '•').toString(), fontSize = (size.value * 0.44f).sp, fontWeight = FontWeight.Bold, color = Color.Black)
     }
 }
 
 /**
  * Drawer footer button for the agent accounts: one avatar per enabled agent (sign-in glyph when signed out) with
- * its status badge. Opens [AccountsDialog].
+ * its status badge. Long-press opens quick switcher dropdown menu. Opens [AccountsDialog] on click.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AccountsButton(
     agy: AgentStatusEntry?,
     claude: AgentStatusEntry?,
     agyAuth: AgyHubClient.AgyAuthInfo,
     claudeStatus: ClaudeCliStatus?,
+    savedAgyAccounts: List<com.example.gemini.data.agent.agy.SavedAgyAccount> = emptyList(),
+    activeAgyAccountId: String? = null,
+    onSwitchAgyAccount: (com.example.gemini.data.agent.agy.SavedAgyAccount) -> Unit = {},
+    onAddAgyAccount: () -> Unit = {},
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
+    var showQuickSwitchMenu by remember { mutableStateOf(false) }
     val entries = listOfNotNull(agy, claude)
     val needsSignIn = entries.any { it.isSignedOut }
     val single = entries.singleOrNull()
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
-        modifier = modifier
-    ) {
-        Row(Modifier.padding(start = 5.dp, end = 10.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy((-7).dp)) {
-                agy?.let { AccountAvatar(AgentKind.AGY, it, agyAuth.displayName.firstOrNull(), agyAuth.profilePictureUrl?.takeIf { u -> u.isNotBlank() }) }
-                claude?.let { AccountAvatar(AgentKind.CLAUDE, it, claudeStatus?.auth?.email?.firstOrNull()) }
+
+    Box(modifier = modifier) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (onLongClick != null) {
+                            onLongClick()
+                        } else if (savedAgyAccounts.isNotEmpty()) {
+                            showQuickSwitchMenu = true
+                        } else {
+                            onClick()
+                        }
+                    }
+                )
+        ) {
+            Row(Modifier.padding(start = 5.dp, end = 10.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy((-7).dp)) {
+                    agy?.let { AccountAvatar(AgentKind.AGY, it, agyAuth.displayName.firstOrNull(), agyAuth.profilePictureUrl?.takeIf { u -> u.isNotBlank() }) }
+                    claude?.let { AccountAvatar(AgentKind.CLAUDE, it, claudeStatus?.auth?.email?.firstOrNull()) }
+                }
+                Spacer(Modifier.width(7.dp))
+                val text = when {
+                    needsSignIn -> "Sign in"
+                    single?.agent == AgentKind.AGY && single.isReady -> agyAuth.displayName.ifBlank { "Account" }
+                    single?.agent == AgentKind.CLAUDE && single.isReady -> claudeStatus?.auth?.email?.substringBefore('@') ?: "Account"
+                    single != null -> single.label
+                    else -> "Accounts"
+                }
+                Text(
+                    text,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (needsSignIn) (entries.first { it.isSignedOut }.agent.accent()) else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 104.dp)
+                )
             }
-            Spacer(Modifier.width(7.dp))
-            val text = when {
-                needsSignIn -> "Sign in"
-                single?.agent == AgentKind.AGY && single.isReady -> agyAuth.displayName.ifBlank { "Account" }
-                single?.agent == AgentKind.CLAUDE && single.isReady -> claudeStatus?.auth?.email?.substringBefore('@') ?: "Account"
-                single != null -> single.label
-                else -> "Accounts"
-            }
+        }
+
+        // Quick Switcher Dropdown Menu anchored to AccountsButton
+        DropdownMenu(
+            expanded = showQuickSwitchMenu,
+            onDismissRequest = { showQuickSwitchMenu = false },
+            modifier = Modifier
+                .background(Color(0xFF141418))
+                .border(1.dp, Color(0xFF282832), RoundedCornerShape(12.dp))
+                .widthIn(min = 220.dp, max = 280.dp)
+        ) {
             Text(
-                text,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (needsSignIn) (entries.first { it.isSignedOut }.agent.accent()) else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 104.dp)
+                "SWITCH ACCOUNT",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+
+            savedAgyAccounts.forEach { acc ->
+                val isActive = (acc.id == activeAgyAccountId) || (agyAuth.email.isNotBlank() && acc.email.equals(agyAuth.email, ignoreCase = true))
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            InitialCircle(acc.displayName.firstOrNull() ?: acc.email.firstOrNull(), AgentKind.AGY.accent(), 24.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    acc.displayName.ifBlank { acc.email },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    acc.email,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            if (isActive) {
+                                Spacer(Modifier.width(6.dp))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF22C55E).copy(alpha = 0.2f)) {
+                                    Text("Active", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                }
+                            }
+                        }
+                    },
+                    onClick = {
+                        showQuickSwitchMenu = false
+                        if (!isActive) {
+                            onSwitchAgyAccount(acc)
+                        }
+                    }
+                )
+            }
+
+            HorizontalDivider(color = Color(0xFF282832))
+
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.AutoMirrored.Outlined.Login, contentDescription = null, tint = AgentKind.AGY.accent(), modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("+ Add Account", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = AgentKind.AGY.accent())
+                    }
+                },
+                onClick = {
+                    showQuickSwitchMenu = false
+                    onAddAgyAccount()
+                }
             )
         }
     }
@@ -231,24 +348,25 @@ fun AccountsDialog(
                                     savedAgyAccounts.forEach { acc ->
                                         val isActive = (acc.id == activeAgyAccountId) || (agyAuth.email.isNotBlank() && acc.email.equals(agyAuth.email, ignoreCase = true))
                                         Surface(
-                                            shape = RoundedCornerShape(10.dp),
-                                            color = if (isActive) Color(0xFF141418) else Color(0xFF09090C),
-                                            border = BorderStroke(1.dp, if (isActive) Color(0xFFFAFAFA).copy(alpha = 0.4f) else Color(0xFF222226)),
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = if (isActive) Color(0xFF16161C) else Color(0xFF0F0F12),
+                                            border = BorderStroke(1.dp, if (isActive) Color(0xFF22C55E).copy(alpha = 0.5f) else Color(0xFF24242A)),
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                InitialCircle(acc.displayName.firstOrNull() ?: acc.email.firstOrNull(), AgentKind.AGY.accent(), 26.dp)
-                                                Spacer(Modifier.width(8.dp))
+                                                InitialCircle(acc.displayName.firstOrNull() ?: acc.email.firstOrNull(), AgentKind.AGY.accent(), 30.dp)
+                                                Spacer(Modifier.width(10.dp))
                                                 Column(Modifier.weight(1f)) {
-                                                    Text(acc.displayName.ifBlank { acc.email }, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(acc.email, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text(acc.displayName.ifBlank { acc.email }, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text(acc.email, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                 }
+                                                Spacer(Modifier.width(8.dp))
                                                 if (isActive) {
-                                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF22C55E).copy(alpha = 0.15f)) {
-                                                        Text("Active", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF22C55E).copy(alpha = 0.18f)) {
+                                                        Text("Active", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E), modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
                                                     }
                                                 } else {
                                                     Surface(
@@ -257,20 +375,20 @@ fun AccountsDialog(
                                                             onDismiss()
                                                         },
                                                         shape = RoundedCornerShape(8.dp),
-                                                        color = ClaudeTerracotta,
-                                                        modifier = Modifier.height(26.dp)
+                                                        color = Color(0xFFE8E5DF),
+                                                        modifier = Modifier.height(28.dp)
                                                     ) {
                                                         Text(
                                                             "Switch",
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 11.5.sp,
+                                                            fontWeight = FontWeight.Bold,
                                                             color = Color.Black,
-                                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                                                         )
                                                     }
                                                     Spacer(Modifier.width(6.dp))
-                                                    IconButton(onClick = { onRemoveAgyAccount(acc.id) }, modifier = Modifier.size(26.dp)) {
-                                                        Icon(Icons.Outlined.Close, "Remove account", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), modifier = Modifier.size(13.dp))
+                                                    IconButton(onClick = { onRemoveAgyAccount(acc.id) }, modifier = Modifier.size(28.dp)) {
+                                                        Icon(Icons.Outlined.Close, "Remove account", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f), modifier = Modifier.size(14.dp))
                                                     }
                                                 }
                                             }

@@ -192,8 +192,8 @@ object AntigravityAccountManager {
     suspend fun switchAccount(
         context: Context,
         targetAccount: SavedAgyAccount,
-        onComplete: suspend () -> Unit
-    ) = withContext(Dispatchers.IO) {
+        onComplete: (suspend () -> Unit)? = null
+    ): Boolean = withContext(Dispatchers.IO) {
         val success = writeTokenFileToDisk(context, targetAccount.tokenJson)
         if (success) {
             _activeAccountId.value = targetAccount.id
@@ -204,7 +204,10 @@ object AntigravityAccountManager {
                 _savedAccounts.value = currentList
                 persistAccounts()
             }
-            onComplete()
+            onComplete?.invoke()
+            true
+        } else {
+            false
         }
     }
 

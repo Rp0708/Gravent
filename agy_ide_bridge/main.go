@@ -295,6 +295,7 @@ func main() {
 	// REST Endpoints
 	mux.HandleFunc("/api/health", h.HealthHandler)
 	mux.HandleFunc("/api/status", h.StatusHandler)
+	mux.HandleFunc("/api/hub/restart", h.HubRestartHandler)
 	mux.HandleFunc("/api/shutdown", h.ShutdownHandler)
 	mux.HandleFunc("/api/auth/login-url", h.GetLoginURLHandler)
 	mux.HandleFunc("/api/auth/start-login", h.StartLoginHandler)

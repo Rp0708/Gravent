@@ -1,12 +1,12 @@
 {
-  "version_code": 122,
-  "version_name": "1.0.22",
+  "version_code": 123,
+  "version_name": "1.0.23",
   "min_supported_version_code": 1,
   "changelog": [
-    "Permanent Release Keystore: locked in permanent signing key to ensure seamless in-place updates over existing packages for all future releases",
-    "Prioritized Shared Termux APK: streamlined build to produce the unified Termux Shared release package",
-    "Multi-Account Login Flow Fix: resolved 'already added' block, properly initiating Google sign-in to connect new accounts",
-    "Account Switching Polish: instant credential swapping with warm titanium off-white theme styling"
+    "Seamless Multi-Account Switching: instantaneous credential swapping backed by Go bridge hub reload without browser sign-in prompts",
+    "Configured Accounts UI Polish: fixed stretched initial block bug, added sleek obsidian cards, green active status pill, and titanium switch controls",
+    "Sidebar Long-Press Quick Switch: long-pressing the sidebar Accounts button pops open a sleek mini dropdown menu to switch accounts in 1 tap",
+    "Permanent Release Keystore: seamless updates over existing package without signature conflicts"
   ],
   "is_critical": false
 }

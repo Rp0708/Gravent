@@ -1005,6 +1005,13 @@ fun ChatScreen(
                         claude = claudeEntry,
                         agyAuth = agyAuthInfo,
                         claudeStatus = claudeStatus,
+                        savedAgyAccounts = savedAgyAccounts,
+                        activeAgyAccountId = activeAgyAccountId,
+                        onSwitchAgyAccount = { viewModel.switchAgyAccount(it) },
+                        onAddAgyAccount = {
+                            scope.launch { drawerState.close() }
+                            viewModel.startAddAnotherAgyAccount()
+                        },
                         onClick = { showAccountsDialog = true }
                     )
                 },
