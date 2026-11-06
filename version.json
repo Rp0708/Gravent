@@ -3,7 +3,7 @@
   "version_name": "1.0.35",
   "min_supported_version_code": 1,
   "changelog": [
-    "StarBorder Redesign & Color Update: Replaced blue border with elegant off-white starlight particle with dynamic stardust trail that orbits smoothly around the chat input card",
+    "StarBorder Redesign & Off-White Color: Replaced blue border with elegant off-white starlight particle with dynamic stardust trail that orbits smoothly around the chat input card",
     "Zero-Allocation Animation Pipeline: Pre-allocated geometry buffers and path caching in StarBorder to eliminate per-frame garbage collection stutter",
     "FloatingLines Power Pacing: Cached sRGB linear stops in the GPU render loop and added visibility-based hibernation to reduce idle background battery usage to zero",
     "DecryptedText & ShinyText Polish: Pre-allocated gradient color buffers and converted DecryptedText to zero-overhead plain Text once resolution completes"
