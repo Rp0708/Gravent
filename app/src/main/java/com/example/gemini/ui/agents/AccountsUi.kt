@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.SubcomposeAsyncImage
+import com.example.gemini.ui.components.SpotlightAccountCard
 import coil.request.ImageRequest
 import com.example.gemini.data.agent.claude.ClaudeCliStatus
 import com.example.gemini.data.remote.AgyHubClient
@@ -349,7 +350,7 @@ fun AccountsDialog(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
                                 Spacer(Modifier.height(6.dp))
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     savedAgyAccounts.forEach { acc ->
                                         val currentActiveId = activeAgyAccountId?.takeIf { it.isNotBlank() }
                                             ?: agyAuth.email.takeIf { it.isNotBlank() }
@@ -357,52 +358,17 @@ fun AccountsDialog(
                                             acc.id.equals(currentActiveId, ignoreCase = true) ||
                                             acc.email.equals(currentActiveId, ignoreCase = true)
                                         )
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = if (isActive) Color(0xFF16161C) else Color(0xFF0F0F12),
-                                            border = BorderStroke(1.dp, if (isActive) Color(0xFF22C55E).copy(alpha = 0.5f) else Color(0xFF24242A)),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                InitialCircle(acc.displayName.firstOrNull() ?: acc.email.firstOrNull(), AgentKind.AGY.accent(), 30.dp)
-                                                Spacer(Modifier.width(10.dp))
-                                                Column(Modifier.weight(1f)) {
-                                                    Text(acc.displayName.ifBlank { acc.email }, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(acc.email, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                }
-                                                Spacer(Modifier.width(8.dp))
-                                                if (isActive) {
-                                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF22C55E).copy(alpha = 0.18f)) {
-                                                        Text("Active", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E), modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                                                    }
-                                                } else {
-                                                    Surface(
-                                                        onClick = {
-                                                            onSwitchAgyAccount(acc)
-                                                            onDismiss()
-                                                        },
-                                                        shape = RoundedCornerShape(8.dp),
-                                                        color = Color(0xFFE8E5DF),
-                                                        modifier = Modifier.height(28.dp)
-                                                    ) {
-                                                        Text(
-                                                            "Switch",
-                                                            fontSize = 11.5.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color.Black,
-                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                                                        )
-                                                    }
-                                                    Spacer(Modifier.width(6.dp))
-                                                    IconButton(onClick = { onRemoveAgyAccount(acc.id) }, modifier = Modifier.size(28.dp)) {
-                                                        Icon(Icons.Outlined.Close, "Remove account", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f), modifier = Modifier.size(14.dp))
-                                                    }
-                                                }
+                                        SpotlightAccountCard(
+                                            account = acc,
+                                            isActive = isActive,
+                                            onSwitch = {
+                                                onSwitchAgyAccount(acc)
+                                                onDismiss()
+                                            },
+                                            onRemove = {
+                                                onRemoveAgyAccount(acc.id)
                                             }
-                                        }
+                                        )
                                     }
                                 }
                                 Spacer(Modifier.height(8.dp))

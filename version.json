@@ -1,13 +1,12 @@
 {
-  "version_code": 124,
-  "version_name": "1.0.24",
+  "version_code": 125,
+  "version_name": "1.0.25",
   "min_supported_version_code": 1,
   "changelog": [
-    "Fix Stuck Agent Environment on Account Switch: Extended Go supervisor CSRF probe timeout to 6s with automated retries, eliminating context deadline exceeded timeouts on mobile devices",
-    "Continuous Supervisor Lifecycle: Preserved background hub state monitor across hub restarts so CSRF tokens are continuously acquired and broadcast to the app",
-    "Strict Single-Active Account Display: Enforced single-source active account resolution so only the current active profile is marked Active in the switcher UI",
-    "Dual Token Synchronization: Synchronized oauth credentials across both antigravity-oauth-token and jetski-standalone-oauth-token, matching official AGY CLI multi-profile specs",
-    "Persistent Active Account: Persisted chosen active account ID in SharedPreferences across app restarts"
+    "React Bits SpotlightCard Component: ported interactive radial spotlight and border edge-catch illumination to native Jetpack Compose with zero-jank 120 FPS draw phase rendering",
+    "Interactive Accounts Spotlight Cards: configured accounts now feature touch-following light tracking, emerald glow on active accounts, and titanium accents on inactive accounts",
+    "3-Stat Real-Time Overview: displays real-time Status (Active now vs last used relative time), Prompt Credits count, and Flow / Plan Tier in a sleek pill container",
+    "Global react-bits Skill: integrated global Antigravity skill for automated React Bits JSON registry queries and Compose translations without workspace pollution"
   ],
   "is_critical": false
 }
