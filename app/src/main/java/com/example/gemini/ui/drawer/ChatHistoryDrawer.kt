@@ -126,6 +126,7 @@ fun ChatHistoryDrawer(
     currentChatArtifacts: List<ArtifactSnapshot> = emptyList(),
     onOpenFile: (String) -> Unit = {},
     onShowFileDetails: ((String) -> Unit)? = null,
+    onNewChatForWorkspace: ((String) -> Unit)? = null,
     activeFilePath: String? = null,
     modifier: Modifier = Modifier
 ) {
@@ -1422,6 +1423,29 @@ fun ChatHistoryDrawer(
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
                                                 )
+                                            }
+                                            if (groupName != "General") {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Surface(
+                                                    onClick = {
+                                                        val wsUri = chats.firstOrNull()?.workspaceUri ?: ""
+                                                        if (wsUri.isNotBlank()) {
+                                                            onNewChatForWorkspace?.invoke(wsUri)
+                                                        }
+                                                    },
+                                                    shape = CircleShape,
+                                                    color = ClaudeTerracotta.copy(alpha = 0.14f),
+                                                    modifier = Modifier.size(22.dp)
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Add,
+                                                            contentDescription = "New chat in $groupName",
+                                                            tint = ClaudeTerracotta,
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                    }
+                                                }
                                             }
                                             if (chats.size > 5) {
                                                 Spacer(modifier = Modifier.weight(1f))

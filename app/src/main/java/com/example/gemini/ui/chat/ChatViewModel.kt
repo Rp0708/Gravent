@@ -250,6 +250,19 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             ?: if (AgentKind.AGY in enabledAgents.value) AgentKind.AGY else AgentKind.CLAUDE
     )
 
+    /** Start a new chat explicitly attached to a specific workspace directory. */
+    fun startNewChatInWorkspace(workspacePath: String) {
+        val cleanPath = workspacePath.removePrefix("file://").trimEnd('/')
+        if (cleanPath.isNotBlank()) {
+            val proj = com.example.gemini.data.daemon.ProjectItem(name = java.io.File(cleanPath).name, path = cleanPath)
+            com.example.gemini.data.daemon.TermuxDaemonManager.setActiveProject(proj)
+        }
+        startNewChat()
+        if (cleanPath.isNotBlank()) {
+            onProjectChanged(cleanPath)
+        }
+    }
+
     /** New chat with [agent] (e.g. `/clear` in a Claude chat), without changing the new-chat default. */
     fun startNewChat(agent: AgentKind) {
         if (agent == AgentKind.CLAUDE) {

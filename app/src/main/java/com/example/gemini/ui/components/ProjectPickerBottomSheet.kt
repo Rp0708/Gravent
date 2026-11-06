@@ -14,15 +14,19 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.FolderSpecial
 import androidx.compose.material.icons.outlined.Public
+import com.example.gemini.domain.model.Conversation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,12 +48,18 @@ import java.io.File
 fun ProjectPickerDialog(
     projects: List<ProjectItem>,
     activeProject: ProjectItem?,
+    conversations: List<Conversation> = emptyList(),
+    currentConversationId: String? = null,
     onSelectProject: (ProjectItem?) -> Unit,
+    onSelectConversation: ((String) -> Unit)? = null,
+    onNewChatInProject: ((ProjectItem) -> Unit)? = null,
     onBrowseFolder: () -> Unit,
     onCloneRepo: (() -> Unit)? = null,
     onRefresh: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
+    var selectedProjectForChats by remember { mutableStateOf<ProjectItem?>(null) }
+
     val initialScrollIndex = remember {
         if (activeProject == null || activeProject.path.isBlank()) 0
         else {
@@ -88,11 +98,230 @@ fun ProjectPickerDialog(
                         onClick = {} // consume clicks on the dialog itself
                     )
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(18.dp)
-                ) {
+                if (selectedProjectForChats != null) {
+                    val targetProj = selectedProjectForChats!!
+                    val matchingChats = remember(targetProj.path, conversations) {
+                        conversations.filter {
+                            val convPath = it.workspaceUri.removePrefix("file://").trimEnd('/')
+                            convPath.isNotBlank() && convPath == targetProj.path.removePrefix("file://").trimEnd('/')
+                        }.sortedByDescending { it.updatedAt }
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(18.dp)
+                    ) {
+                        // Header with Back Arrow
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                IconButton(
+                                    onClick = { selectedProjectForChats = null },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text(
+                                        text = targetProj.name.ifBlank { File(targetProj.path).name },
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${matchingChats.size} conversation${if (matchingChats.size == 1) "" else "s"}",
+                                        fontSize = 11.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Close",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // "+ Start New Chat in [Project]" Card
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = ClaudeTerracotta.copy(alpha = 0.14f),
+                            border = BorderStroke(1.2.dp, ClaudeTerracotta.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    if (onNewChatInProject != null) {
+                                        onNewChatInProject(targetProj)
+                                    } else {
+                                        onSelectProject(targetProj)
+                                    }
+                                    onDismiss()
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(ClaudeTerracotta.copy(alpha = 0.22f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = ClaudeTerracotta,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "+ Start New Chat in ${targetProj.name}",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ClaudeTerracotta
+                                    )
+                                    Text(
+                                        text = "Clean LLM context & dedicated subagent scope",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Existing Conversations",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            itemsIndexed(matchingChats, key = { _, c -> c.id }) { _, conv ->
+                                val isCurrent = conv.id == currentConversationId
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isCurrent) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isCurrent) ClaudeTerracotta.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            if (onSelectConversation != null) {
+                                                onSelectConversation(conv.id)
+                                            } else {
+                                                onSelectProject(targetProj)
+                                            }
+                                            onDismiss()
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isCurrent) ClaudeTerracotta.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.ChatBubbleOutline,
+                                                contentDescription = null,
+                                                tint = if (isCurrent) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = conv.title.ifBlank { "Untitled Conversation" },
+                                                    fontSize = 13.sp,
+                                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                if (isCurrent) {
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = ClaudeTerracotta.copy(alpha = 0.2f)
+                                                    ) {
+                                                        Text(
+                                                            text = "Active",
+                                                            fontSize = 9.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = ClaudeTerracotta,
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            val dateStr = remember(conv.updatedAt) {
+                                                val sdf = java.text.SimpleDateFormat("MMM d, HH:mm", java.util.Locale.getDefault())
+                                                sdf.format(java.util.Date(conv.updatedAt))
+                                            }
+                                            Text(
+                                                text = "Updated $dateStr",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(18.dp)
+                    ) {
                     // Header Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -260,6 +489,12 @@ fun ProjectPickerDialog(
                     itemsIndexed(projects, key = { _, it -> it.path }) { _, proj ->
                         val isSelected = activeProject?.path == proj.path
                         val folderName = proj.name.ifBlank { File(proj.path).name.ifBlank { "Workspace" } }
+                        val matchingChats = remember(proj.path, conversations) {
+                            conversations.filter {
+                                val convPath = it.workspaceUri.removePrefix("file://").trimEnd('/')
+                                convPath.isNotBlank() && convPath == proj.path.removePrefix("file://").trimEnd('/')
+                            }.sortedByDescending { it.updatedAt }
+                        }
 
                         Surface(
                             shape = RoundedCornerShape(14.dp),
@@ -272,8 +507,12 @@ fun ProjectPickerDialog(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
                                 .clickable {
-                                    onSelectProject(proj)
-                                    onDismiss()
+                                    if (matchingChats.isNotEmpty()) {
+                                        selectedProjectForChats = proj
+                                    } else {
+                                        onSelectProject(proj)
+                                        onDismiss()
+                                    }
                                 }
                         ) {
                             Row(
@@ -317,6 +556,21 @@ fun ProjectPickerDialog(
                                                     fontWeight = FontWeight.Bold,
                                                     color = ClaudeTerracotta,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                        if (matchingChats.isNotEmpty()) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                            ) {
+                                                Text(
+                                                    text = "${matchingChats.size} chat${if (matchingChats.size == 1) "" else "s"}",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                                 )
                                             }
                                         }
@@ -410,6 +664,7 @@ fun ProjectPickerDialog(
                 }
             }
         }
+    }
     }
 }
 }

@@ -1,14 +1,13 @@
 {
-  "version_code": 127,
-  "version_name": "1.0.27",
+  "version_code": 128,
+  "version_name": "1.0.28",
   "min_supported_version_code": 1,
   "changelog": [
-    "Native React Bits Branched Sidebar: Integrated the React Bits BranchedMenu directly into the chat history drawer sidebar with curved bezier branches, glowing reach strokes, and gliding trunk markers",
-    "Live File & Artifact Branching: Chats automatically branch out to reveal all associated files, live artifacts, scratch notes, and user uploads directly beneath each conversation node",
-    "Branch File Management & Quick Note Creator: Added a '+ New Note / File...' action on every chat's branch allowing instant file creation and editing directly from the sidebar",
-    "One-Tap Branch Toggle: The top-bar CallSplit action now toggles expand/collapse for all conversation branches across the sidebar",
-    "Seamless File Viewer & IDE Integration: Tapping any file branch directly opens it in the rich Markdown reader or the code editor",
-    "Fluid Kinetic Motion: Integrated smooth cubic-bezier transitions and glowing reach laser strokes for file and subagent branches"
+    "Nested Folder Visibility & Recursive Bezier Branching: Subdirectories like src/ now appear directly in the sidebar tree with DIR badges and chevron indicators, unfolding children along nested curved bezier branches",
+    "Project Root Tree Representation: Repository and workspace root folder names (e.g. rp-clothing) are prominently displayed as root directory nodes with PROJECT badges in the branching tree",
+    "Codex-Style Multi-Chat Projects: Support multiple independent conversations per project; selecting a workspace now presents a smart picker to start a new chat or continue existing threads",
+    "One-Tap Workspace New Chat: Added a '+' action button directly on workspace group headers in the sidebar drawer to spin up new scoped conversations instantly",
+    "Smart Build Noise Filter: Automatically ignores noisy directories (.git, node_modules, build, .gradle, dist) to keep the sidebar responsive and source-focused"
   ],
   "is_critical": false
 }

@@ -1030,6 +1030,15 @@ fun ChatScreen(
                 onShowFileDetails = { path ->
                     fileLinkHandler.onShowDetails(path)
                 },
+                onNewChatForWorkspace = { wsUri ->
+                    val currentId = currentConv?.id
+                    if (!currentId.isNullOrBlank() && feedItems.isNotEmpty()) {
+                        ConversationScrollCache.save(currentId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, isAtBottom)
+                    }
+                    conversationBackStack.clear()
+                    viewModel.startNewChatInWorkspace(wsUri)
+                    scope.launch { drawerState.close() }
+                },
                 activeFilePath = activeFileDetailsPath ?: activeMarkdownDoc?.first
             )
         }
@@ -2759,9 +2768,29 @@ fun ChatScreen(
         ProjectPickerDialog(
             projects = usedProjects,
             activeProject = activeProj,
+            conversations = conversations,
+            currentConversationId = currentConv?.id,
             onSelectProject = { proj ->
                 TermuxDaemonManager.setActiveProject(proj)
                 viewModel.onProjectChanged(proj?.path ?: "")
+                showProjectPickerDialog = false
+            },
+            onSelectConversation = { convId ->
+                val currentId = currentConv?.id
+                if (!currentId.isNullOrBlank() && feedItems.isNotEmpty()) {
+                    ConversationScrollCache.save(currentId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, isAtBottom)
+                }
+                conversationBackStack.clear()
+                viewModel.selectConversation(convId)
+                showProjectPickerDialog = false
+            },
+            onNewChatInProject = { proj ->
+                val currentId = currentConv?.id
+                if (!currentId.isNullOrBlank() && feedItems.isNotEmpty()) {
+                    ConversationScrollCache.save(currentId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, isAtBottom)
+                }
+                conversationBackStack.clear()
+                viewModel.startNewChatInWorkspace(proj.path)
                 showProjectPickerDialog = false
             },
             onBrowseFolder = {

@@ -26,6 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -704,24 +707,87 @@ val GRAVENT_HUB_MENU_ITEMS: List<BranchedMenuItem> = listOf(
 )
 
 /**
- * File node discovered under a conversation or workspace.
+ * Standard ignored directory names in workspace file tree.
+ */
+val IGNORED_DIRECTORY_NAMES = setOf(
+    ".git", "node_modules", "build", ".gradle", ".idea", ".dart_tool",
+    "__pycache__", ".next", ".nuxt", "dist", ".cache", ".turbo", ".gemini", ".git_hooks"
+)
+
+/**
+ * File or directory node discovered under a conversation or workspace.
  */
 data class DrawerFileNode(
     val id: String,
     val name: String,
     val path: String,
     val extension: String,
+    val isDirectory: Boolean = false,
+    val isProjectRoot: Boolean = false,
     val isArtifact: Boolean = false,
     val summary: String? = null,
     val sizeBytes: Long = 0L,
-    val lastModified: Long = 0L
+    val lastModified: Long = 0L,
+    val children: List<DrawerFileNode> = emptyList()
 )
 
 /**
+ * Recursively scans directories up to [maxDepth] to build the project directory tree.
+ */
+private fun scanDirectoryRecursive(
+    dir: File,
+    currentDepth: Int = 1,
+    maxDepth: Int = 2
+): List<DrawerFileNode> {
+    if (!dir.exists() || !dir.isDirectory || currentDepth > maxDepth) return emptyList()
+    val entries = dir.listFiles() ?: return emptyList()
+    val dirs = mutableListOf<DrawerFileNode>()
+    val files = mutableListOf<DrawerFileNode>()
+
+    entries.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() })).forEach { entry ->
+        if (entry.name.startsWith(".") && entry.name != ".gitignore" && entry.name != ".env") return@forEach
+        if (entry.isDirectory) {
+            if (entry.name !in IGNORED_DIRECTORY_NAMES) {
+                val subChildren = if (currentDepth < maxDepth) {
+                    scanDirectoryRecursive(entry, currentDepth + 1, maxDepth)
+                } else emptyList()
+                dirs.add(
+                    DrawerFileNode(
+                        id = "dir_${entry.absolutePath}",
+                        name = entry.name,
+                        path = entry.absolutePath,
+                        extension = "",
+                        isDirectory = true,
+                        isProjectRoot = false,
+                        children = subChildren,
+                        lastModified = entry.lastModified()
+                    )
+                )
+            }
+        } else if (entry.isFile) {
+            val ext = if (entry.name.contains(".")) entry.name.substringAfterLast(".").lowercase() else ""
+            files.add(
+                DrawerFileNode(
+                    id = entry.absolutePath,
+                    name = entry.name,
+                    path = entry.absolutePath,
+                    extension = ext,
+                    isDirectory = false,
+                    isProjectRoot = false,
+                    sizeBytes = entry.length(),
+                    lastModified = entry.lastModified()
+                )
+            )
+        }
+    }
+    return dirs.take(12) + files.take(25)
+}
+
+/**
  * Discovers files associated with a conversation:
- * 1. Live artifacts emitted in memory for the active conversation
- * 2. Brain directory on disk (~/.gemini/antigravity-cli/brain/<convId>/) including scratch/ and .user_uploaded/
- * 3. Workspace root files or scratch directory files for general chats
+ * 1. Project / Workspace root directory container and its nested folders & files
+ * 2. Live memory artifacts emitted for the active conversation
+ * 3. Brain disk directory files (~/.gemini/antigravity-cli/brain/<convId>/)
  */
 fun discoverConversationFiles(
     conv: Conversation,
@@ -731,7 +797,54 @@ fun discoverConversationFiles(
     val results = mutableListOf<DrawerFileNode>()
     val seenPaths = mutableSetOf<String>()
 
-    // 1. Live artifacts if this conversation is active
+    // 1. Workspace / Project root directory representation
+    try {
+        if (conv.workspaceUri.isNotBlank()) {
+            val wsPath = conv.workspaceUri.removePrefix("file://").trimEnd('/')
+            val wsDir = File(wsPath)
+            if (wsDir.exists() && wsDir.isDirectory) {
+                val projectName = wsDir.name.ifBlank { "Project" }
+                val projectChildren = scanDirectoryRecursive(wsDir, currentDepth = 1, maxDepth = 2)
+                results.add(
+                    DrawerFileNode(
+                        id = "proj_root_${wsPath}",
+                        name = projectName,
+                        path = wsPath,
+                        extension = "",
+                        isDirectory = true,
+                        isProjectRoot = true,
+                        children = projectChildren,
+                        lastModified = wsDir.lastModified()
+                    )
+                )
+            }
+        } else {
+            // General / Outside workspace: check scratch folder
+            val generalScratch = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/scratch")
+            if (generalScratch.exists() && generalScratch.isDirectory) {
+                val scratchChildren = scanDirectoryRecursive(generalScratch, currentDepth = 1, maxDepth = 2)
+                if (scratchChildren.isNotEmpty()) {
+                    results.add(
+                        DrawerFileNode(
+                            id = "scratch_root_${generalScratch.absolutePath}",
+                            name = "scratch",
+                            path = generalScratch.absolutePath,
+                            extension = "",
+                            isDirectory = true,
+                            isProjectRoot = true,
+                            children = scratchChildren,
+                            lastModified = generalScratch.lastModified()
+                        )
+                    )
+                }
+            }
+        }
+    } catch (_: Exception) {}
+
+    // 2. Chat brain artifacts and live notes
+    val brainFiles = mutableListOf<DrawerFileNode>()
+
+    // Live memory artifacts if this conversation is active
     if (conv.id == currentConvId && currentChatArtifacts.isNotEmpty()) {
         currentChatArtifacts.forEach { snap ->
             val uriOrPath = snap.absoluteUri.ifBlank { snap.name }
@@ -740,7 +853,7 @@ fun discoverConversationFiles(
             val name = f.name.ifBlank { snap.name.substringAfterLast("/") }
             val ext = if (name.contains(".")) name.substringAfterLast(".").lowercase() else ""
             if (seenPaths.add(cleanPath)) {
-                results.add(
+                brainFiles.add(
                     DrawerFileNode(
                         id = cleanPath,
                         name = name,
@@ -756,7 +869,7 @@ fun discoverConversationFiles(
         }
     }
 
-    // 2. Scan conversation brain directory
+    // Disk brain files (~/.gemini/antigravity-cli/brain/<convId>/)
     try {
         val brainDir = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/brain/${conv.id}")
         if (brainDir.exists() && brainDir.isDirectory) {
@@ -764,7 +877,7 @@ fun discoverConversationFiles(
             brainDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
                 if (seenPaths.add(f.absolutePath)) {
                     val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
-                    results.add(
+                    brainFiles.add(
                         DrawerFileNode(
                             id = f.absolutePath,
                             name = f.name,
@@ -784,7 +897,7 @@ fun discoverConversationFiles(
                 scratchDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
                     if (seenPaths.add(f.absolutePath)) {
                         val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
-                        results.add(
+                        brainFiles.add(
                             DrawerFileNode(
                                 id = f.absolutePath,
                                 name = f.name,
@@ -805,7 +918,7 @@ fun discoverConversationFiles(
                 uploadsDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
                     if (seenPaths.add(f.absolutePath)) {
                         val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
-                        results.add(
+                        brainFiles.add(
                             DrawerFileNode(
                                 id = f.absolutePath,
                                 name = f.name,
@@ -822,52 +935,8 @@ fun discoverConversationFiles(
         }
     } catch (_: Exception) {}
 
-    // 3. Workspace root files or scratch directory files
-    try {
-        if (conv.workspaceUri.isNotBlank()) {
-            val wsPath = conv.workspaceUri.removePrefix("file://")
-            val wsDir = File(wsPath)
-            if (wsDir.exists() && wsDir.isDirectory) {
-                wsDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.take(8)?.forEach { f ->
-                    if (seenPaths.add(f.absolutePath)) {
-                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
-                        results.add(
-                            DrawerFileNode(
-                                id = f.absolutePath,
-                                name = f.name,
-                                path = f.absolutePath,
-                                extension = ext,
-                                isArtifact = false,
-                                sizeBytes = f.length(),
-                                lastModified = f.lastModified()
-                            )
-                        )
-                    }
-                }
-            }
-        } else {
-            // General / Outside workspace: check scratch folder
-            val generalScratch = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/scratch")
-            if (generalScratch.exists() && generalScratch.isDirectory) {
-                generalScratch.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.take(8)?.forEach { f ->
-                    if (seenPaths.add(f.absolutePath)) {
-                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
-                        results.add(
-                            DrawerFileNode(
-                                id = f.absolutePath,
-                                name = f.name,
-                                path = f.absolutePath,
-                                extension = ext,
-                                isArtifact = false,
-                                sizeBytes = f.length(),
-                                lastModified = f.lastModified()
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    } catch (_: Exception) {}
+    // Append brain artifacts alongside project files
+    results.addAll(brainFiles)
 
     return results
 }
@@ -916,11 +985,13 @@ sealed class BranchedChildEntry {
     abstract val badge: String?
     abstract val badgeColor: Color
     abstract val isActive: Boolean
+    abstract val depth: Int
     abstract val onClick: () -> Unit
     @Composable abstract fun IconContent()
 
     data class FileEntry(
         val file: DrawerFileNode,
+        override val depth: Int = 0,
         override val isActive: Boolean,
         override val onClick: () -> Unit
     ) : BranchedChildEntry() {
@@ -937,12 +1008,16 @@ sealed class BranchedChildEntry {
             "sh", "bash" -> "SH"
             "ts" -> "TS"
             "js" -> "JS"
+            "html", "htm" -> "HTML"
+            "css", "scss", "sass" -> "CSS"
             "" -> "FILE"
             else -> file.extension.uppercase().take(4)
         }
         override val badgeColor: Color = when (file.extension) {
             "md", "markdown" -> ClaudeTerracotta
             "kt", "kts", "ts", "js", "java" -> GeminiBlue
+            "html", "htm" -> Color(0xFFE44D26)
+            "css", "scss", "sass" -> Color(0xFF264DE4)
             "py" -> Color(0xFFFFB300)
             "json", "yaml", "yml" -> Color(0xFF26A69A)
             "png", "jpg", "jpeg", "webp" -> Color(0xFF66BB6A)
@@ -954,7 +1029,7 @@ sealed class BranchedChildEntry {
         override fun IconContent() {
             val vec = when (file.extension) {
                 "md", "markdown" -> Icons.Outlined.Description
-                "kt", "kts", "ts", "js", "java", "py" -> Icons.Outlined.Code
+                "kt", "kts", "ts", "js", "java", "py", "html", "htm", "css", "scss" -> Icons.Outlined.Code
                 "json", "yaml", "yml" -> Icons.Outlined.DataObject
                 "png", "jpg", "jpeg", "webp" -> Icons.Outlined.Image
                 "sh", "bash" -> Icons.Outlined.Terminal
@@ -969,8 +1044,32 @@ sealed class BranchedChildEntry {
         }
     }
 
+    data class DirectoryEntry(
+        val folder: DrawerFileNode,
+        val isExpanded: Boolean,
+        override val depth: Int = 0,
+        override val isActive: Boolean = false,
+        override val onClick: () -> Unit
+    ) : BranchedChildEntry() {
+        override val key: String = "dir_${folder.path}"
+        override val label: String = folder.name
+        override val badge: String = if (folder.isProjectRoot) "PROJECT" else "DIR"
+        override val badgeColor: Color = if (folder.isProjectRoot) ClaudeTerracotta else GeminiBlue
+
+        @Composable
+        override fun IconContent() {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.FolderOpen else Icons.Default.Folder,
+                contentDescription = null,
+                tint = if (folder.isProjectRoot) ClaudeTerracotta else GeminiBlue,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+
     data class SubagentEntry(
         val subagent: Conversation,
+        override val depth: Int = 0,
         override val isActive: Boolean,
         override val onClick: () -> Unit
     ) : BranchedChildEntry() {
@@ -1002,6 +1101,7 @@ sealed class BranchedChildEntry {
     }
 
     data class AddActionEntry(
+        override val depth: Int = 0,
         override val onClick: () -> Unit
     ) : BranchedChildEntry() {
         override val key: String = "action_add_file"
@@ -1045,20 +1145,56 @@ fun BranchedChildrenTree(
     lineWidth: Dp = 1.4.dp,
     drawDurationMs: Int = 350
 ) {
-    val entries = remember(files, subagents, activeFileId, selectedConversationId) {
+    // Project root nodes are expanded by default to display project files immediately
+    var expandedFolders by remember(files) {
+        val rootPaths = files.filter { it.isProjectRoot }.map { it.path }.toSet()
+        mutableStateOf(rootPaths)
+    }
+
+    fun flattenNodes(nodes: List<DrawerFileNode>, depth: Int): List<BranchedChildEntry> {
         val list = mutableListOf<BranchedChildEntry>()
-        files.forEach { f ->
-            val isAct = activeFileId != null && (
-                activeFileId == f.path ||
-                activeFileId.removePrefix("file://") == f.path.removePrefix("file://")
-            )
-            list.add(BranchedChildEntry.FileEntry(f, isAct) { onOpenFile(f.path) })
+        for (node in nodes) {
+            if (node.isDirectory) {
+                val isExp = expandedFolders.contains(node.path)
+                list.add(
+                    BranchedChildEntry.DirectoryEntry(
+                        folder = node,
+                        isExpanded = isExp,
+                        depth = depth,
+                        onClick = {
+                            expandedFolders = if (isExp) expandedFolders - node.path else expandedFolders + node.path
+                        }
+                    )
+                )
+                if (isExp && node.children.isNotEmpty()) {
+                    list.addAll(flattenNodes(node.children, depth + 1))
+                }
+            } else {
+                val isAct = activeFileId != null && (
+                    activeFileId == node.path ||
+                    activeFileId.removePrefix("file://") == node.path.removePrefix("file://")
+                )
+                list.add(
+                    BranchedChildEntry.FileEntry(
+                        file = node,
+                        depth = depth,
+                        isActive = isAct,
+                        onClick = { onOpenFile(node.path) }
+                    )
+                )
+            }
         }
+        return list
+    }
+
+    val entries = remember(files, subagents, activeFileId, selectedConversationId, expandedFolders) {
+        val list = mutableListOf<BranchedChildEntry>()
+        list.addAll(flattenNodes(files, depth = 0))
         subagents.forEach { s ->
             val isAct = selectedConversationId == s.id
-            list.add(BranchedChildEntry.SubagentEntry(s, isAct) { onSelectSubagent(s.id) })
+            list.add(BranchedChildEntry.SubagentEntry(s, depth = 0, isAct) { onSelectSubagent(s.id) })
         }
-        list.add(BranchedChildEntry.AddActionEntry(onAddFileClick))
+        list.add(BranchedChildEntry.AddActionEntry(depth = 0, onAddFileClick))
         list
     }
 
@@ -1073,9 +1209,6 @@ fun BranchedChildrenTree(
     val rPx = remember(radiusPx, rowHeightPx) {
         minOf(radiusPx, (rowHeightPx / 2f) - 2f)
     }
-    val endXPx = remember(indentPx) {
-        indentPx - with(density) { 8.dp.toPx() }
-    }
 
     val rowYPositions = remember(entries.size, rowHeightPx, padPx) {
         FloatArray(entries.size) { k ->
@@ -1086,25 +1219,29 @@ fun BranchedChildrenTree(
     val pathMeasure = remember { PathMeasure() }
     val segmentPath = remember { Path() }
 
-    val branchPaths = remember(entries, trunkPx, rowYPositions, rPx, endXPx) {
+    val branchPaths = remember(entries, trunkPx, rowYPositions, rPx, indentPx) {
         entries.indices.map { k ->
             val rowY = rowYPositions[k]
+            val entryIndent = indentPx + with(density) { (entries[k].depth * 13).dp.toPx() }
+            val itemEndXPx = entryIndent - with(density) { 6.dp.toPx() }
             Path().apply {
                 moveTo(trunkPx, (rowY - rPx).coerceAtLeast(0f))
                 quadraticBezierTo(trunkPx, rowY, trunkPx + rPx, rowY)
-                lineTo(endXPx, rowY)
+                lineTo(itemEndXPx, rowY)
             }
         }
     }
 
-    val reachPaths = remember(entries, trunkPx, rowYPositions, rPx, endXPx) {
+    val reachPaths = remember(entries, trunkPx, rowYPositions, rPx, indentPx) {
         entries.indices.map { k ->
             val rowY = rowYPositions[k]
+            val entryIndent = indentPx + with(density) { (entries[k].depth * 13).dp.toPx() }
+            val itemEndXPx = entryIndent - with(density) { 6.dp.toPx() }
             Path().apply {
                 moveTo(trunkPx, 0f)
                 lineTo(trunkPx, (rowY - rPx).coerceAtLeast(0f))
                 quadraticBezierTo(trunkPx, rowY, trunkPx + rPx, rowY)
-                lineTo(endXPx, rowY)
+                lineTo(itemEndXPx, rowY)
             }
         }
     }
@@ -1206,11 +1343,12 @@ fun BranchedChildrenTree(
         ) {
             entries.forEach { entry ->
                 val isAct = entry.isActive
+                val startPadding = indent + (entry.depth * 13).dp
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(rowHeight)
-                        .padding(start = indent, end = 8.dp)
+                        .padding(start = startPadding, end = 8.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(if (isAct) accentColor.copy(alpha = 0.12f) else Color.Transparent)
                         .clickable { entry.onClick() }
@@ -1220,15 +1358,23 @@ fun BranchedChildrenTree(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.weight(1f, fill = false)
                     ) {
+                        if (entry is BranchedChildEntry.DirectoryEntry) {
+                            Icon(
+                                imageVector = if (entry.isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
                         entry.IconContent()
                         Text(
                             text = entry.label,
                             fontSize = 12.5.sp,
-                            fontWeight = if (isAct) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isAct) accentColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                            fontWeight = if (isAct || (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot)) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isAct) accentColor else if (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
