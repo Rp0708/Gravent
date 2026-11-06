@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.daemon.DaemonStatus
 import com.example.gemini.data.daemon.TermuxDaemonManager
+import com.example.gemini.theme.ClaudeTerracotta
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
