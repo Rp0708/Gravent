@@ -336,8 +336,8 @@ fun ChoiceQuestionnaireCard(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = ClaudeTerracotta,
                                 disabledContainerColor = ClaudeTerracotta.copy(alpha = 0.3f),
-                                contentColor = Color.White,
-                                disabledContentColor = Color.White.copy(alpha = 0.5f)
+                                contentColor = Color.Black,
+                                disabledContentColor = Color.Black.copy(alpha = 0.4f)
                             ),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
@@ -346,11 +346,13 @@ fun ChoiceQuestionnaireCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.Send,
                                 contentDescription = null,
+                                tint = Color.Black,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (questionnaire.questions.size > 1) "Submit All" else "Submit",
+                                color = Color.Black,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )

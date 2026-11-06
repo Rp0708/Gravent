@@ -1514,14 +1514,14 @@ private fun TabOverviewScreen(
                         onClick = onNewTab,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ClaudeTerracotta,
-                            contentColor = Color.White
+                            contentColor = Color.Black
                         ),
                         shape = RoundedCornerShape(20.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("New tab", fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
+                        Text("New tab", color = Color.Black, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1956,14 +1956,14 @@ fun BrowserDiagnosticOverlay(
                         onClick = onReload,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ClaudeTerracotta,
-                            contentColor = Color.White
+                            contentColor = Color.Black
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f).height(42.dp)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Reload", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Reload", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     OutlinedButton(

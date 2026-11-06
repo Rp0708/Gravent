@@ -404,20 +404,22 @@ fun NewChatSignInPromptCard(
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = ClaudeTerracotta,
-                contentColor = Color.White
+                contentColor = Color.Black
             ),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.Login,
                 contentDescription = null,
+                tint = Color.Black,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Sign In",
+                color = Color.Black,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

@@ -27,33 +27,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFFAFAFA),
-    secondary = Color(0xFFE4E4E7),
-    background = Color(0xFF000000),
-    surface = Color(0xFF08080A),
+    primary = Color(0xFFE8E5DF),
+    secondary = Color(0xFFDFDBD3),
+    background = Color(0xFF0E0E11),
+    surface = Color(0xFF15151A),
     surfaceTint = Color.Transparent,
     onPrimary = Color(0xFF000000),
     onSecondary = Color(0xFF000000),
-    onBackground = Color(0xFFFAFAFA),
-    onSurface = Color(0xFFFAFAFA),
-    surfaceVariant = Color(0xFF131316),
-    outline = Color(0xFF222226),
-    outlineVariant = Color(0xFF161619)
+    onBackground = Color(0xFFF1F1F4),
+    onSurface = Color(0xFFF1F1F4),
+    surfaceVariant = Color(0xFF1C1C22),
+    outline = Color(0xFF282832),
+    outlineVariant = Color(0xFF1F1F27)
 )
 
 private val LightColorScheme = darkColorScheme(
-    primary = Color(0xFFFAFAFA),
-    secondary = Color(0xFFE4E4E7),
-    background = Color(0xFF000000),
-    surface = Color(0xFF08080A),
+    primary = Color(0xFFE8E5DF),
+    secondary = Color(0xFFDFDBD3),
+    background = Color(0xFF0E0E11),
+    surface = Color(0xFF15151A),
     surfaceTint = Color.Transparent,
     onPrimary = Color(0xFF000000),
     onSecondary = Color(0xFF000000),
-    onBackground = Color(0xFFFAFAFA),
-    onSurface = Color(0xFFFAFAFA),
-    surfaceVariant = Color(0xFF131316),
-    outline = Color(0xFF222226),
-    outlineVariant = Color(0xFF161619)
+    onBackground = Color(0xFFF1F1F4),
+    onSurface = Color(0xFFF1F1F4),
+    surfaceVariant = Color(0xFF1C1C22),
+    outline = Color(0xFF282832),
+    outlineVariant = Color(0xFF1F1F27)
 )
 
 val LocalIsDarkTheme = staticCompositionLocalOf { true }

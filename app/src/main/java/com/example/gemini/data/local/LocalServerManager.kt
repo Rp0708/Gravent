@@ -214,7 +214,45 @@ object LocalServerManager {
         }
         val tzOffset = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 1000
 
-        val binParam = if (agyCmd.isNotBlank()) {
+        // In Ubuntu mode (Standard build), auto-import agy binary from Downloads if available
+        val isUbuntu = !LocalEnvironmentManager.isTermuxPackage(context)
+        if (isUbuntu) {
+            try {
+                val ubuntuRoot = LocalEnvironmentManager.getUbuntuRootDir(context)
+                val targetAgy = File(ubuntuRoot, "root/.local/bin/agy")
+                if (!targetAgy.exists() || targetAgy.length() == 0L) {
+                    val publicDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    val candidates = listOf(
+                        File(publicDownloads, "agy"),
+                        File(File(publicDownloads, "Gravent"), "agy"),
+                        File(File(publicDownloads, "Antigem"), "agy")
+                    )
+                    val sourceAgy = candidates.firstOrNull { it.exists() && it.length() > 1000000L }
+                    if (sourceAgy != null) {
+                        targetAgy.parentFile?.mkdirs()
+                        sourceAgy.copyTo(targetAgy, overwrite = true)
+                        targetAgy.setExecutable(true, false)
+                        targetAgy.setReadable(true, false)
+                        Log.i(TAG, "[ServerManager] Successfully auto-imported agy from ${sourceAgy.absolutePath} into ${targetAgy.absolutePath}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "[ServerManager] Error checking/importing agy into Ubuntu rootfs", e)
+            }
+        }
+
+        // Only pass --bin if the specified binary actually exists on disk to prevent fatal startup crash
+        val agyExists = if (agyCmd.isBlank()) {
+            false
+        } else if (isUbuntu) {
+            val f = File(LocalEnvironmentManager.getUbuntuRootDir(context), agyCmd.removePrefix("/"))
+            f.exists() && f.canExecute()
+        } else {
+            val f = File(agyCmd.replace("~", LocalEnvironmentManager.getHomeDir(context).absolutePath))
+            f.exists()
+        }
+
+        val binParam = if (agyExists) {
             " --bin \"$agyCmd\""
         } else {
             ""

@@ -235,8 +235,8 @@ private fun NotesList(
             }
 
             Box(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(20.dp)) {
-                FloatingActionButton(onClick = { showNewMenu = true }, containerColor = ClaudeTerracotta, contentColor = MaterialTheme.colorScheme.onPrimary) {
-                    Icon(Icons.Outlined.Add, contentDescription = "New")
+                FloatingActionButton(onClick = { showNewMenu = true }, containerColor = ClaudeTerracotta, contentColor = Color.Black) {
+                    Icon(Icons.Outlined.Add, contentDescription = "New", tint = Color.Black)
                 }
                 DropdownMenu(expanded = showNewMenu, onDismissRequest = { showNewMenu = false }) {
                     DropdownMenuItem(

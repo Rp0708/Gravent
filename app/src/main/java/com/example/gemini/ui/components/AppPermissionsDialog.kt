@@ -313,14 +313,15 @@ fun AppPermissionsDialog(
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ClaudeTerracotta,
-                        contentColor = Color.White,
+                        contentColor = Color.Black,
                         disabledContainerColor = if (isDark) Color(0xFF282724) else Color(0xFFE5E7EB),
                         disabledContentColor = if (isDark) Color(0xFF6B7280) else Color(0xFF9CA3AF)
                     )
                 ) {
                     Text(
-                        text = if (hasNotification) "Continue to AntiGem 🚀" else "Notifications Required to Proceed",
+                        text = if (hasNotification) "Continue to Gravent 🚀" else "Notifications Required to Proceed",
                         fontWeight = FontWeight.Bold,
+                        color = if (hasNotification) Color.Black else Color.Unspecified,
                         fontSize = 15.sp
                     )
                 }

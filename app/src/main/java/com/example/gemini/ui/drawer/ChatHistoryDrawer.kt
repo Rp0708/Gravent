@@ -600,7 +600,7 @@ fun ChatHistoryDrawer(
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ClaudeTerracotta,
-                        contentColor = Color.White
+                        contentColor = Color.Black
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
@@ -608,14 +608,14 @@ fun ChatHistoryDrawer(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "New Chat",
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
                         text = "New Chat",
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
+                        color = Color.Black,
                         fontSize = 13.5.sp
                     )
                 }

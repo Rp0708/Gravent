@@ -500,20 +500,20 @@ fun GitSourceControlView(
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ClaudeTerracotta,
-                    contentColor = Color.White
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(36.dp)
             ) {
                 if (isOperating) {
-                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.Black, strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                 } else {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                 }
-                Text("Commit", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text("Commit", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(8.dp))

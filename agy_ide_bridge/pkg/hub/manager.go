@@ -75,6 +75,13 @@ func FindAllAgyBinaries() []string {
 			filepath.Join(home, ".antigravity", "bin", "agy"),
 			filepath.Join(home, "usr", "bin", "agy"),
 			filepath.Join(home, "..", "usr", "bin", "agy"),
+			"/antigem/bin/agy",
+			"/sdcard/Download/agy",
+			"/sdcard/Download/Gravent/agy",
+			"/sdcard/Download/Antigem/agy",
+			"/storage/emulated/0/Download/agy",
+			"/storage/emulated/0/Download/Gravent/agy",
+			"/storage/emulated/0/Download/Antigem/agy",
 		)
 	}
 	if prefix := os.Getenv("PREFIX"); prefix != "" {
@@ -117,15 +124,21 @@ func ResolveAgyBinaryInteractive(customPath string, forceAuto bool) (string, err
 			cleanPath = expanded
 		}
 		cleanPath = filepath.Clean(cleanPath)
-		if fi, err := os.Stat(cleanPath); err != nil || fi.IsDir() {
-			return "", fmt.Errorf("specified AGY binary not found at '%s' (resolved: '%s')", customPath, cleanPath)
+		if fi, err := os.Stat(cleanPath); err == nil && !fi.IsDir() {
+			return cleanPath, nil
 		}
-		return cleanPath, nil
+		// Fallback to auto-discovery if custom path is missing
+		discovered := FindAllAgyBinaries()
+		if len(discovered) > 0 {
+			fmt.Printf(" \033[33mℹ Specified AGY binary '%s' not found. Using detected binary: %s\033[0m\n", customPath, discovered[0])
+			return discovered[0], nil
+		}
+		return "", fmt.Errorf("specified AGY binary not found at '%s'. Place 'agy' in /sdcard/Download/agy or ~/.local/bin/agy", customPath)
 	}
 
 	bins := FindAllAgyBinaries()
 	if len(bins) == 0 {
-		return "", errors.New("no AGY binary found in ~/.local/bin, ~/.gemini/bin, ~/.antigravity/bin, ~/usr/bin, ~/../usr/bin, or PATH")
+		return "", errors.New("no AGY binary found in ~/.local/bin, /sdcard/Download/agy, or PATH")
 	}
 
 	if len(bins) == 1 || forceAuto {
