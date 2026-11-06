@@ -125,6 +125,8 @@ func (h *Handler) StatusHandler(w http.ResponseWriter, r *http.Request) {
 			"instances":      []interface{}{},
 		},
 	})
+}
+
 func (h *Handler) HubRestartHandler(w http.ResponseWriter, r *http.Request) {
 	if h.HubManager == nil {
 		writeJSON(w, http.StatusBadRequest, map[string]interface{}{
