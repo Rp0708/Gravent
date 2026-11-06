@@ -1,11 +1,11 @@
 {
-  "version_code": 130,
-  "version_name": "1.0.30",
+  "version_code": 131,
+  "version_name": "1.0.31",
   "min_supported_version_code": 1,
   "changelog": [
-    "Clean File Tree: Filter out raw media image attachments (.jpg, .png, etc.) and metadata JSON from sidebar conversation file tree",
-    "Instant Automatic Project Detection: Auto-discover projects in scratch (e.g. gravent) even without manual workspace selection",
-    "Seamless Reactive Invalidation: Invalidate drawer file cache immediately on workspace change or file update without delay"
+    "Deep Multi-Branch Tree Unfolding: Open and explore nested sub-folders at any depth (src, main, java, etc.) with pre-scanned and dynamic lazy loading",
+    "Column-Wise Icon & Label Alignment: Align folder chevrons, icons, labels, and badges into a clean, uniform grid",
+    "Non-Shrinking Deep Navigation: Compact, capped indentation ensures long branch chains never squeeze file labels or shrink head branches"
   ],
   "is_critical": false
 }

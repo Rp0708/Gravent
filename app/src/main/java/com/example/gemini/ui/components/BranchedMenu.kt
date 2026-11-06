@@ -734,10 +734,10 @@ data class DrawerFileNode(
 /**
  * Recursively scans directories up to [maxDepth] to build the project directory tree.
  */
-private fun scanDirectoryRecursive(
+fun scanDirectoryRecursive(
     dir: File,
     currentDepth: Int = 1,
-    maxDepth: Int = 2
+    maxDepth: Int = 8
 ): List<DrawerFileNode> {
     if (!dir.exists() || !dir.isDirectory || currentDepth > maxDepth) return emptyList()
     val entries = dir.listFiles() ?: return emptyList()
@@ -780,7 +780,7 @@ private fun scanDirectoryRecursive(
             )
         }
     }
-    return dirs.take(12) + files.take(25)
+    return dirs.take(24) + files.take(60)
 }
 
 /**
@@ -815,7 +815,7 @@ fun discoverConversationFiles(
 
         if (candidateDir != null) {
             val projectName = candidateDir.name.ifBlank { "Project" }
-            val projectChildren = scanDirectoryRecursive(candidateDir, currentDepth = 1, maxDepth = 2)
+            val projectChildren = scanDirectoryRecursive(candidateDir, currentDepth = 1, maxDepth = 8)
             results.add(
                 DrawerFileNode(
                     id = "proj_root_${candidateDir.absolutePath}",
@@ -1110,11 +1110,11 @@ fun BranchedChildrenTree(
     modifier: Modifier = Modifier,
     accentColor: Color = ClaudeTerracotta,
     lineColor: Color = Color(0xFF3F3F46),
-    rowHeight: Dp = 34.dp,
-    indent: Dp = 38.dp,
+    rowHeight: Dp = 31.dp,
+    indent: Dp = 34.dp,
     trunk: Dp = 14.dp,
-    radius: Dp = 9.dp,
-    lineWidth: Dp = 1.4.dp,
+    radius: Dp = 8.dp,
+    lineWidth: Dp = 1.3.dp,
     drawDurationMs: Int = 350
 ) {
     // Project root nodes are expanded by default to display project files immediately
@@ -1123,23 +1123,41 @@ fun BranchedChildrenTree(
         mutableStateOf(rootPaths)
     }
 
+    // Dynamic on-demand folder children cache for deep sub-branches
+    val dynamicFolders = remember { mutableStateMapOf<String, List<DrawerFileNode>>() }
+
     fun flattenNodes(nodes: List<DrawerFileNode>, depth: Int): List<BranchedChildEntry> {
         val list = mutableListOf<BranchedChildEntry>()
         for (node in nodes) {
             if (node.isDirectory) {
                 val isExp = expandedFolders.contains(node.path)
+                val effectiveChildren = if (node.children.isNotEmpty()) {
+                    node.children
+                } else {
+                    dynamicFolders[node.path] ?: emptyList()
+                }
                 list.add(
                     BranchedChildEntry.DirectoryEntry(
                         folder = node,
                         isExpanded = isExp,
                         depth = depth,
                         onClick = {
-                            expandedFolders = if (isExp) expandedFolders - node.path else expandedFolders + node.path
+                            if (isExp) {
+                                expandedFolders = expandedFolders - node.path
+                            } else {
+                                if (node.children.isEmpty() && !dynamicFolders.containsKey(node.path)) {
+                                    val diskDir = File(node.path)
+                                    if (diskDir.exists() && diskDir.isDirectory) {
+                                        dynamicFolders[node.path] = scanDirectoryRecursive(diskDir, currentDepth = 1, maxDepth = 6)
+                                    }
+                                }
+                                expandedFolders = expandedFolders + node.path
+                            }
                         }
                     )
                 )
-                if (isExp && node.children.isNotEmpty()) {
-                    list.addAll(flattenNodes(node.children, depth + 1))
+                if (isExp && effectiveChildren.isNotEmpty()) {
+                    list.addAll(flattenNodes(effectiveChildren, depth + 1))
                 }
             } else {
                 val isAct = activeFileId != null && (
@@ -1159,7 +1177,7 @@ fun BranchedChildrenTree(
         return list
     }
 
-    val entries = remember(files, subagents, activeFileId, selectedConversationId, expandedFolders) {
+    val entries = remember(files, subagents, activeFileId, selectedConversationId, expandedFolders, dynamicFolders.size) {
         val list = mutableListOf<BranchedChildEntry>()
         list.addAll(flattenNodes(files, depth = 0))
         subagents.forEach { s ->
@@ -1194,8 +1212,9 @@ fun BranchedChildrenTree(
     val branchPaths = remember(entries, trunkPx, rowYPositions, rPx, indentPx) {
         entries.indices.map { k ->
             val rowY = rowYPositions[k]
-            val entryIndent = indentPx + with(density) { (entries[k].depth * 13).dp.toPx() }
-            val itemEndXPx = entryIndent - with(density) { 6.dp.toPx() }
+            val depthIndentPx = with(density) { minOf((entries[k].depth * 8).dp, 24.dp).toPx() }
+            val entryIndent = indentPx + depthIndentPx
+            val itemEndXPx = entryIndent - with(density) { 5.dp.toPx() }
             Path().apply {
                 moveTo(trunkPx, (rowY - rPx).coerceAtLeast(0f))
                 quadraticBezierTo(trunkPx, rowY, trunkPx + rPx, rowY)
@@ -1207,8 +1226,9 @@ fun BranchedChildrenTree(
     val reachPaths = remember(entries, trunkPx, rowYPositions, rPx, indentPx) {
         entries.indices.map { k ->
             val rowY = rowYPositions[k]
-            val entryIndent = indentPx + with(density) { (entries[k].depth * 13).dp.toPx() }
-            val itemEndXPx = entryIndent - with(density) { 6.dp.toPx() }
+            val depthIndentPx = with(density) { minOf((entries[k].depth * 8).dp, 24.dp).toPx() }
+            val entryIndent = indentPx + depthIndentPx
+            val itemEndXPx = entryIndent - with(density) { 5.dp.toPx() }
             Path().apply {
                 moveTo(trunkPx, 0f)
                 lineTo(trunkPx, (rowY - rPx).coerceAtLeast(0f))
@@ -1315,16 +1335,17 @@ fun BranchedChildrenTree(
         ) {
             entries.forEach { entry ->
                 val isAct = entry.isActive
-                val startPadding = indent + (entry.depth * 13).dp
+                val depthIndent = minOf((entry.depth * 8).dp, 24.dp)
+                val startPadding = indent + depthIndent
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(rowHeight)
-                        .padding(start = startPadding, end = 8.dp)
+                        .padding(start = startPadding, end = 6.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(if (isAct) accentColor.copy(alpha = 0.12f) else Color.Transparent)
                         .clickable { entry.onClick() }
-                        .padding(horizontal = 6.dp),
+                        .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -1333,24 +1354,33 @@ fun BranchedChildrenTree(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.weight(1f, fill = false)
                     ) {
+                        // Column 1: Expand/collapse chevron or fixed column spacer
                         if (entry is BranchedChildEntry.DirectoryEntry) {
                             Icon(
                                 imageVector = if (entry.isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                                 modifier = Modifier.size(13.dp)
                             )
+                        } else {
+                            Spacer(modifier = Modifier.width(13.dp))
                         }
+
+                        // Column 2: Node Icon
                         entry.IconContent()
+
+                        // Column 3: Label Text
                         Text(
                             text = entry.label,
-                            fontSize = 12.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = if (isAct || (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot)) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isAct) accentColor else if (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                            color = if (isAct) accentColor else if (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+
+                    // Column 4: Badge Tag
                     val badgeText = entry.badge
                     if (badgeText != null) {
                         Surface(
@@ -1361,9 +1391,9 @@ fun BranchedChildrenTree(
                             Text(
                                 text = badgeText,
                                 color = if (isAct) accentColor else entry.badgeColor,
-                                fontSize = 9.5.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.dp)
                             )
                         }
                     }
