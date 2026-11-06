@@ -383,8 +383,20 @@ private class FloatingLinesRenderThread(
             floatArrayOf(1.5f, 0.20f, 0.32f, 0.0f, 0.6f, 1.4f)  // Bottom
         )
 
+        var cachedGradient: List<Color>? = null
+        var cachedStops: List<FloatArray> = emptyList()
+
         // Step 3: High-Performance GPU Rendering Loop
         while (isRunning.get()) {
+            if (!hostView.isShown) {
+                try {
+                    sleep(64L)
+                } catch (_: InterruptedException) {
+                    break
+                }
+                continue
+            }
+
             val now = SystemClock.elapsedRealtimeNanos()
             val dt = ((now - lastTime) / 1_000_000_000.0).coerceIn(0.001, 0.05)
             lastTime = now
@@ -421,10 +433,15 @@ private class FloatingLinesRenderThread(
                 }
             }
 
-            // Prepare stops
-            val stops = hostView.linesGradient.map { c ->
-                floatArrayOf(c.red.pow(2.2f), c.green.pow(2.2f), c.blue.pow(2.2f))
+            // Zero-allocation cached stops
+            val currentGradient = hostView.linesGradient
+            if (currentGradient !== cachedGradient) {
+                cachedGradient = currentGradient
+                cachedStops = currentGradient.map { c ->
+                    floatArrayOf(c.red.pow(2.2f), c.green.pow(2.2f), c.blue.pow(2.2f))
+                }
             }
+            val stops = cachedStops
 
             val shaderMouseX = (2f * mouseX - w) / h
             val shaderMouseY = -(2f * mouseY - h) / h

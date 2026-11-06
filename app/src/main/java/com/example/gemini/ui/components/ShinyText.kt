@@ -46,6 +46,14 @@ fun ShinyText(
         label = "shiny_progress"
     )
 
+    val gradientColors = remember(shinyColor) {
+        listOf(
+            Color.Transparent,
+            shinyColor.copy(alpha = 0.90f),
+            Color.Transparent
+        )
+    }
+
     Text(
         text = text,
         style = style.copy(color = baseColor),
@@ -62,11 +70,7 @@ fun ShinyText(
                 val endX = (progress + 0.35f) * width
                 drawRect(
                     brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            shinyColor.copy(alpha = 0.90f),
-                            Color.Transparent
-                        ),
+                        colors = gradientColors,
                         start = Offset(startX, 0f),
                         end = Offset(endX, height)
                     ),

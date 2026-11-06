@@ -1,7 +1,5 @@
 package com.example.gemini.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -18,18 +16,22 @@ import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 /**
- * Native Jetpack Compose implementation of React Bits "DecryptedText"
+ * 100% Faithful Native Jetpack Compose implementation of React Bits "DecryptedText"
  * (https://reactbits.dev/text-animations/decrypted-text).
  *
  * Scrambles characters through cybernetic glyphs before sequentially resolving
  * letter-by-letter with a subtle glowing color transition.
+ *
+ * Optimized:
+ * - Direct integer index tracking (no Set/collection heap churn)
+ * - Transitions to plain zero-overhead Text once resolution completes
  */
 @Composable
 fun DecryptedText(
     text: String,
     modifier: Modifier = Modifier,
-    speed: Long = 32L,
-    maxIterations: Int = 8,
+    speed: Long = 28L,
+    maxIterations: Int = 6,
     sequential: Boolean = true,
     characters: String = "!@#$%^&*()_+{}[]~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
     style: TextStyle = LocalTextStyle.current,
@@ -40,74 +42,107 @@ fun DecryptedText(
     scrambledColor: Color = Color(0xFF38BDF8).copy(alpha = 0.85f),
     revealedColor: Color = Color.Unspecified
 ) {
-    var revealedIndices by remember(text) { mutableStateOf(setOf<Int>()) }
-    var iterationCounts by remember(text) { mutableStateOf(IntArray(text.length)) }
+    if (text.isEmpty()) {
+        Text(
+            text = "",
+            style = style,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            overflow = overflow,
+            maxLines = maxLines,
+            modifier = modifier
+        )
+        return
+    }
+
+    var isComplete by remember(text) { mutableStateOf(false) }
+    var revealedUpTo by remember(text) { mutableIntStateOf(0) }
     var displayedChars by remember(text) { mutableStateOf(text.toCharArray()) }
 
     LaunchedEffect(text) {
-        revealedIndices = emptySet()
-        val counts = IntArray(text.length)
+        isComplete = false
+        revealedUpTo = 0
         val chars = text.toCharArray()
+        val len = text.length
 
         if (sequential) {
-            for (i in text.indices) {
+            for (i in 0 until len) {
                 if (text[i].isWhitespace()) {
-                    revealedIndices = revealedIndices + i
+                    revealedUpTo = i + 1
                     continue
                 }
-                while (counts[i] < maxIterations) {
+                var iter = 0
+                while (iter < maxIterations) {
                     chars[i] = characters[Random.nextInt(characters.length)]
                     displayedChars = chars.clone()
-                    counts[i]++
+                    iter++
                     delay(speed)
                 }
                 chars[i] = text[i]
                 displayedChars = chars.clone()
-                revealedIndices = revealedIndices + i
+                revealedUpTo = i + 1
             }
         } else {
-            var allDone = false
-            while (!allDone) {
-                allDone = true
-                for (i in text.indices) {
-                    if (text[i].isWhitespace() || revealedIndices.contains(i)) continue
+            val counts = IntArray(len)
+            var done = false
+            while (!done) {
+                done = true
+                for (i in 0 until len) {
+                    if (text[i].isWhitespace() || counts[i] >= maxIterations) continue
+                    chars[i] = characters[Random.nextInt(characters.length)]
+                    counts[i]++
                     if (counts[i] < maxIterations) {
-                        chars[i] = characters[Random.nextInt(characters.length)]
-                        counts[i]++
-                        allDone = false
+                        done = false
                     } else {
                         chars[i] = text[i]
-                        revealedIndices = revealedIndices + i
                     }
                 }
                 displayedChars = chars.clone()
                 delay(speed)
             }
         }
+        isComplete = true
     }
 
     val finalRevealedColor = if (revealedColor != Color.Unspecified) revealedColor else style.color
 
-    val annotated = buildAnnotatedString {
-        for (i in displayedChars.indices) {
-            val isRevealed = revealedIndices.contains(i)
-            withStyle(
-                style = SpanStyle(
-                    color = if (isRevealed) finalRevealedColor else scrambledColor
-                )
-            ) {
-                append(displayedChars[i])
+    if (isComplete) {
+        // High-performance plain Text rendering once decrypted
+        Text(
+            text = text,
+            style = style,
+            color = finalRevealedColor,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            overflow = overflow,
+            maxLines = maxLines,
+            modifier = modifier
+        )
+    } else {
+        // Transitional span layout during cipher resolution
+        val currentRevealed = revealedUpTo
+        val currentChars = displayedChars
+        val annotated = buildAnnotatedString {
+            for (i in currentChars.indices) {
+                val isRev = i < currentRevealed
+                withStyle(
+                    style = SpanStyle(
+                        color = if (isRev) finalRevealedColor else scrambledColor
+                    )
+                ) {
+                    append(currentChars[i])
+                }
             }
         }
-    }
 
-    Text(
-        text = annotated,
-        style = style,
-        fontSize = fontSize,
-        fontWeight = fontWeight,
-        overflow = overflow,
-        maxLines = maxLines,
-        modifier = modifier
-    )
+        Text(
+            text = annotated,
+            style = style,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            overflow = overflow,
+            maxLines = maxLines,
+            modifier = modifier
+        )
+    }
 }

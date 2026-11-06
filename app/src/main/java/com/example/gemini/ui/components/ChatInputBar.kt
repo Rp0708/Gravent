@@ -601,7 +601,7 @@ fun ChatInputBar(
             StarBorder(
                 modifier = Modifier.fillMaxWidth(),
                 isActive = isStreaming || canSend,
-                starColor = if (isStreaming) familyColor else Color(0xFF38BDF8),
+                starColor = if (isStreaming) familyColor else Color(0xFFF4F4F5),
                 baseBorderColor = Color(0xFF222226),
                 cornerRadius = 24.dp
             ) {
