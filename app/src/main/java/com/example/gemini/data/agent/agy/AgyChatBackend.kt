@@ -1092,9 +1092,8 @@ class AgyChatBackend(
                         val isRunning = trajectoryEngine.isRunning
                         val isWaiting = trajectoryEngine.isWaitingInteraction
                         val isTerminalFrame = !isRunning || isWaiting ||
-                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_DONE ||
-                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_ERROR ||
-                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_CANCELED
+                                update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_IDLE ||
+                                update?.fully_idle == true
 
                         val now = System.currentTimeMillis()
                         if (isFirstChunk || isTerminalFrame || (now - lastUiDispatchTime >= STREAM_THROTTLE_MS)) {
