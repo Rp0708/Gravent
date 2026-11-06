@@ -1233,14 +1233,15 @@ fun BranchedChildrenTree(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (entry.badge != null) {
+                    val badgeText = entry.badge
+                    if (badgeText != null) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = if (isAct) accentColor.copy(alpha = 0.20f) else entry.badgeColor.copy(alpha = 0.12f),
                             border = BorderStroke(0.6.dp, if (isAct) accentColor.copy(alpha = 0.5f) else entry.badgeColor.copy(alpha = 0.3f))
                         ) {
                             Text(
-                                text = entry.badge,
+                                text = badgeText,
                                 color = if (isAct) accentColor else entry.badgeColor,
                                 fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
