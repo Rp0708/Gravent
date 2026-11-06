@@ -799,50 +799,41 @@ fun discoverConversationFiles(
 
     // 1. Workspace / Project root directory representation
     try {
-        if (conv.workspaceUri.isNotBlank()) {
+        val candidateDir: File? = if (conv.workspaceUri.isNotBlank()) {
             val wsPath = conv.workspaceUri.removePrefix("file://").trimEnd('/')
-            val wsDir = File(wsPath)
-            if (wsDir.exists() && wsDir.isDirectory) {
-                val projectName = wsDir.name.ifBlank { "Project" }
-                val projectChildren = scanDirectoryRecursive(wsDir, currentDepth = 1, maxDepth = 2)
-                results.add(
-                    DrawerFileNode(
-                        id = "proj_root_${wsPath}",
-                        name = projectName,
-                        path = wsPath,
-                        extension = "",
-                        isDirectory = true,
-                        isProjectRoot = true,
-                        children = projectChildren,
-                        lastModified = wsDir.lastModified()
-                    )
-                )
-            }
+            File(wsPath).takeIf { it.exists() && it.isDirectory }
         } else {
-            // General / Outside workspace: check scratch folder
-            val generalScratch = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/scratch")
-            if (generalScratch.exists() && generalScratch.isDirectory) {
-                val scratchChildren = scanDirectoryRecursive(generalScratch, currentDepth = 1, maxDepth = 2)
-                if (scratchChildren.isNotEmpty()) {
-                    results.add(
-                        DrawerFileNode(
-                            id = "scratch_root_${generalScratch.absolutePath}",
-                            name = "scratch",
-                            path = generalScratch.absolutePath,
-                            extension = "",
-                            isDirectory = true,
-                            isProjectRoot = true,
-                            children = scratchChildren,
-                            lastModified = generalScratch.lastModified()
-                        )
-                    )
-                }
+            // If workspace is not explicitly set, auto-discover project inside scratch (e.g. gravent)
+            val scratchDir = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/scratch")
+            val graventDir = File(scratchDir, "gravent")
+            if (graventDir.exists() && graventDir.isDirectory) {
+                graventDir
+            } else {
+                scratchDir.listFiles()?.firstOrNull { it.isDirectory && !it.name.startsWith(".") }
             }
+        }
+
+        if (candidateDir != null) {
+            val projectName = candidateDir.name.ifBlank { "Project" }
+            val projectChildren = scanDirectoryRecursive(candidateDir, currentDepth = 1, maxDepth = 2)
+            results.add(
+                DrawerFileNode(
+                    id = "proj_root_${candidateDir.absolutePath}",
+                    name = projectName,
+                    path = candidateDir.absolutePath,
+                    extension = "",
+                    isDirectory = true,
+                    isProjectRoot = true,
+                    children = projectChildren,
+                    lastModified = candidateDir.lastModified()
+                )
+            )
         }
     } catch (_: Exception) {}
 
-    // 2. Chat brain artifacts and live notes
+    // 2. Chat brain artifacts and live notes (excluding raw media attachments)
     val brainFiles = mutableListOf<DrawerFileNode>()
+    val ignoredMediaExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "ico", "svg", "mp4", "mp3")
 
     // Live memory artifacts if this conversation is active
     if (conv.id == currentConvId && currentChatArtifacts.isNotEmpty()) {
@@ -850,8 +841,10 @@ fun discoverConversationFiles(
             val uriOrPath = snap.absoluteUri.ifBlank { snap.name }
             val cleanPath = uriOrPath.removePrefix("file://")
             val f = File(cleanPath)
+            if (!f.exists() || !f.isFile) return@forEach
             val name = f.name.ifBlank { snap.name.substringAfterLast("/") }
             val ext = if (name.contains(".")) name.substringAfterLast(".").lowercase() else ""
+            if (ext in ignoredMediaExtensions || cleanPath.contains(".user_uploaded")) return@forEach
             if (seenPaths.add(cleanPath)) {
                 brainFiles.add(
                     DrawerFileNode(
@@ -861,8 +854,8 @@ fun discoverConversationFiles(
                         extension = ext,
                         isArtifact = true,
                         summary = snap.summary.ifBlank { null },
-                        sizeBytes = if (f.exists()) f.length() else 0L,
-                        lastModified = if (f.exists()) f.lastModified() else 0L
+                        sizeBytes = f.length(),
+                        lastModified = f.lastModified()
                     )
                 )
             }
@@ -873,10 +866,10 @@ fun discoverConversationFiles(
     try {
         val brainDir = File("/data/user/0/com.termux/files/home/.gemini/antigravity-cli/brain/${conv.id}")
         if (brainDir.exists() && brainDir.isDirectory) {
-            // Root brain files (artifacts, notes, plans)
-            brainDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
-                if (seenPaths.add(f.absolutePath)) {
-                    val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+            // Root brain files (artifacts, notes, plans) - ignore media and internal metadata json
+            brainDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") && !it.name.endsWith(".metadata.json") }?.forEach { f ->
+                val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                if (ext !in ignoredMediaExtensions && seenPaths.add(f.absolutePath)) {
                     brainFiles.add(
                         DrawerFileNode(
                             id = f.absolutePath,
@@ -895,29 +888,8 @@ fun discoverConversationFiles(
             val scratchDir = File(brainDir, "scratch")
             if (scratchDir.exists() && scratchDir.isDirectory) {
                 scratchDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
-                    if (seenPaths.add(f.absolutePath)) {
-                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
-                        brainFiles.add(
-                            DrawerFileNode(
-                                id = f.absolutePath,
-                                name = f.name,
-                                path = f.absolutePath,
-                                extension = ext,
-                                isArtifact = false,
-                                sizeBytes = f.length(),
-                                lastModified = f.lastModified()
-                            )
-                        )
-                    }
-                }
-            }
-
-            // User uploaded files (.user_uploaded)
-            val uploadsDir = File(brainDir, ".user_uploaded")
-            if (uploadsDir.exists() && uploadsDir.isDirectory) {
-                uploadsDir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.forEach { f ->
-                    if (seenPaths.add(f.absolutePath)) {
-                        val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                    val ext = if (f.name.contains(".")) f.name.substringAfterLast(".").lowercase() else ""
+                    if (ext !in ignoredMediaExtensions && seenPaths.add(f.absolutePath)) {
                         brainFiles.add(
                             DrawerFileNode(
                                 id = f.absolutePath,

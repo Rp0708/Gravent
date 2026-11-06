@@ -1,12 +1,11 @@
 {
-  "version_code": 129,
-  "version_name": "1.0.29",
+  "version_code": 130,
+  "version_name": "1.0.30",
   "min_supported_version_code": 1,
   "changelog": [
-    "Native .gravent Chat Sharing & Trajectory Format: Export conversations natively as .gravent archives with direct save to Downloads/Gravent/Exports",
-    "Dual Compatibility: Full backwards compatibility for importing and resuming legacy .antigem and .jsonl.antigem chat files",
-    "System Intent Associations: Registered .gravent, .jsonl.gravent, and .antigem file extensions with Android system share and file viewer intents",
-    "Seamless Workspace Association: Added dual configuration discovery for ~/.gravent/projects.json and ~/.antigem/projects.json alongside auto-discovery in ~/projects"
+    "Clean File Tree: Filter out raw media image attachments (.jpg, .png, etc.) and metadata JSON from sidebar conversation file tree",
+    "Instant Automatic Project Detection: Auto-discover projects in scratch (e.g. gravent) even without manual workspace selection",
+    "Seamless Reactive Invalidation: Invalidate drawer file cache immediately on workspace change or file update without delay"
   ],
   "is_critical": false
 }

@@ -1330,7 +1330,7 @@ fun ChatHistoryDrawer(
                                         systemConnectionState.isHubOnline && !isActivelyRunning && (conv.notFullyIdle || conv.hasActivity || activeInst != null)
                                     val subagents = subagentsByParent[conv.id] ?: emptyList()
                                     val isExpanded = expandedParentIds.contains(conv.id)
-                                    val files = remember(conv.id, currentChatArtifacts, currentConversationId) {
+                                    val files = remember(conv.id, conv.workspaceUri, conv.updatedAt, currentChatArtifacts, currentConversationId) {
                                         discoverConversationFiles(conv, currentConversationId, currentChatArtifacts)
                                     }
 
@@ -1467,7 +1467,7 @@ fun ChatHistoryDrawer(
                                             systemConnectionState.isHubOnline && !isActivelyRunning && (conv.notFullyIdle || conv.hasActivity || activeInst != null)
                                         val subagents = subagentsByParent[conv.id] ?: emptyList()
                                         val isExpanded = expandedParentIds.contains(conv.id)
-                                        val files = remember(conv.id, currentChatArtifacts, currentConversationId) {
+                                        val files = remember(conv.id, conv.workspaceUri, conv.updatedAt, currentChatArtifacts, currentConversationId) {
                                             discoverConversationFiles(conv, currentConversationId, currentChatArtifacts)
                                         }
 
