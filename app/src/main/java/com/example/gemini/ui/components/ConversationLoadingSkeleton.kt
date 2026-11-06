@@ -3,6 +3,7 @@ package com.example.gemini.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,47 +33,73 @@ import com.example.gemini.theme.ClaudeTerracotta
 fun EngineWarmingUpView(
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        // Luminous React Bits Floating Lines interactive background
+        FloatingLines(
+            modifier = Modifier.fillMaxSize(),
+            linesGradient = listOf(
+                Color(0xFFFFFFFF), // Brilliant white
+                Color(0xFF38BDF8), // Electric cyan
+                Color(0xFF60A5FA), // Neon sky blue
+                Color(0xFF3B82F6), // Royal cobalt
+                Color(0xFF818CF8)  // Violet undertone
+            ),
+            lineCount = 9,
+            lineDistance = 5.4f,
+            animationSpeed = 0.95f,
+            amplitude = 1.15f,
+            lineWidth = 1.3.dp,
+            glow = 1.15f,
+            interactive = true,
+            clickSwirl = true
+        )
+
+        // Glassmorphic / Elevated Center Card
+        Column(
             modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(ClaudeTerracotta.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 32.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.SmartToy,
-                contentDescription = null,
-                tint = ClaudeTerracotta,
-                modifier = Modifier.size(32.dp)
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF121217).copy(alpha = 0.85f))
+                    .border(BorderStroke(1.dp, Color(0xFF27272A).copy(alpha = 0.85f)), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.SmartToy,
+                    contentDescription = null,
+                    tint = ClaudeTerracotta,
+                    modifier = Modifier.size(34.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Waking up Antigravity...",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "The background AI engine is starting up. Your chats and workspace will be ready in a moment.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
             )
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "Waking up Antigravity...",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "The background AI engine is starting up. Your chats and workspace will be ready in a moment.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp
-        )
     }
 }
 
@@ -80,47 +107,72 @@ fun EngineWarmingUpView(
 fun DrawerEngineWarmingUpView(
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .height(180.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        FloatingLines(
+            modifier = Modifier.fillMaxSize(),
+            linesGradient = listOf(
+                Color(0xFFFFFFFF),
+                Color(0xFF38BDF8),
+                Color(0xFF818CF8)
+            ),
+            lineCount = 5,
+            lineDistance = 6.0f,
+            animationSpeed = 0.8f,
+            amplitude = 0.8f,
+            lineWidth = 1.0.dp,
+            glow = 0.8f,
+            interactive = false,
+            clickSwirl = false
+        )
+
+        Column(
             modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(ClaudeTerracotta.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.SmartToy,
-                contentDescription = null,
-                tint = ClaudeTerracotta,
-                modifier = Modifier.size(22.dp)
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF121217).copy(alpha = 0.85f))
+                    .border(BorderStroke(1.dp, Color(0xFF27272A).copy(alpha = 0.85f)), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.SmartToy,
+                    contentDescription = null,
+                    tint = ClaudeTerracotta,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Waking up Antigravity...",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Your chats will appear as soon as the engine connects.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp
             )
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Waking up Antigravity...",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "Your chats will appear as soon as the engine connects.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-            textAlign = TextAlign.Center,
-            lineHeight = 16.sp
-        )
     }
 }
 

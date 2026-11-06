@@ -1,11 +1,11 @@
 {
-  "version_code": 132,
-  "version_name": "1.0.32",
+  "version_code": 133,
+  "version_name": "1.0.33",
   "min_supported_version_code": 1,
   "changelog": [
-    "Rapid Chat Streaming: Throttled UI dispatch to ~30 fps cadence and offloaded markdown cache prewarming to background thread for lightning-fast, smooth text rendering",
-    "Strict Sequential Tool Execution: Resolved sequential tool state so previous commands complete with exit codes and only the active tail tool runs",
-    "Accurate Exit Codes & Tool Timing: Auto-resolve bash exit code badges and calculate execution duration cleanly"
+    "React Bits Floating Lines: Luminous ribbons of glowing harmonic wave lines with interactive touch repulsion and tap swirl vortex curls",
+    "Interactive Startup & Warming Up Screen: Replaced static engine loading screen with interactive Floating Lines background while Antigravity wakes up",
+    "Drawer Engine Ambience: Added glowing wave ribbons in sidebar drawer during background engine connection"
   ],
   "is_critical": false
 }
