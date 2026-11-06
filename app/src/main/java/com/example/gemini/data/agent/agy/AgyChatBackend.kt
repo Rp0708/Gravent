@@ -255,7 +255,10 @@ class AgyChatBackend(
         loginPollJob = null
         _isAuthBusy.value = false
         _pendingLoginUrl.value = null
-        checkAgyAuthStatus(userInitiated = false)
+        backendScope.launch {
+            AntigravityAccountManager.restoreLastActiveAccount(application)
+            checkAgyAuthStatus(userInitiated = false)
+        }
     }
 
     fun checkAgyAuthStatus(userInitiated: Boolean = false) {
@@ -324,7 +327,7 @@ class AgyChatBackend(
         }
     }
 
-    fun loginToAgyHub(force: Boolean = false) {
+    fun loginToAgyHub(force: Boolean = false, isAddingAccount: Boolean = false) {
         if (_isAuthBusy.value && !force) return
         if (!isNetworkConnected()) {
             _authFeedbackMessage.tryEmit("Cannot sign in: no internet connection.")
@@ -337,21 +340,26 @@ class AgyChatBackend(
         backendScope.launch {
             val hubUrl = AuthPreferences.currentHubUrl
 
-            // Pre-check: if user is already authenticated, finish immediately!
-            val preCheck = agyHubClient.fetchDetailedAuthInfo(hubUrl)
-            if (preCheck.isSuccess && preCheck.getOrThrow().isLoggedIn) {
-                val authed = preCheck.getOrThrow()
-                _agyAuthInfo.value = authed
-                agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
-                AntigravityAccountManager.syncCurrentAccount(application, authed)
-                lastAuthCheckTimeMs = System.currentTimeMillis()
-                _isAuthBusy.value = false
-                _authFeedbackMessage.tryEmit("Already signed in as ${authed.displayName}!")
-                refreshQuotas(force = true)
-                return@launch
+            // Pre-check: only do early-exit if user is already authenticated and NOT adding a new account
+            if (!isAddingAccount) {
+                val preCheck = agyHubClient.fetchDetailedAuthInfo(hubUrl)
+                if (preCheck.isSuccess && preCheck.getOrThrow().isLoggedIn) {
+                    val authed = preCheck.getOrThrow()
+                    _agyAuthInfo.value = authed
+                    agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
+                    AntigravityAccountManager.syncCurrentAccount(application, authed)
+                    lastAuthCheckTimeMs = System.currentTimeMillis()
+                    _isAuthBusy.value = false
+                    _authFeedbackMessage.tryEmit("Already signed in as ${authed.displayName}!")
+                    refreshQuotas(force = true)
+                    return@launch
+                }
             }
 
-            _authFeedbackMessage.tryEmit("Initiating sign-in with Antigravity...")
+            _authFeedbackMessage.tryEmit(
+                if (isAddingAccount) "Opening Google sign-in to connect another account..."
+                else "Initiating sign-in with Antigravity..."
+            )
 
             // 1. Poll for successful auth completion concurrently every 800ms
             loginPollJob = launch {
@@ -369,7 +377,11 @@ class AgyChatBackend(
                             lastAuthCheckTimeMs = System.currentTimeMillis()
                             _isAuthBusy.value = false
                             _pendingLoginUrl.value = null
-                            _authFeedbackMessage.tryEmit("Signed in successfully!")
+                            if (isAddingAccount) {
+                                _authFeedbackMessage.tryEmit("Connected account: ${authed.displayName.ifBlank { authed.email }}!")
+                            } else {
+                                _authFeedbackMessage.tryEmit("Signed in successfully!")
+                            }
                             refreshQuotas(force = true)
                             break
                         }
@@ -458,7 +470,12 @@ class AgyChatBackend(
             if (currentAuth.isLoggedIn) {
                 AntigravityAccountManager.syncCurrentAccount(application, currentAuth)
             }
-            loginToAgyHub(force = true)
+            try {
+                agyHubClient.authLogout(AuthPreferences.currentHubUrl)
+            } catch (e: Exception) {
+                android.util.Log.w("AgyChatBackend", "authLogout before adding account: ${e.message}")
+            }
+            loginToAgyHub(force = true, isAddingAccount = true)
         }
     }
 

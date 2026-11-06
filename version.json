@@ -1,13 +1,12 @@
 {
-  "version_code": 121,
-  "version_name": "1.0.21",
+  "version_code": 122,
+  "version_name": "1.0.22",
   "min_supported_version_code": 1,
   "changelog": [
-    "Softened Dark Palette: reduced pitch black by 2 steps to refined deep obsidian (#0E0E11 / #15151A) for reduced eye strain",
-    "Titanium Off-White Buttons: converted stark pure-white buttons to warm titanium off-white (#E8E5DF) with crisp black icons and typography",
-    "Complete Contrast Fix: resolved white-on-white text in onboarding dialogs, Sign In cards, Git panels, and new chat drawer",
-    "Antigravity CLI Storage Auto-Import & Fallback: auto-discovers and imports agy from /sdcard/Download without crashing on missing paths",
-    "Multi-Account Antigravity Support: native Google OAuth connection and seamless 1-tap quota switching"
+    "Permanent Release Keystore: locked in permanent signing key to ensure seamless in-place updates over existing packages for all future releases",
+    "Prioritized Shared Termux APK: streamlined build to produce the unified Termux Shared release package",
+    "Multi-Account Login Flow Fix: resolved 'already added' block, properly initiating Google sign-in to connect new accounts",
+    "Account Switching Polish: instant credential swapping with warm titanium off-white theme styling"
   ],
   "is_critical": false
 }

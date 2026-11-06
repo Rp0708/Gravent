@@ -216,4 +216,15 @@ object AntigravityAccountManager {
         }
         persistAccounts()
     }
+
+    suspend fun restoreLastActiveAccount(context: Context): Boolean = withContext(Dispatchers.IO) {
+        val activeId = _activeAccountId.value
+        val account = _savedAccounts.value.firstOrNull { it.id == activeId }
+            ?: _savedAccounts.value.maxByOrNull { it.lastUsedTimestamp }
+        if (account != null) {
+            writeTokenFileToDisk(context, account.tokenJson)
+        } else {
+            false
+        }
+    }
 }

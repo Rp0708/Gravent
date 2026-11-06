@@ -96,21 +96,18 @@ class AppUpdateManager(private val context: Context) {
                 BuildConfig.IS_SHARED_USER_ID
             }
 
-            val flavorType = when {
-                currentPkg == "com.termux" && isSharedUser -> "termux-shared"
-                currentPkg == "com.termux" -> "termux"
-                else -> "standard"
-            }
-            val downloadUrl = "https://github.com/Rp0708/Gravent/releases/download/v$remoteVersionName/Gravent-$flavorType-v$remoteVersionName-release.apk"
+            val candidateUrls = listOf(
+                "https://github.com/Rp0708/Gravent/releases/download/v$remoteVersionName/Gravent-termux-shared-v$remoteVersionName-release.apk",
+                "https://github.com/Rp0708/Gravent/releases/download/v$remoteVersionName/Gravent-v$remoteVersionName-release.apk"
+            )
 
-            if (remoteVersionCode > BuildConfig.VERSION_CODE && downloadUrl.isNotBlank()) {
-                // Verify that the APK asset is actually published and downloadable on GitHub
+            var resolvedUrl: String? = null
+            for (candidate in candidateUrls) {
                 val probeRequest = Request.Builder()
-                    .url(downloadUrl)
+                    .url(candidate)
                     .head()
-                    .header("User-Agent", "antiGem-Updater/${BuildConfig.VERSION_NAME}")
+                    .header("User-Agent", "Gravent-Updater/${BuildConfig.VERSION_NAME}")
                     .build()
-
                 val isAvailable = try {
                     httpClient.newCall(probeRequest).execute().use { probeResponse ->
                         probeResponse.isSuccessful || probeResponse.isRedirect
@@ -118,11 +115,14 @@ class AppUpdateManager(private val context: Context) {
                 } catch (_: Exception) {
                     false
                 }
-
-                if (!isAvailable) {
-                    // Release is not yet fully published or APK is still building on CI
-                    return@withContext Result.success(null)
+                if (isAvailable) {
+                    resolvedUrl = candidate
+                    break
                 }
+            }
+
+            if (remoteVersionCode > BuildConfig.VERSION_CODE && !resolvedUrl.isNullOrBlank()) {
+                val downloadUrl = resolvedUrl
 
                 Result.success(
                     AppUpdateInfo(

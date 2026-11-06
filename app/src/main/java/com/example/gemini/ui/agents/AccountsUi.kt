@@ -56,6 +56,7 @@ import coil.request.ImageRequest
 import com.example.gemini.data.agent.claude.ClaudeCliStatus
 import com.example.gemini.data.remote.AgyHubClient
 import com.example.gemini.domain.model.AgentKind
+import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.ui.components.accent
 import com.example.gemini.ui.components.label
 import com.example.gemini.ui.drawer.parseProfileAvatarModel
@@ -256,7 +257,7 @@ fun AccountsDialog(
                                                             onDismiss()
                                                         },
                                                         shape = RoundedCornerShape(8.dp),
-                                                        color = Color(0xFFFAFAFA),
+                                                        color = ClaudeTerracotta,
                                                         modifier = Modifier.height(26.dp)
                                                     ) {
                                                         Text(
