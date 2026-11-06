@@ -32,7 +32,12 @@ object AntigravityAccountManager {
     private const val TAG = "AgyAccountManager"
     private const val PREFS_NAME = "gravent_agy_accounts"
     private const val KEY_ACCOUNTS = "saved_accounts_v1"
-    private const val TOKEN_FILE_REL = "~/.gemini/jetski-standalone-oauth-token"
+    private const val KEY_ACTIVE_ACCOUNT_ID = "active_account_id_v1"
+
+    private val RELATIVE_TOKEN_PATHS = listOf(
+        "~/.gemini/antigravity-cli/antigravity-oauth-token",
+        "~/.gemini/jetski-standalone-oauth-token"
+    )
 
     private val _savedAccounts = MutableStateFlow<List<SavedAgyAccount>>(emptyList())
     val savedAccounts: StateFlow<List<SavedAgyAccount>> = _savedAccounts.asStateFlow()
@@ -51,6 +56,11 @@ object AntigravityAccountManager {
 
     private fun loadAccounts() {
         val p = prefs ?: return
+        val savedActiveId = p.getString(KEY_ACTIVE_ACCOUNT_ID, null)
+        if (!savedActiveId.isNullOrBlank()) {
+            _activeAccountId.value = savedActiveId
+        }
+
         val raw = p.getString(KEY_ACCOUNTS, null) ?: return
         try {
             val arr = JSONArray(raw)
@@ -72,6 +82,9 @@ object AntigravityAccountManager {
                 )
             }
             _savedAccounts.value = list
+            if (_activeAccountId.value == null && list.isNotEmpty()) {
+                _activeAccountId.value = list.first().id
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading saved accounts", e)
         }
@@ -95,63 +108,83 @@ object AntigravityAccountManager {
                 }
                 arr.put(obj)
             }
-            p.edit().putString(KEY_ACCOUNTS, arr.toString()).apply()
+            p.edit()
+                .putString(KEY_ACCOUNTS, arr.toString())
+                .putString(KEY_ACTIVE_ACCOUNT_ID, _activeAccountId.value)
+                .apply()
         } catch (e: Exception) {
             Log.e(TAG, "Error persisting accounts", e)
         }
     }
 
     suspend fun readTokenFileFromDisk(context: Context): String? = withContext(Dispatchers.IO) {
-        try {
-            val ideContent = IdeApiClient.readFile(TOKEN_FILE_REL)
-            if (!ideContent.isNullOrBlank()) return@withContext ideContent
-        } catch (_: Exception) {}
+        for (rel in RELATIVE_TOKEN_PATHS) {
+            try {
+                val ideContent = IdeApiClient.readFile(rel)
+                if (!ideContent.isNullOrBlank()) return@withContext ideContent
+            } catch (_: Exception) {}
+        }
 
-        val candidatePaths = listOf(
-            File(LocalEnvironmentManager.getHomeDir(context), ".gemini/jetski-standalone-oauth-token"),
-            File("/data/data/com.termux/files/home/.gemini/jetski-standalone-oauth-token"),
-            File("/data/user/0/com.termux/files/home/.gemini/jetski-standalone-oauth-token"),
-            File(System.getProperty("user.home") ?: "", ".gemini/jetski-standalone-oauth-token")
+        val candidateRoots = listOf(
+            LocalEnvironmentManager.getHomeDir(context),
+            File("/data/data/com.termux/files/home"),
+            File("/data/user/0/com.termux/files/home"),
+            File(System.getProperty("user.home") ?: "")
         )
 
-        for (f in candidatePaths) {
-            try {
-                if (f.exists() && f.isFile && f.length() > 0) {
-                    val content = f.readText()
-                    if (content.isNotBlank()) return@withContext content
-                }
-            } catch (_: Exception) {}
+        for (root in candidateRoots) {
+            val targets = listOf(
+                File(root, ".gemini/antigravity-cli/antigravity-oauth-token"),
+                File(root, ".gemini/jetski-standalone-oauth-token")
+            )
+            for (f in targets) {
+                try {
+                    if (f.exists() && f.isFile && f.length() > 0) {
+                        val content = f.readText()
+                        if (content.isNotBlank()) return@withContext content
+                    }
+                } catch (_: Exception) {}
+            }
         }
         null
     }
 
     suspend fun writeTokenFileToDisk(context: Context, tokenJson: String): Boolean = withContext(Dispatchers.IO) {
         var written = false
-        val candidateDirs = listOf(
-            File(LocalEnvironmentManager.getHomeDir(context), ".gemini"),
-            File("/data/data/com.termux/files/home/.gemini"),
-            File("/data/user/0/com.termux/files/home/.gemini")
+        val candidateRoots = listOf(
+            LocalEnvironmentManager.getHomeDir(context),
+            File("/data/data/com.termux/files/home"),
+            File("/data/user/0/com.termux/files/home"),
+            File(System.getProperty("user.home") ?: "")
         )
 
-        for (dir in candidateDirs) {
-            try {
-                if (dir.exists() || dir.mkdirs()) {
-                    val file = File(dir, "jetski-standalone-oauth-token")
-                    file.writeText(tokenJson)
-                    file.setReadable(true, false)
-                    file.setWritable(true, false)
-                    written = true
+        for (root in candidateRoots) {
+            val targets = listOf(
+                File(root, ".gemini/antigravity-cli/antigravity-oauth-token"),
+                File(root, ".gemini/jetski-standalone-oauth-token")
+            )
+            for (file in targets) {
+                try {
+                    val parent = file.parentFile
+                    if (parent != null && (parent.exists() || parent.mkdirs())) {
+                        file.writeText(tokenJson)
+                        file.setReadable(true, false)
+                        file.setWritable(true, false)
+                        written = true
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed writing to ${file.absolutePath}: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed writing to ${dir.absolutePath}: ${e.message}")
             }
         }
 
-        try {
-            val savedViaIde = IdeApiClient.saveFile(TOKEN_FILE_REL, tokenJson)
-            written = written || savedViaIde
-        } catch (e: Exception) {
-            Log.w(TAG, "IdeApiClient saveFile error: ${e.message}")
+        for (rel in RELATIVE_TOKEN_PATHS) {
+            try {
+                val savedViaIde = IdeApiClient.saveFile(rel, tokenJson)
+                written = written || savedViaIde
+            } catch (e: Exception) {
+                Log.w(TAG, "IdeApiClient saveFile error ($rel): ${e.message}")
+            }
         }
 
         written

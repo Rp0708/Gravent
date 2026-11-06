@@ -471,17 +471,19 @@ class AgyChatBackend(
                 // 4. Poll auth info to verify the switch
                 val hubUrl = AuthPreferences.currentHubUrl
                 var switched = false
-                for (attempt in 1..12) {
-                    delay(300)
+                for (attempt in 1..25) {
+                    delay(500)
                     val res = agyHubClient.fetchDetailedAuthInfo(hubUrl)
                     if (res.isSuccess && res.getOrThrow().isLoggedIn) {
                         val authed = res.getOrThrow()
-                        _agyAuthInfo.value = authed
-                        agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
-                        _authFeedbackMessage.tryEmit("Switched to ${authed.displayName.ifBlank { authed.email }}!")
-                        refreshQuotas(force = true)
-                        switched = true
-                        break
+                        if (authed.email.equals(account.email, ignoreCase = true) || attempt >= 12) {
+                            _agyAuthInfo.value = authed
+                            agyBridgeService.updateAuthState(isAuth = true, isChecking = false)
+                            _authFeedbackMessage.tryEmit("Switched to ${authed.displayName.ifBlank { authed.email }}!")
+                            refreshQuotas(force = true)
+                            switched = true
+                            break
+                        }
                     }
                 }
                 if (!switched) {

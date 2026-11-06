@@ -219,7 +219,12 @@ fun AccountsButton(
             )
 
             savedAgyAccounts.forEach { acc ->
-                val isActive = (acc.id == activeAgyAccountId) || (agyAuth.email.isNotBlank() && acc.email.equals(agyAuth.email, ignoreCase = true))
+                val currentActiveId = activeAgyAccountId?.takeIf { it.isNotBlank() }
+                    ?: agyAuth.email.takeIf { it.isNotBlank() }
+                val isActive = currentActiveId != null && (
+                    acc.id.equals(currentActiveId, ignoreCase = true) ||
+                    acc.email.equals(currentActiveId, ignoreCase = true)
+                )
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -346,7 +351,12 @@ fun AccountsDialog(
                                 Spacer(Modifier.height(6.dp))
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     savedAgyAccounts.forEach { acc ->
-                                        val isActive = (acc.id == activeAgyAccountId) || (agyAuth.email.isNotBlank() && acc.email.equals(agyAuth.email, ignoreCase = true))
+                                        val currentActiveId = activeAgyAccountId?.takeIf { it.isNotBlank() }
+                                            ?: agyAuth.email.takeIf { it.isNotBlank() }
+                                        val isActive = currentActiveId != null && (
+                                            acc.id.equals(currentActiveId, ignoreCase = true) ||
+                                            acc.email.equals(currentActiveId, ignoreCase = true)
+                                        )
                                         Surface(
                                             shape = RoundedCornerShape(12.dp),
                                             color = if (isActive) Color(0xFF16161C) else Color(0xFF0F0F12),

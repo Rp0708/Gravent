@@ -25,7 +25,7 @@ import (
 
 var (
 	loginURLRegex   = regexp.MustCompile(`https://accounts\.google\.com/[^\s"'<>]+`)
-	csrfJSONPattern = regexp.MustCompile(`"csrfToken":\s*"([^"]+)"`)
+	csrfJSONPattern = regexp.MustCompile(`(?i)"(?:csrf[_-]?token|csrfToken|token)":\s*"([^"]+)"`)
 	csrfHTMLPattern = regexp.MustCompile(`(?i)(?:csrf[_-]?token|csrfToken)["']?\s*[:=]\s*["']([^"']+)["']`)
 )
 
@@ -239,51 +239,74 @@ func (m *HubManager) isHubReady() bool {
 func (m *HubManager) FetchCsrfToken() string {
 	url := fmt.Sprintf("http://127.0.0.1:%s/", m.HubPort)
 	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		log.Printf("[FetchCsrfToken] NewRequest error: %v", err)
-		return ""
-	}
-	req.Header.Set("User-Agent", "antiGem-Go-Supervisor")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("[FetchCsrfToken] GET %s error: %v", url, err)
-		return ""
-	}
-	defer resp.Body.Close()
-
-	if headerToken := strings.TrimSpace(resp.Header.Get("x-codeium-csrf-token")); headerToken != "" {
-		log.Printf("[FetchCsrfToken] Found token in header: %s", headerToken)
-		return headerToken
+		Timeout: 6 * time.Second,
 	}
 
-	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 128*1024))
-	if err != nil {
-		log.Printf("[FetchCsrfToken] Read body error: %v", err)
-		return ""
+	framedHeader := ""
+	if m.SecurityToken != "" {
+		framedHeader = strings.ToLower(security.BuildFramedHeader(m.SecurityToken))
 	}
-	bodyStr := string(bodyBytes)
 
-	if match := csrfJSONPattern.FindStringSubmatch(bodyStr); len(match) > 1 {
-		token := strings.TrimSpace(match[1])
-		if token != "" {
-			log.Printf("[FetchCsrfToken] Extracted token via JSON pattern: %s", token)
-			return token
+	for attempt := 1; attempt <= 6; attempt++ {
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			log.Printf("[FetchCsrfToken] NewRequest error: %v", err)
+			return ""
 		}
-	}
+		req.Header.Set("User-Agent", "antiGem-Go-Supervisor")
 
-	if match := csrfHTMLPattern.FindStringSubmatch(bodyStr); len(match) > 1 {
-		token := strings.TrimSpace(match[1])
-		if token != "" {
-			log.Printf("[FetchCsrfToken] Extracted token via HTML pattern: %s", token)
-			return token
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("[FetchCsrfToken] Attempt %d/6: GET %s error: %v (waiting for hub HTTP server)", attempt, url, err)
+			time.Sleep(500 * time.Millisecond)
+			continue
 		}
+
+		// 1. Check all response headers case-insensitively
+		for k, values := range resp.Header {
+			kLower := strings.ToLower(k)
+			if kLower == "x-codeium-csrf-token" ||
+				(framedHeader != "" && kLower == framedHeader) ||
+				strings.Contains(kLower, "csrf") ||
+				strings.HasPrefix(kLower, "x-ag") {
+				for _, v := range values {
+					v = strings.TrimSpace(v)
+					if v != "" {
+						_ = resp.Body.Close()
+						log.Printf("\033[1;32m[FetchCsrfToken]\033[0m Found token in header %s: %s", k, v)
+						return v
+					}
+				}
+			}
+		}
+
+		// 2. Read body if header wasn't present
+		bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 128*1024))
+		_ = resp.Body.Close()
+		if err == nil {
+			bodyStr := string(bodyBytes)
+			if match := csrfJSONPattern.FindStringSubmatch(bodyStr); len(match) > 1 {
+				token := strings.TrimSpace(match[1])
+				if token != "" {
+					log.Printf("\033[1;32m[FetchCsrfToken]\033[0m Extracted token via JSON pattern: %s", token)
+					return token
+				}
+			}
+
+			if match := csrfHTMLPattern.FindStringSubmatch(bodyStr); len(match) > 1 {
+				token := strings.TrimSpace(match[1])
+				if token != "" {
+					log.Printf("\033[1;32m[FetchCsrfToken]\033[0m Extracted token via HTML pattern: %s", token)
+					return token
+				}
+			}
+		}
+
+		log.Printf("[FetchCsrfToken] Attempt %d/6: No token found yet, retrying...", attempt)
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	log.Printf("[FetchCsrfToken] No CSRF token matched in body (%d bytes)", len(bodyStr))
+	log.Printf("[FetchCsrfToken] No CSRF token acquired from %s after 6 attempts", url)
 	return ""
 }
 
@@ -591,7 +614,7 @@ func (m *HubManager) Start() error {
 	return nil
 }
 
-// Stop gracefully shuts down the agy --hub child process, its process group, and the continuous monitor.
+// Stop gracefully shuts down the agy --hub child process and its process group.
 func (m *HubManager) Stop() {
 	m.mu.Lock()
 	cmd := m.cmd
@@ -600,11 +623,7 @@ func (m *HubManager) Stop() {
 	isExternal := m.isExternal
 	doneChan := m.processDone
 	m.isRunning = false
-	select {
-	case <-m.monitorStop:
-	default:
-		close(m.monitorStop)
-	}
+	m.csrfToken = ""
 	m.mu.Unlock()
 
 	if !isRunning || isExternal {
@@ -644,7 +663,7 @@ func (m *HubManager) Stop() {
 			}
 			_ = cmd.Process.Kill()
 			_ = exec.Command("pkill", "-9", "-P", fmt.Sprintf("%d", pid)).Run()
-			_ = exec.Command("pkill", "-9", "-f", "agy --hub").Run()
+			_ = exec.Command("pkill", "-9", "-f", "agy").Run()
 			fmt.Println("⚠️  AGY Hub force terminated.")
 		}
 
@@ -665,11 +684,27 @@ func (m *HubManager) Stop() {
 	m.setStatus(HubStatusStopped, "")
 }
 
+// Close gracefully stops the hub process and terminates the continuous monitor.
+func (m *HubManager) Close() {
+	m.Stop()
+	m.mu.Lock()
+	select {
+	case <-m.monitorStop:
+	default:
+		close(m.monitorStop)
+	}
+	m.mu.Unlock()
+}
+
 // Restart cleanly stops the agy --hub process, clears any lingering instances, and starts fresh.
 func (m *HubManager) Restart() error {
+	m.mu.Lock()
+	m.isExternal = false
+	m.csrfToken = ""
+	m.mu.Unlock()
 	m.Stop()
-	_ = exec.Command("pkill", "-9", "-f", "agy --hub").Run()
-	time.Sleep(300 * time.Millisecond)
+	_ = exec.Command("pkill", "-9", "-f", "agy").Run()
+	time.Sleep(500 * time.Millisecond)
 	return m.Start()
 }
 

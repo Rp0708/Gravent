@@ -589,7 +589,7 @@ func main() {
 		claudeMgr.StopAll()
 	}
 	if hubMgr != nil {
-		hubMgr.Stop()
+		hubMgr.Close()
 	}
 
 	// 3. Close the HTTP listener without hanging on lingering connections
