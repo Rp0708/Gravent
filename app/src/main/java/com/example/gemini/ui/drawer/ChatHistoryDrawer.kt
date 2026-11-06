@@ -40,6 +40,11 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Public
 import com.example.gemini.ui.components.AppToastHelper
 import com.example.gemini.ui.components.ChatToastType
+import com.example.gemini.ui.components.BranchedMenu
+import com.example.gemini.ui.components.BranchedMenuChild
+import com.example.gemini.ui.components.BranchedMenuItem
+import com.example.gemini.ui.components.DEFAULT_BRANCHED_MENU_ITEMS
+import com.example.gemini.ui.components.GRAVENT_HUB_MENU_ITEMS
 import android.widget.Toast
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Settings
@@ -124,6 +129,7 @@ fun ChatHistoryDrawer(
     var showSigningInProgressDialog by remember { mutableStateOf(false) }
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<Conversation?>(null) }
+    var showBranchedMenuDialog by remember { mutableStateOf(false) }
     var isInitialGracePeriod by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -565,6 +571,229 @@ fun ChatHistoryDrawer(
         )
     }
 
+    if (showBranchedMenuDialog) {
+        Dialog(
+            onDismissRequest = { showBranchedMenuDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .wrapContentHeight()
+                    .padding(vertical = 24.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f))
+            ) {
+                var selectedMenuMode by remember { mutableStateOf(0) } // 0: Gravent Hub, 1: React Bits Demo
+                var activeItemValue by remember { mutableStateOf("agent_agy") }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Header with title and close button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.CallSplit,
+                                    contentDescription = null,
+                                    tint = ClaudeTerracotta,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Branched Menu",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = ClaudeTerracotta.copy(alpha = 0.18f)
+                                    ) {
+                                        Text(
+                                            text = "REACT BITS",
+                                            color = ClaudeTerracotta,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Native animated tree with trunk glide & reach paths",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { showBranchedMenuDialog = false },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Mode switcher tabs (Gravent Hub vs React Bits Demo)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                            .padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Surface(
+                            onClick = {
+                                selectedMenuMode = 0
+                                activeItemValue = "agent_agy"
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedMenuMode == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
+                            border = if (selectedMenuMode == 0) BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)) else null
+                        ) {
+                            Text(
+                                text = "Gravent Hub",
+                                fontSize = 12.sp,
+                                fontWeight = if (selectedMenuMode == 0) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedMenuMode == 0) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                        }
+
+                        Surface(
+                            onClick = {
+                                selectedMenuMode = 1
+                                activeItemValue = "install"
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedMenuMode == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
+                            border = if (selectedMenuMode == 1) BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)) else null
+                        ) {
+                            Text(
+                                text = "React Bits Demo",
+                                fontSize = 12.sp,
+                                fontWeight = if (selectedMenuMode == 1) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedMenuMode == 1) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Branched Menu Component container
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp)),
+                        color = Color(0xFF111115),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            val menuItems = if (selectedMenuMode == 0) GRAVENT_HUB_MENU_ITEMS else DEFAULT_BRANCHED_MENU_ITEMS
+                            BranchedMenu(
+                                items = menuItems,
+                                activeValue = activeItemValue,
+                                onSelect = { valSelected, item ->
+                                    activeItemValue = valSelected
+                                    if (selectedMenuMode == 0) {
+                                        when (valSelected) {
+                                            "agent_agy" -> {
+                                                agentFilter = com.example.gemini.domain.model.AgentKind.AGY
+                                                Toast.makeText(context, "Filtered: Antigravity Core", Toast.LENGTH_SHORT).show()
+                                            }
+                                            "agent_claude" -> {
+                                                agentFilter = com.example.gemini.domain.model.AgentKind.CLAUDE
+                                                Toast.makeText(context, "Filtered: Claude Code", Toast.LENGTH_SHORT).show()
+                                            }
+                                            "agent_models" -> {
+                                                showBranchedMenuDialog = false
+                                                onOpenSettings()
+                                            }
+                                            "ws_browse" -> {
+                                                showBranchedMenuDialog = false
+                                                Toast.makeText(context, "Opening File Explorer", Toast.LENGTH_SHORT).show()
+                                            }
+                                            "ws_terminal" -> {
+                                                showBranchedMenuDialog = false
+                                                Toast.makeText(context, "Opening Local Terminal", Toast.LENGTH_SHORT).show()
+                                            }
+                                            "ws_mcp" -> {
+                                                showBranchedMenuDialog = false
+                                                onOpenSettings()
+                                            }
+                                            "act_accounts" -> {
+                                                showBranchedMenuDialog = false
+                                                showProfileDialog = true
+                                            }
+                                            "act_settings" -> {
+                                                showBranchedMenuDialog = false
+                                                onOpenSettings()
+                                            }
+                                        }
+                                    } else {
+                                        val label = when (item) {
+                                            is BranchedMenuChild -> item.label
+                                            is BranchedMenuItem -> item.label
+                                            else -> valSelected
+                                        }
+                                        Toast.makeText(context, "Selected: $label", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                width = 320.dp,
+                                accentColor = ClaudeTerracotta,
+                                lineColor = Color(0xFF2E2E38),
+                                color = Color(0xFFF1F1F4),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     ModalDrawerSheet(
         modifier = modifier.fillMaxWidth(0.82f),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
@@ -693,6 +922,32 @@ fun ChatHistoryDrawer(
                             contentDescription = "Search",
                             tint = if (isSearchActive || searchQuery.isNotBlank()) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.8f
+                            ),
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                }
+
+                // Branched Menu Button (React Bits Animated Component)
+                Surface(
+                    onClick = { showBranchedMenuDialog = true },
+                    modifier = Modifier.size(36.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (showBranchedMenuDialog) ClaudeTerracotta.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                        alpha = 0.5f
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (showBranchedMenuDialog) ClaudeTerracotta.copy(alpha = 0.5f)
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.CallSplit,
+                            contentDescription = "Branched Menu",
+                            tint = if (showBranchedMenuDialog) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = 0.85f
                             ),
                             modifier = Modifier.size(17.dp)
                         )

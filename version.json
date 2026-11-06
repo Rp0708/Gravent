@@ -1,12 +1,12 @@
 {
-  "version_code": 125,
-  "version_name": "1.0.25",
+  "version_code": 126,
+  "version_name": "1.0.26",
   "min_supported_version_code": 1,
   "changelog": [
-    "React Bits SpotlightCard Component: ported interactive radial spotlight and border edge-catch illumination to native Jetpack Compose with zero-jank 120 FPS draw phase rendering",
-    "Interactive Accounts Spotlight Cards: configured accounts now feature touch-following light tracking, emerald glow on active accounts, and titanium accents on inactive accounts",
-    "3-Stat Real-Time Overview: displays real-time Status (Active now vs last used relative time), Prompt Credits count, and Flow / Plan Tier in a sleek pill container",
-    "Global react-bits Skill: integrated global Antigravity skill for automated React Bits JSON registry queries and Compose translations without workspace pollution"
+    "React Bits BranchedMenu Component: Native Jetpack Compose implementation of reactbits.dev BranchedMenu with collapsible tree sections, dynamic bezier branch curves, and zero-allocation draw phase rendering",
+    "Animated Laser Reach Path: Dynamic PathMeasure vector stroke tracing along curved branch lines directly to the chosen active item with cubic-bezier ease-out timing",
+    "Gliding Trunk Marker: Smooth luminous indicator sliding vertically along the outer trunk backbone to lock onto the active section header",
+    "Interactive Drawer Integration: New Branched Menu quick-navigation accessible directly from the drawer header with Gravent Hub navigation and React Bits demo modes"
   ],
   "is_critical": false
 }
