@@ -210,6 +210,13 @@ fun AgentMark(agent: AgentKind, modifier: Modifier = Modifier, size: Dp = 32.dp,
                     fontWeight = FontWeight.Bold,
                     fontSize = (size.value * 0.52f).sp
                 )
+                AgentKind.COPILOT -> Text(
+                    "CP",
+                    color = Color(0xFF8957E5),
+                    fontWeight = FontWeight.Black,
+                    fontSize = (size.value * 0.38f).sp,
+                    letterSpacing = (-0.5).sp
+                )
             }
         }
         if (statusColor != null) {

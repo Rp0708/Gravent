@@ -97,7 +97,8 @@ enum class SettingsSection(val title: String, val subtitle: String) {
     DATA_PROTECTION("Data Loss Protection", "Uninstall shield & App Info clear data protection"),
     COMMANDS("Commands & Permissions", "Auto-run policy, sandbox mode, and tool approvals"),
     CLAUDE("Claude Code", "Account, models, permissions, MCP, plugins & memory"),
-    AGENTS("Agents", "Run Antigravity, Claude Code or both"),
+    COPILOT("GitHub Copilot", "Account, subscription, models & repositories"),
+    AGENTS("Agents", "Run Antigravity, Claude Code or GitHub Copilot"),
     DIAGNOSTICS("Diagnostics & Performance", "Live network connections, active streams & thread HUD"),
     UTILITIES("Utilities", "Handy device tools"),
     ADB_CONNECT("ADB Connect", "Connect the terminal's adb to this phone over Wireless debugging"),
@@ -241,6 +242,8 @@ fun SettingsDialog(
     enabledAgents: Set<com.example.gemini.domain.model.AgentKind> = setOf(com.example.gemini.domain.model.AgentKind.AGY),
     isApplyingAgents: Boolean = false,
     onApplyAgents: (Set<com.example.gemini.domain.model.AgentKind>) -> Unit = {},
+    copilotAccount: com.example.gemini.data.agent.copilot.CopilotAccountManager? = null,
+    copilotBackend: com.example.gemini.data.agent.copilot.CopilotChatBackend? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -369,6 +372,7 @@ fun SettingsDialog(
                         cardBorder = cardBorder,
                         scrollState = mainMenuScrollState,
                         enabledAgents = enabledAgents,
+                        copilotAccount = copilotAccount,
                         claudeGroup = claude?.let { deps ->
                             {
                                 com.example.gemini.ui.claude.ClaudeSettingsGroup(deps) { page ->
@@ -379,6 +383,14 @@ fun SettingsDialog(
                         },
                         onNavigate = { currentSection = it }
                     )
+
+                    SettingsSection.COPILOT -> if (copilotAccount != null && copilotBackend != null) {
+                        com.example.gemini.ui.copilot.CopilotSettingsSection(
+                            accountManager = copilotAccount,
+                            backend = copilotBackend,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
 
                     SettingsSection.APPEARANCE -> AppearanceSubScreen(
                         themeMode = themeMode,
@@ -597,10 +609,12 @@ private fun MainSettingsMenu(
     scrollState: androidx.compose.foundation.ScrollState,
     claudeGroup: (@Composable () -> Unit)? = null,
     enabledAgents: Set<com.example.gemini.domain.model.AgentKind> = setOf(com.example.gemini.domain.model.AgentKind.AGY),
+    copilotAccount: com.example.gemini.data.agent.copilot.CopilotAccountManager? = null,
     onNavigate: (SettingsSection) -> Unit
 ) {
     val agyOn = com.example.gemini.domain.model.AgentKind.AGY in enabledAgents
     val claudeOn = com.example.gemini.domain.model.AgentKind.CLAUDE in enabledAgents
+    val copilotOn = com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -614,8 +628,12 @@ private fun MainSettingsMenu(
             iconTint = MaterialTheme.colorScheme.primary,
             title = "Agents",
             subtitle = when {
+                enabledAgents.size >= 3 -> "Antigravity, Claude Code and Copilot"
                 agyOn && claudeOn -> "Antigravity and Claude Code"
+                agyOn && copilotOn -> "Antigravity and Copilot"
+                claudeOn && copilotOn -> "Claude Code and Copilot"
                 claudeOn -> "Claude Code only"
+                copilotOn -> "GitHub Copilot only"
                 else -> "Antigravity only"
             },
             badgeText = "${enabledAgents.size} on",
@@ -744,7 +762,23 @@ private fun MainSettingsMenu(
             claudeGroup()
         }
 
-        SettingsGroupHeader("App", Color(0xFFA1A1AA), "Shared by both agents")
+        if (copilotAccount != null && (copilotOn || com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents)) {
+            val copilotAuthState by copilotAccount.authState.collectAsState()
+            SettingsGroupHeader("GitHub Copilot", com.example.gemini.ui.copilot.CopilotPurple, "GitHub Copilot subscription & models")
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Code,
+                iconTint = com.example.gemini.ui.copilot.CopilotPurple,
+                title = "GitHub Copilot",
+                subtitle = if (copilotAuthState.isLoggedIn) "Connected as @${copilotAuthState.user?.login}" else "Connect GitHub, subscription & models",
+                badgeText = if (copilotAuthState.hasCopilotAccess) "Active" else if (copilotAuthState.isLoggedIn) "Connected" else null,
+                badgeColor = com.example.gemini.ui.copilot.CopilotPurple,
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.COPILOT) }
+            )
+        }
+
+        SettingsGroupHeader("App", Color(0xFFA1A1AA), "Shared by all agents")
         // Section 1: Appearance & Display
         val themeLabel = when (themeMode) {
             "DARK" -> "Dark Mode"

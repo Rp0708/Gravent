@@ -1,11 +1,14 @@
 {
-  "version_code": 138,
-  "version_name": "1.0.38",
+  "version_code": 139,
+  "version_name": "1.0.39",
   "min_supported_version_code": 1,
   "changelog": [
-    "Antigravity CLI Manager & Updater: Added dedicated Antigravity CLI screen in Settings with detected binary path, live version badge, one-tap 'Update CLI to Latest' with streaming terminal console logs, quick diagnostics (models, changelog, flags help), and engine restart",
-    "Installed Tools & CLIs Hub: Added live version checks and one-tap update triggers for developer tools in Terminal & Shell settings (agy, claude, pnpm, node, and python3)",
-    "Engine Upgrade: Successfully verified and updated Antigravity CLI to v1.5.2"
+    "Phase 1: Stuck-Chat Deadlock Fix & Fail-Safe Execution: Injected non-interactive git environment flags (GIT_TERMINAL_PROMPT=0, GIT_ASKPASS=/bin/true, GIT_SSH_COMMAND non-interactive batch mode) across Termux, PRoot, and SSH; added 300s fail-safe process timeouts to live shell executions",
+    "Stuck Turn Recovery & Force Reset: Fixed bug where hung subprocesses left conversations permanently busy; added forceResetRunningState() and quick 'Force Reset' in confirmation dialogs so conversations can never become permanently bricked",
+    "Clean Cloned Repo Workspaces: Git cloning now seamlessly initializes a clean workspace in a fresh conversation (startNewChatInWorkspace) instead of mutating in-flight chats",
+    "Phase 2: GitHub Copilot Agent Integration: Added GitHub Copilot as a first-class agent alongside Antigravity and Claude Code with GitHub Device Code flow (https://github.com/login/device) and Personal Access Token (PAT) authentication",
+    "Copilot Models & Gravent Persona: Access Claude 3.7 Sonnet, Claude 3.5 Sonnet, GPT-4o, o3-mini, o1, and Gemini 2.0 Flash directly with your Copilot subscription; custom Gravent agent persona with full awareness of the Android and Termux environment",
+    "Authenticated GitHub Repo Cloning: Connected GitHub accounts enable 1-tap cloning of both public and private repositories with zero terminal credential prompts"
   ],
   "is_critical": false
 }

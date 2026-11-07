@@ -62,9 +62,14 @@ private val AGENT_OPTIONS = listOf(
         "Anthropic's Claude Code CLI on this device: your Claude subscription or Anthropic Console account."
     ),
     AgentOption(
-        setOf(AgentKind.AGY, AgentKind.CLAUDE),
-        "Both",
-        "Pick the agent for each new chat. Both share the chat list, status and accounts."
+        setOf(AgentKind.COPILOT),
+        "GitHub Copilot",
+        "GitHub Copilot subscription: Claude 3.7 Sonnet, GPT-4o, o3-mini and Gemini models via GitHub."
+    ),
+    AgentOption(
+        setOf(AgentKind.AGY, AgentKind.CLAUDE, AgentKind.COPILOT),
+        "All Agents",
+        "Pick the agent for each new chat. Seamlessly switch between Antigravity, Claude Code, and Copilot."
     )
 )
 

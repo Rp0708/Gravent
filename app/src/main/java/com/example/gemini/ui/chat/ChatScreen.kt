@@ -159,6 +159,8 @@ fun ChatScreen(
     val currentConv by viewModel.currentConversation.collectAsState()
     val newChatAgent by viewModel.newChatAgent.collectAsState()
     val isClaudeChat = currentConv?.agent == com.example.gemini.domain.model.AgentKind.CLAUDE
+    val isCopilotChat = currentConv?.agent == com.example.gemini.domain.model.AgentKind.COPILOT
+    val isAgyChat = !isClaudeChat && !isCopilotChat
     val isFreshNewChat = currentConv == null || currentConv?.title == "New Chat"
     val claudeBackend = viewModel.claudeBackend
     val claudePending by claudeBackend.pendingPermissions.collectAsState()
@@ -398,7 +400,22 @@ fun ChatScreen(
             onRetry = recheckClaude
         )
     } else null
-    val agentEntries = listOfNotNull(agyEntry, claudeEntry)
+    val copilotAuthState by viewModel.copilotAccount.authState.collectAsState()
+    val copilotEntry = if (com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents) {
+        val copilotColor = if (copilotAuthState.hasCopilotAccess) Color(0xFF22C55E) else if (copilotAuthState.isLoggedIn) Color(0xFFFFA000) else Color.Red
+        com.example.gemini.ui.agents.AgentStatusEntry(
+            agent = com.example.gemini.domain.model.AgentKind.COPILOT,
+            label = if (copilotAuthState.hasCopilotAccess) "Active" else if (copilotAuthState.isLoggedIn) "Connected" else "Signed out",
+            color = copilotColor,
+            detail = if (copilotAuthState.isLoggedIn) "@${copilotAuthState.user?.login}" else "GitHub Copilot",
+            isReady = copilotAuthState.hasCopilotAccess,
+            isSignedOut = !copilotAuthState.isLoggedIn,
+            action = if (!copilotAuthState.isLoggedIn) {
+                com.example.gemini.ui.agents.AgentStatusAction("Sign in") { showSettingsDialog = true }
+            } else null
+        )
+    } else null
+    val agentEntries = listOfNotNull(agyEntry, claudeEntry, copilotEntry)
 
     // Slash commands Claude's CLI only shows in a terminal: the app opens its own screen instead
     val handleClaudeCommand: (com.example.gemini.data.agent.claude.ClaudeAppCommand) -> Unit = { cmd ->
@@ -1332,7 +1349,7 @@ fun ChatScreen(
                     val isExistingChat = messages.isEmpty() && isExistingConversation && isLoadingConversation
                     Log.d("CHAT_OPEN_DEBUG", "🖥️ [ChatScreen Render] convId=${currentConv?.id}, title='${currentConv?.title}', isLoading=$isLoadingConversation, isExisting=$isExistingChat, msgCount=${messages.size}, error=$conversationError, isServerStopped=$isServerStopped")
 
-                    if (!isClaudeChat && isServerStopped && messages.isEmpty()) {
+                    if (isAgyChat && isServerStopped && messages.isEmpty()) {
                         BoxWithConstraints(
                             modifier = Modifier.fillMaxSize()
                         ) {
@@ -1358,7 +1375,7 @@ fun ChatScreen(
                                 com.example.gemini.ui.components.ServerStoppedPromptCard()
                             }
                         }
-                    } else if (!isClaudeChat && isServerInitializing && messages.isEmpty()) {
+                    } else if (isAgyChat && isServerInitializing && messages.isEmpty()) {
                         com.example.gemini.ui.components.EngineWarmingUpView()
                     } else if (!conversationError.isNullOrBlank() && messages.isEmpty() && (isExistingConversation || currentConv != null)) {
                         Column(
@@ -1875,7 +1892,7 @@ fun ChatScreen(
 
                 // Dynamic Bridge / Project / Model Initialization Banner
                 AnimatedVisibility(
-                    visible = !isClaudeChat && !bridgeStatusMessage.isNullOrBlank(),
+                    visible = isAgyChat && !bridgeStatusMessage.isNullOrBlank(),
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
@@ -1910,7 +1927,7 @@ fun ChatScreen(
 
                 // Disconnection / Reconnecting Inline Banner (Compact, non-intrusive with Reconnect action)
                 AnimatedVisibility(
-                    visible = !isClaudeChat && (isServerOnline == false || isReconnecting) && messages.isNotEmpty(),
+                    visible = isAgyChat && (isServerOnline == false || isReconnecting) && messages.isNotEmpty(),
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut()
                 ) {
@@ -2059,13 +2076,25 @@ fun ChatScreen(
 
                 // Chat Input Bar with Bottom Model & Thinking Selector Pills (Claude Android Style)
                 ChatInputBar(
-                    isOnline = if (isClaudeChat) !claudeState.isBlocking else systemConnectionState.canSend,
-                    isAuth = if (isClaudeChat) claudeChatState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNED_OUT && claudeChatState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNING_IN else systemConnectionState.isAuth,
-                    offlineMessage = if (isClaudeChat) when (claudeState) {
-                        com.example.gemini.data.agent.claude.ClaudeStatus.NOT_INSTALLED -> "Claude Code is not installed. Set it up in Settings."
-                        com.example.gemini.data.agent.claude.ClaudeStatus.BRIDGE_OUTDATED -> "Restart the local server to use Claude Code."
-                        else -> "The local server is offline. Start it to send messages."
-                    } else "Server is offline. Start the server to send messages.",
+                    isOnline = when {
+                        isClaudeChat -> !claudeState.isBlocking
+                        isCopilotChat -> true
+                        else -> systemConnectionState.canSend
+                    },
+                    isAuth = when {
+                        isClaudeChat -> claudeChatState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNED_OUT && claudeChatState != com.example.gemini.data.agent.claude.ClaudeStatus.SIGNING_IN
+                        isCopilotChat -> viewModel.copilotAccount.authState.collectAsState().value.isLoggedIn
+                        else -> systemConnectionState.isAuth
+                    },
+                    offlineMessage = when {
+                        isClaudeChat -> when (claudeState) {
+                            com.example.gemini.data.agent.claude.ClaudeStatus.NOT_INSTALLED -> "Claude Code is not installed. Set it up in Settings."
+                            com.example.gemini.data.agent.claude.ClaudeStatus.BRIDGE_OUTDATED -> "Restart the local server to use Claude Code."
+                            else -> "The local server is offline. Start it to send messages."
+                        }
+                        isCopilotChat -> "Sign in to GitHub Copilot in Settings to send messages."
+                        else -> "Server is offline. Start the server to send messages."
+                    },
                     selectedModel = currentModel,
                     quota = currentQuota,
                     thinkingPreference = thinkingPref,
@@ -2321,6 +2350,8 @@ fun ChatScreen(
             enabledAgents = enabledAgents,
             isApplyingAgents = isApplyingAgents,
             onApplyAgents = { viewModel.applyAgents(it) },
+            copilotAccount = viewModel.copilotAccount,
+            copilotBackend = viewModel.copilotBackend,
             onDismiss = {
                 showSettingsDialog = false
                 claudeSettingsPage = null
@@ -2823,8 +2854,13 @@ fun ChatScreen(
         com.example.gemini.ui.components.GitCloneDialog(
             onCloned = { clonedProj ->
                 showGitCloneDialog = false
+                val currentId = currentConv?.id
+                if (!currentId.isNullOrBlank() && feedItems.isNotEmpty()) {
+                    ConversationScrollCache.save(currentId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, isAtBottom)
+                }
+                conversationBackStack.clear()
                 TermuxDaemonManager.setActiveProject(clonedProj)
-                viewModel.onProjectChanged(clonedProj.path)
+                viewModel.startNewChatInWorkspace(clonedProj.path)
             },
             onDismiss = { showGitCloneDialog = false }
         )

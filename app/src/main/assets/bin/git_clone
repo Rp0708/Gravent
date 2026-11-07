@@ -76,12 +76,23 @@ if [ -e "$TARGET_DIR" ]; then
     rmdir "$TARGET_DIR" || { echo "❌ Error: Could not remove empty folder '$TARGET_DIR'."; exit 1; }
 fi
 
-# public repos only: fail instead of waiting for a username/password prompt
+# Fail-safe non-interactive git configuration: never hang on stdin prompts
 export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=/bin/true
+export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+export DEBIAN_FRONTEND=noninteractive
+export CI=true
+
+# If a GitHub token was provided in env (GITHUB_TOKEN) or as 3rd arg, insert into https url if not already present
+GH_TOKEN="${3:-${GITHUB_TOKEN:-}}"
+CLONE_URL="$REPO_URL"
+if [ -n "$GH_TOKEN" ] && [[ "$REPO_URL" == https://github.com/* ]]; then
+    CLONE_URL="https://${GH_TOKEN}@github.com/${REPO_URL#https://github.com/}"
+fi
 
 echo "[git] git clone --progress $REPO_URL $TARGET_DIR"
 # git draws progress with carriage returns; split them into lines for the log
-git clone --progress "$REPO_URL" "$TARGET_DIR" 2>&1 | tr '\r' '\n'
+git clone --progress "$CLONE_URL" "$TARGET_DIR" 2>&1 | tr '\r' '\n'
 STATUS=$?
 
 if [ $STATUS -ne 0 ]; then

@@ -528,6 +528,8 @@ class AgyChatBackend(
         instances.isNotEmpty() || convs.any { it.isRunning || it.notFullyIdle || it.hasActivity }
     }.stateIn(backendScope, SharingStarted.WhileSubscribed(5000), false)
 
+    private val _forceStoppedConversations = MutableStateFlow<Set<String>>(emptySet())
+
     // Authoritative conversation running & background states derived from the sidebar summary stream (_conversations).
     // Note: We use the daemon's sidebar summaries (JetboxSubscribeToSummaries) as the single source of truth rather than
     // per-frame stream updates from StreamAgentStateUpdates because the fine-grained gRPC stream in AGY can be buggier
@@ -535,9 +537,11 @@ class AgyChatBackend(
     val isCurrentChatActivelyRunning: StateFlow<Boolean> = combine(
         _conversations,
         _currentConversation,
-        systemConnectionState
-    ) { convList, current, conn ->
+        systemConnectionState,
+        _forceStoppedConversations
+    ) { convList, current, conn, forceStopped ->
         val curId = current?.id ?: return@combine false
+        if (curId in forceStopped) return@combine false
         val conv = convList.find { it.id == curId } ?: current
         (conv.isRunning) && conn.isHubOnline
     }.distinctUntilChanged()
@@ -547,9 +551,11 @@ class AgyChatBackend(
         _conversations,
         _currentConversation,
         systemConnectionState,
-        _activeInstances
-    ) { convList, current, conn, instances ->
+        _activeInstances,
+        _forceStoppedConversations
+    ) { convList, current, conn, instances, forceStopped ->
         val curId = current?.id ?: return@combine false
+        if (curId in forceStopped) return@combine false
         val conv = convList.find { it.id == curId } ?: current
         val isActivelyRunning = (conv.isRunning) && conn.isHubOnline
         val activeInst = instances.find { it.conversationId == curId }
@@ -1265,7 +1271,23 @@ class AgyChatBackend(
 
 
     override fun sendMessage(content: String) {
-        if ((content.isBlank() && _attachments.value.isEmpty()) || isCurrentChatActivelyRunning.value) return
+        val conv = _currentConversation.value ?: return
+
+        // Clear force-stopped status for this conversation when user sends a new message
+        if (conv.id in _forceStoppedConversations.value) {
+            _forceStoppedConversations.value = _forceStoppedConversations.value - conv.id
+        }
+
+        if (content.isBlank() && _attachments.value.isEmpty()) return
+
+        if (isCurrentChatActivelyRunning.value) {
+            android.widget.Toast.makeText(
+                application,
+                "A turn is currently running. Tap Stop to finish it before sending another message.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
 
         val state = systemConnectionState.value
         if (!state.canSend) {
@@ -1858,6 +1880,12 @@ class AgyChatBackend(
         trajectoryEngine.cancelRunning()
 
         if (conv != null) {
+            _forceStoppedConversations.value = _forceStoppedConversations.value + conv.id
+            _currentConversation.value = conv.copy(isRunning = false, notFullyIdle = false, hasActivity = false)
+            _conversations.value = _conversations.value.map {
+                if (it.id == conv.id) it.copy(isRunning = false, notFullyIdle = false, hasActivity = false) else it
+            }
+
             backendScope.launch {
                 val hubUrl = AuthPreferences.currentHubUrl
                 agyHubClient.cancelCascadeInvocation(conv.id, hubUrl)
@@ -1867,6 +1895,18 @@ class AgyChatBackend(
                 if (it.isStreaming) it.copy(isStreaming = false) else it
             }
             _messages.value = list
+        }
+    }
+
+    /** Forcefully resets the active running lock, cleans trajectory engine, and cancels remote work. */
+    fun forceResetRunningState() {
+        stopStreaming()
+        val conv = _currentConversation.value
+        if (conv != null) {
+            _forceStoppedConversations.value = _forceStoppedConversations.value + conv.id
+            trajectoryEngine.reset(conv.id, force = true)
+            _messages.value = trajectoryEngine.toChatMessages(conv.id)
+            android.widget.Toast.makeText(application, "Chat execution state cleared.", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

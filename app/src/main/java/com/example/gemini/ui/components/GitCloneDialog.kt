@@ -92,7 +92,17 @@ fun GitCloneDialog(
             logs.clear()
             logs.add("⚡ Initializing git clone...")
             var clonedPath: String? = null
-            val args = listOf(trimmedUrl) + listOfNotNull(projectName.trim().takeIf { it.isNotEmpty() })
+            val ghToken = com.example.gemini.data.agent.copilot.CopilotPreferences(context).githubToken.value
+            val args = mutableListOf(trimmedUrl)
+            val pName = projectName.trim()
+            if (pName.isNotEmpty()) {
+                args.add(pName)
+            } else {
+                args.add("")
+            }
+            if (!ghToken.isNullOrBlank()) {
+                args.add(ghToken)
+            }
             val result = LocalEnvironmentManager.executeScriptLive(
                 context = context,
                 scriptName = "git_clone",
@@ -181,9 +191,10 @@ fun GitCloneDialog(
                                 fontSize = 15.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
+                            val isGhConnected = remember { com.example.gemini.data.agent.copilot.CopilotPreferences(context).githubToken.value != null }
                             Text(
                                 text = when {
-                                    !started -> "Public repositories only, cloned into your home folder"
+                                    !started -> if (isGhConnected) "Public or private repos (authenticated via GitHub)" else "Public repositories cloned into your home folder"
                                     isRunning -> "Cloning..."
                                     exitCode == 0 -> "Cloned in ${(durationMs / 1000.0)}s, opening project..."
                                     else -> "Clone failed (Exit: $exitCode)"

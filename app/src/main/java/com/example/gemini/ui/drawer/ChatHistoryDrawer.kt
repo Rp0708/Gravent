@@ -1221,7 +1221,8 @@ fun ChatHistoryDrawer(
                     listOf<Pair<com.example.gemini.domain.model.AgentKind?, String>>(
                         null to "All",
                         com.example.gemini.domain.model.AgentKind.AGY to "Antigravity",
-                        com.example.gemini.domain.model.AgentKind.CLAUDE to "Claude"
+                        com.example.gemini.domain.model.AgentKind.CLAUDE to "Claude",
+                        com.example.gemini.domain.model.AgentKind.COPILOT to "Copilot"
                     ).forEach { (agent, label) ->
                         val selected = agentFilter == agent
                         val accent = agent?.accent() ?: ClaudeTerracotta
@@ -1325,7 +1326,7 @@ fun ChatHistoryDrawer(
                                 items(topLevelChats, key = { it.id }) { conv ->
                                     val isSelected = conv.id == currentConversationId
                                     val activeInst = activeInstances.find { it.conversationId == conv.id }
-                                    val isActivelyRunning = conv.isRunning && (systemConnectionState.isHubOnline || conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE)
+                                    val isActivelyRunning = conv.isRunning && (systemConnectionState.isHubOnline || conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE || conv.agent == com.example.gemini.domain.model.AgentKind.COPILOT)
                                     val isScheduledOrBackground =
                                         systemConnectionState.isHubOnline && !isActivelyRunning && (conv.notFullyIdle || conv.hasActivity || activeInst != null)
                                     val subagents = subagentsByParent[conv.id] ?: emptyList()
@@ -1462,7 +1463,7 @@ fun ChatHistoryDrawer(
                                     items(displayChats, key = { it.id }) { conv ->
                                         val isSelected = conv.id == currentConversationId
                                         val activeInst = activeInstances.find { it.conversationId == conv.id }
-                                        val isActivelyRunning = conv.isRunning && (systemConnectionState.isHubOnline || conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE)
+                                        val isActivelyRunning = conv.isRunning && (systemConnectionState.isHubOnline || conv.agent == com.example.gemini.domain.model.AgentKind.CLAUDE || conv.agent == com.example.gemini.domain.model.AgentKind.COPILOT)
                                         val isScheduledOrBackground =
                                             systemConnectionState.isHubOnline && !isActivelyRunning && (conv.notFullyIdle || conv.hasActivity || activeInst != null)
                                         val subagents = subagentsByParent[conv.id] ?: emptyList()

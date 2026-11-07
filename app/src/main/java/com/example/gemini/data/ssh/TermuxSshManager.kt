@@ -265,6 +265,7 @@ object TermuxSshManager {
 
             val pwdMarker = "__ANTIGRAVITY_PWD:"
             val wrappedCommand = buildString {
+                append("export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true GIT_SSH_COMMAND=\"ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new\" DEBIAN_FRONTEND=noninteractive CI=true; ")
                 if (workingDir.isNotBlank() && workingDir != "~") {
                     append("cd \"$workingDir\" 2>/dev/null || cd ~; ")
                 }

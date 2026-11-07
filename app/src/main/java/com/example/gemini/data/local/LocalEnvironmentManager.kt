@@ -2412,6 +2412,10 @@ All files created here persist inside the application.
             processBuilder.environment()["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
             processBuilder.environment()["TMPDIR"] = "/tmp"
             processBuilder.environment()["DEBIAN_FRONTEND"] = "noninteractive"
+            processBuilder.environment()["GIT_TERMINAL_PROMPT"] = "0"
+            processBuilder.environment()["GIT_ASKPASS"] = "/bin/true"
+            processBuilder.environment()["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+            processBuilder.environment()["CI"] = "true"
             // processBuilder.environment()["PROOT_NO_SECCOMP"] = "1"
             processBuilder.environment()["PROOT_LOADER"] = getProotLoaderPath(context)
             processBuilder.environment()["PROOT_TMP_DIR"] = prootTmpDir.absolutePath
@@ -2471,6 +2475,11 @@ All files created here persist inside the application.
             env["ANDROID_ROOT"] = "/system"
             env["LANG"] = "en_US.UTF-8"
             env["LC_ALL"] = "en_US.UTF-8"
+            env["GIT_TERMINAL_PROMPT"] = "0"
+            env["GIT_ASKPASS"] = "/bin/true"
+            env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+            env["DEBIAN_FRONTEND"] = "noninteractive"
+            env["CI"] = "true"
 
             if (resolvedWorkingDir == null || !File(resolvedWorkingDir).exists()) {
                 resolvedWorkingDir = home.absolutePath
@@ -2650,6 +2659,11 @@ All files created here persist inside the application.
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
         env["LANG"] = "en_US.UTF-8"
+        env["DEBIAN_FRONTEND"] = "noninteractive"
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        env["GIT_ASKPASS"] = "/bin/true"
+        env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+        env["CI"] = "true"
 
         pb.redirectErrorStream(true)
         val process = pb.start()
@@ -2665,12 +2679,21 @@ All files created here persist inside the application.
                 }
             }
 
-            val exitCode = process.waitFor()
-            LocalCommandResult(
-                exitCode = exitCode,
-                output = outputBuilder.toString(),
-                durationMs = System.currentTimeMillis() - startTime
-            )
+            val exited = process.waitFor(300, TimeUnit.SECONDS)
+            val durationMs = System.currentTimeMillis() - startTime
+            if (!exited) {
+                process.destroyForcibly()
+                val timeoutMsg = "\n[Script execution timed out after 300s]"
+                outputBuilder.appendLine(timeoutMsg)
+                withContext(Dispatchers.Main) { onLogLine(timeoutMsg) }
+                LocalCommandResult(124, outputBuilder.toString(), durationMs)
+            } else {
+                LocalCommandResult(
+                    exitCode = process.exitValue(),
+                    output = outputBuilder.toString(),
+                    durationMs = durationMs
+                )
+            }
         } finally {
             if (process.isAlive) {
                 try {
@@ -2707,6 +2730,10 @@ All files created here persist inside the application.
         env["TMPDIR"] = tmpDir.absolutePath
         env["PATH"] = "${homeDir.absolutePath}/.local/bin:${binDir.absolutePath}:${prefixDir.absolutePath}/bin:/system/bin:/system/xbin"
         env["DEBIAN_FRONTEND"] = "noninteractive"
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        env["GIT_ASKPASS"] = "/bin/true"
+        env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+        env["CI"] = "true"
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
         env["LANG"] = "en_US.UTF-8"
@@ -2725,12 +2752,21 @@ All files created here persist inside the application.
                 }
             }
 
-            val exitCode = process.waitFor()
-            LocalCommandResult(
-                exitCode = exitCode,
-                output = outputBuilder.toString(),
-                durationMs = System.currentTimeMillis() - startTime
-            )
+            val exited = process.waitFor(300, TimeUnit.SECONDS)
+            val durationMs = System.currentTimeMillis() - startTime
+            if (!exited) {
+                process.destroyForcibly()
+                val timeoutMsg = "\n[Command execution timed out after 300s]"
+                outputBuilder.appendLine(timeoutMsg)
+                withContext(Dispatchers.Main) { onLogLine(timeoutMsg) }
+                LocalCommandResult(124, outputBuilder.toString(), durationMs)
+            } else {
+                LocalCommandResult(
+                    exitCode = process.exitValue(),
+                    output = outputBuilder.toString(),
+                    durationMs = durationMs
+                )
+            }
         } catch (e: Exception) {
             val msg = "❌ Error executing command: ${e.message}"
             withContext(Dispatchers.Main) { onLogLine(msg) }

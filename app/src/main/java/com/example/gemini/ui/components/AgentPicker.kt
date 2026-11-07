@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.gemini.domain.model.AgentKind
 
 val ClaudeAccent = Color(0xFFFAFAFA)
+val CopilotAccent = Color(0xFF8957E5)
 
 /** Antigravity's color across the app (minimalist monochrome). */
 val AgyAccent = Color(0xFFE4E4E7)
@@ -32,11 +33,13 @@ val AgyAccent = Color(0xFFE4E4E7)
 fun AgentKind.label(): String = when (this) {
     AgentKind.AGY -> "Antigravity"
     AgentKind.CLAUDE -> "Claude Code"
+    AgentKind.COPILOT -> "Copilot"
 }
 
 fun AgentKind.accent(): Color = when (this) {
     AgentKind.AGY -> AgyAccent
     AgentKind.CLAUDE -> ClaudeAccent
+    AgentKind.COPILOT -> CopilotAccent
 }
 
 /**
