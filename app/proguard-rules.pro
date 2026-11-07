@@ -17,10 +17,15 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 -keepnames class kotlinx.serialization.PolymorphicSerializer
+-keep @kotlinx.serialization.Serializable class * { *; }
 -keepclassmembers class * {
     @kotlinx.serialization.SerialName <fields>;
     @kotlinx.serialization.Serializable <fields>;
 }
+
+# GitHub Copilot & Models Serialization
+-keep class com.example.gemini.data.agent.copilot.** { *; }
+-keepclassmembers class com.example.gemini.data.agent.copilot.** { *; }
 
 # TelemetryDeck Kotlin SDK (release minify)
 -keep class com.telemetrydeck.sdk.** { *; }

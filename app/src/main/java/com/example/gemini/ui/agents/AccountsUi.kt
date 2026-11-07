@@ -2,6 +2,14 @@ package com.example.gemini.ui.agents
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -139,8 +147,10 @@ private fun InitialCircle(initial: Char?, accent: Color, size: Dp) {
 fun AccountsButton(
     agy: AgentStatusEntry?,
     claude: AgentStatusEntry?,
+    copilot: AgentStatusEntry? = null,
     agyAuth: AgyHubClient.AgyAuthInfo,
     claudeStatus: ClaudeCliStatus?,
+    copilotUser: com.example.gemini.data.agent.copilot.GitHubUser? = null,
     savedAgyAccounts: List<com.example.gemini.data.agent.agy.SavedAgyAccount> = emptyList(),
     activeAgyAccountId: String? = null,
     onSwitchAgyAccount: (com.example.gemini.data.agent.agy.SavedAgyAccount) -> Unit = {},
@@ -151,7 +161,7 @@ fun AccountsButton(
 ) {
     val haptic = LocalHapticFeedback.current
     var showQuickSwitchMenu by remember { mutableStateOf(false) }
-    val entries = listOfNotNull(agy, claude)
+    val entries = listOfNotNull(agy, claude, copilot)
     val needsSignIn = entries.any { it.isSignedOut }
     val single = entries.singleOrNull()
 
@@ -180,12 +190,14 @@ fun AccountsButton(
                 Row(horizontalArrangement = Arrangement.spacedBy((-7).dp)) {
                     agy?.let { AccountAvatar(AgentKind.AGY, it, agyAuth.displayName.firstOrNull(), agyAuth.profilePictureUrl?.takeIf { u -> u.isNotBlank() }) }
                     claude?.let { AccountAvatar(AgentKind.CLAUDE, it, claudeStatus?.auth?.email?.firstOrNull()) }
+                    copilot?.let { AccountAvatar(AgentKind.COPILOT, it, copilotUser?.login?.firstOrNull(), copilotUser?.avatarUrl) }
                 }
                 Spacer(Modifier.width(7.dp))
                 val text = when {
                     needsSignIn -> "Sign in"
                     single?.agent == AgentKind.AGY && single.isReady -> agyAuth.displayName.ifBlank { "Account" }
                     single?.agent == AgentKind.CLAUDE && single.isReady -> claudeStatus?.auth?.email?.substringBefore('@') ?: "Account"
+                    single?.agent == AgentKind.COPILOT && single.isReady -> copilotUser?.login?.let { "@$it" } ?: "Copilot"
                     single != null -> single.label
                     else -> "Accounts"
                 }
@@ -284,14 +296,17 @@ fun AccountsButton(
     }
 }
 
-/** Both agents' accounts: who is signed in, plan, and sign in / out (usage lives in Settings and the model picker). */
+/** All agents' accounts: who is signed in, plan, and sign in / out (usage lives in Settings and the model picker). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AccountsDialog(
     agy: AgentStatusEntry?,
     claude: AgentStatusEntry?,
+    copilot: AgentStatusEntry? = null,
     agyAuth: AgyHubClient.AgyAuthInfo,
     claudeStatus: ClaudeCliStatus?,
+    copilotAuthState: com.example.gemini.data.agent.copilot.CopilotAuthState? = null,
+    copilotSelectedModel: String? = null,
     savedAgyAccounts: List<com.example.gemini.data.agent.agy.SavedAgyAccount> = emptyList(),
     activeAgyAccountId: String? = null,
     onSwitchAgyAccount: (com.example.gemini.data.agent.agy.SavedAgyAccount) -> Unit = {},
@@ -301,9 +316,15 @@ fun AccountsDialog(
     onAgyCancelSignIn: () -> Unit,
     onClaudeSignOut: () -> Unit,
     onClaudeSettings: () -> Unit,
+    onCopilotSignOut: () -> Unit = {},
+    onCopilotSettings: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    var agyExpanded by remember { mutableStateOf(agy?.isReady == true) }
+    var claudeExpanded by remember { mutableStateOf(claude?.isReady == true && agy?.isReady != true) }
+    var copilotExpanded by remember { mutableStateOf(copilot?.isReady == true && agy?.isReady != true && claude?.isReady != true) }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -320,7 +341,7 @@ fun AccountsDialog(
                     }
                 }
                 Text(
-                    "Switch or configure multiple Google & Claude accounts.",
+                    "Switch or configure Google, Claude & GitHub Copilot accounts.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                 )
@@ -334,7 +355,9 @@ fun AccountsDialog(
                         subtitle = if (entry.isReady) agyAuth.email.ifBlank { null } else entry.detail,
                         facts = if (entry.isReady) listOfNotNull(
                             agyAuth.userTier.ifBlank { agyAuth.planName }.ifBlank { null }
-                        ) else emptyList()
+                        ) else emptyList(),
+                        expanded = agyExpanded,
+                        onToggleExpand = { agyExpanded = !agyExpanded }
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             // Multi-account switcher list
@@ -423,7 +446,9 @@ fun AccountsDialog(
                             auth?.subscriptionType?.let { claudePlanLabel(it) },
                             auth?.authMethod?.let { claudeAuthMethodLabel(it) },
                             claudeStatus?.version?.substringBefore(" ")?.let { "CLI $it" }
-                        ) else listOfNotNull(claudeStatus?.version?.substringBefore(" ")?.let { "CLI $it" })
+                        ) else listOfNotNull(claudeStatus?.version?.substringBefore(" ")?.let { "CLI $it" }),
+                        expanded = claudeExpanded,
+                        onToggleExpand = { claudeExpanded = !claudeExpanded }
                     ) {
                         if (entry.isReady) {
                             SectionButton("Claude settings", Icons.Outlined.Settings) {
@@ -440,6 +465,46 @@ fun AccountsDialog(
                             }
                             if (!entry.pending) SectionButton("Claude settings", Icons.Outlined.Settings) {
                                 onClaudeSettings()
+                                onDismiss()
+                            }
+                        }
+                    }
+                }
+
+                if ((agy != null || claude != null) && copilot != null) Spacer(Modifier.height(12.dp))
+
+                copilot?.let { entry ->
+                    val user = copilotAuthState?.user
+                    AccountSection(
+                        entry = entry,
+                        avatar = { AccountAvatar(AgentKind.COPILOT, entry, user?.login?.firstOrNull(), user?.avatarUrl, size = 44.dp) },
+                        title = if (entry.isReady) (user?.name?.ifBlank { user.login } ?: user?.login ?: "GitHub Copilot") else "GitHub Copilot",
+                        subtitle = if (entry.isReady) "@${user?.login}" else entry.detail,
+                        facts = if (entry.isReady) listOfNotNull(
+                            copilotAuthState?.planTier ?: "Copilot Pro",
+                            copilotSelectedModel?.let { "Model: $it" }
+                        ) else emptyList(),
+                        expanded = copilotExpanded,
+                        onToggleExpand = { copilotExpanded = !copilotExpanded }
+                    ) {
+                        if (entry.isReady) {
+                            SectionButton("Copilot settings", Icons.Outlined.Settings) {
+                                onCopilotSettings()
+                                onDismiss()
+                            }
+                            SectionButton("Sign out", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                                onCopilotSignOut()
+                                onDismiss()
+                            }
+                        } else {
+                            entry.action?.let {
+                                SectionButton(it.label, primary = AgentKind.COPILOT.accent()) {
+                                    it.onClick()
+                                    onDismiss()
+                                }
+                            }
+                            SectionButton("Copilot settings", Icons.Outlined.Settings) {
+                                onCopilotSettings()
                                 onDismiss()
                             }
                         }
@@ -464,6 +529,8 @@ private fun AccountSection(
     title: String,
     subtitle: String?,
     facts: List<String>,
+    expanded: Boolean = true,
+    onToggleExpand: (() -> Unit)? = null,
     actions: @Composable () -> Unit
 ) {
     val accent = entry.agent.accent()
@@ -474,37 +541,58 @@ private fun AccountSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = if (onToggleExpand != null) Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onToggleExpand() } else Modifier.fillMaxWidth()
+            ) {
                 avatar()
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(title, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     subtitle?.let {
-                        Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 Spacer(Modifier.width(8.dp))
                 StatusChip(entry)
-            }
-            if (facts.isNotEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    facts.forEach { fact ->
-                        Text(
-                            fact,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
+                if (onToggleExpand != null) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
-            Spacer(Modifier.height(10.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { actions() }
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    if (facts.isNotEmpty()) {
+                        Spacer(Modifier.height(10.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            facts.forEach { fact ->
+                                Text(
+                                    fact,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { actions() }
+                }
+            }
         }
     }
 }

@@ -45,7 +45,9 @@ data class OAuthTokenResponse(
 data class CopilotTokenResponse(
     val token: String,
     @SerialName("expires_at") val expiresAt: Long = 0L,
-    val endpoints: Map<String, String>? = null
+    val endpoints: Map<String, String>? = null,
+    val sku: String? = null,
+    @SerialName("copilot_plan") val copilotPlan: String? = null
 )
 
 data class CopilotAuthState(
@@ -53,7 +55,24 @@ data class CopilotAuthState(
     val user: GitHubUser? = null,
     val hasCopilotAccess: Boolean = false,
     val isChecking: Boolean = false,
+    val planTier: String? = null,
     val error: String? = null
+)
+
+@Serializable
+data class CopilotPlanDetails(
+    val name: String? = null,
+    val sku: String? = null,
+    val tier: String? = null,
+    @SerialName("chat_enabled") val chatEnabled: Boolean? = true
+)
+
+@Serializable
+data class CopilotInternalUserResponse(
+    val login: String? = null,
+    val id: Long? = null,
+    @SerialName("copilot_plan") val copilotPlan: CopilotPlanDetails? = null,
+    val sku: String? = null
 )
 
 @Serializable
@@ -90,18 +109,54 @@ data class CopilotChatChunk(
 )
 
 @Serializable
+data class CopilotModelPolicy(
+    val state: String? = null
+)
+
+@Serializable
+data class CopilotModelCapabilities(
+    val type: String? = null,
+    val family: String? = null,
+    @SerialName("supports_streaming") val supportsStreaming: Boolean? = null
+)
+
+@Serializable
 data class CopilotModelInfo(
     val id: String,
     val name: String? = null,
     val version: String? = null,
-    val vendor: String? = null
+    val vendor: String? = null,
+    val policy: CopilotModelPolicy? = null,
+    @SerialName("supported_endpoints") val supportedEndpoints: List<String>? = null,
+    val capabilities: CopilotModelCapabilities? = null
 ) {
+    /**
+     * Identifies models included with standard Copilot subscription plans without additional per-query AI credits.
+     */
+    fun isIncludedFree(): Boolean {
+        val lower = id.lowercase()
+        return lower.contains("gpt-4o") ||
+               lower.contains("claude-3.5-sonnet") ||
+               lower.contains("claude-3-5-sonnet") ||
+               lower.contains("o3-mini") ||
+               lower == "gpt-4" ||
+               lower.contains("gpt-4o-mini")
+    }
+
+    fun isChatSupported(): Boolean {
+        if (policy?.state != null && !policy.state.equals("enabled", ignoreCase = true)) {
+            return false
+        }
+        val endpoints = supportedEndpoints ?: return true
+        return endpoints.isEmpty() || endpoints.any { it.contains("chat", ignoreCase = true) }
+    }
+
     fun displayName(): String {
         if (!name.isNullOrBlank()) return name
         return when (id) {
             "gpt-4o" -> "GPT-4o"
             "gpt-4o-mini" -> "GPT-4o Mini"
-            "claude-3.5-sonnet" -> "Claude 3.5 Sonnet"
+            "claude-3.5-sonnet", "claude-3-5-sonnet" -> "Claude 3.5 Sonnet"
             "o1" -> "o1"
             "o3-mini" -> "o3-mini"
             "claude-3.7-sonnet" -> "Claude 3.7 Sonnet"

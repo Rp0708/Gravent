@@ -422,7 +422,7 @@ fun CopilotSubScreen(
                         }
                         Text(
                             if (authState.isLoggedIn) {
-                                "Connected as @${authState.user?.login ?: "user"}"
+                                "Connected as @${authState.user?.login ?: "user"} • ${authState.planTier ?: "Copilot Pro"}"
                             } else {
                                 "Use your GitHub Copilot subscription as an agent"
                             },
@@ -508,13 +508,26 @@ fun CopilotSubScreen(
                                     color = if (isSel) CopilotPurple.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     border = BorderStroke(1.dp, if (isSel) CopilotPurple else Color.Transparent)
                                 ) {
-                                    Text(
-                                        label,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSel) CopilotPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
-                                    )
+                                    ) {
+                                        Text(
+                                            label,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSel) CopilotPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        )
+                                        if (model.description.contains("Included")) {
+                                            Spacer(Modifier.width(5.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(QuotaGreen)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -920,7 +933,7 @@ fun CopilotSettingsSection(
                     }
                     Text(
                         if (authState.isLoggedIn) {
-                            "Connected as @${authState.user?.login ?: "user"}"
+                            "Connected as @${authState.user?.login ?: "user"} • ${authState.planTier ?: "Copilot Pro"}"
                         } else {
                             "Use your GitHub Copilot subscription as an agent"
                         },
@@ -968,13 +981,26 @@ fun CopilotSettingsSection(
                                 color = if (isSel) CopilotPurple.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 border = BorderStroke(1.dp, if (isSel) CopilotPurple else Color.Transparent)
                             ) {
-                                Text(
-                                    label,
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSel) CopilotPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
+                                ) {
+                                    Text(
+                                        label,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSel) CopilotPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                    if (model.description.contains("Included")) {
+                                        Spacer(Modifier.width(5.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(5.dp)
+                                                .clip(CircleShape)
+                                                .background(QuotaGreen)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

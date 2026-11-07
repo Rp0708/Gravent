@@ -37,6 +37,21 @@ class CopilotPreferences(context: Context) {
     private val _availableModelsJson = MutableStateFlow(prefs.getString(KEY_AVAILABLE_MODELS, null))
     val availableModelsJson: StateFlow<String?> = _availableModelsJson.asStateFlow()
 
+    private val _copilotPlan = MutableStateFlow(prefs.getString(KEY_COPILOT_PLAN, "Copilot Pro"))
+    val copilotPlan: StateFlow<String?> = _copilotPlan.asStateFlow()
+
+    private val _copilotSku = MutableStateFlow(prefs.getString(KEY_COPILOT_SKU, null))
+    val copilotSku: StateFlow<String?> = _copilotSku.asStateFlow()
+
+    fun setCopilotPlan(plan: String?, sku: String?) {
+        prefs.edit()
+            .putString(KEY_COPILOT_PLAN, plan)
+            .putString(KEY_COPILOT_SKU, sku)
+            .apply()
+        _copilotPlan.value = plan
+        _copilotSku.value = sku
+    }
+
     fun setAvailableModelsJson(jsonStr: String?) {
         prefs.edit().putString(KEY_AVAILABLE_MODELS, jsonStr).apply()
         _availableModelsJson.value = jsonStr
@@ -81,6 +96,8 @@ class CopilotPreferences(context: Context) {
             .remove(KEY_USER_NAME)
             .remove(KEY_USER_AVATAR)
             .remove(KEY_AVAILABLE_MODELS)
+            .remove(KEY_COPILOT_PLAN)
+            .remove(KEY_COPILOT_SKU)
             .apply()
         _githubToken.value = null
         _copilotToken.value = null
@@ -89,6 +106,8 @@ class CopilotPreferences(context: Context) {
         _userName.value = null
         _userAvatarUrl.value = null
         _availableModelsJson.value = null
+        _copilotPlan.value = "Copilot Pro"
+        _copilotSku.value = null
     }
 
     companion object {
@@ -101,6 +120,8 @@ class CopilotPreferences(context: Context) {
         private const val KEY_USER_AVATAR = "user_avatar"
         private const val KEY_SELECTED_MODEL = "selected_model"
         private const val KEY_AVAILABLE_MODELS = "available_models_json"
+        private const val KEY_COPILOT_PLAN = "copilot_plan"
+        private const val KEY_COPILOT_SKU = "copilot_sku"
 
         const val DEFAULT_MODEL = "gpt-4o"
     }

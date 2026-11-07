@@ -247,11 +247,14 @@ class CopilotChatBackend(
                 val request = Request.Builder()
                     .url("https://api.githubcopilot.com/chat/completions")
                     .header("Authorization", "Bearer $copilotToken")
+                    .header("User-Agent", "GitHubCopilotChat/0.24.1")
                     .header("Editor-Version", "vscode/1.96.0")
+                    .header("Editor-Plugin-Version", "copilot-chat/0.24.1")
                     .header("Copilot-Integration-Id", "vscode-chat")
                     .header("Openai-Organization", "github-copilot")
                     .header("Openai-Intent", "conversation-panel")
                     .header("Content-Type", "application/json")
+                    .header("Accept", "text/event-stream")
                     .post(body)
                     .build()
 
@@ -269,23 +272,38 @@ class CopilotChatBackend(
                     val currentLine = reader.readLine() ?: break
                     val raw = currentLine.trim()
                     if (raw.isEmpty()) continue
-                    if (raw.startsWith("data: ")) {
-                        val data = raw.removePrefix("data: ").trim()
+                    if (raw.startsWith("data:")) {
+                        val data = raw.removePrefix("data:").removePrefix("data:").trim()
                         if (data == "[DONE]") break
 
+                        var deltaContent: String? = null
                         try {
                             val chunk = json.decodeFromString<CopilotChatChunk>(data)
-                            val delta = chunk.choices.firstOrNull()?.delta?.content
-                            if (!delta.isNullEmpty()) {
-                                accumulated.append(delta)
-                                val currentText = accumulated.toString()
-                                withContext(Dispatchers.Main) {
-                                    _messages.value = _messages.value.map { msg ->
-                                        if (msg.id == assistantMsgId) msg.copy(content = currentText) else msg
-                                    }
+                            deltaContent = chunk.choices.firstOrNull()?.delta?.content
+                        } catch (_: Exception) {
+                            // R8 obfuscation or schema divergence fallback
+                        }
+
+                        // Robust fallback: if deserialization did not yield content, extract via regex
+                        if (deltaContent.isNullEmpty()) {
+                            val match = CONTENT_JSON_REGEX.find(data)
+                            if (match != null) {
+                                val unescaped = unescapeJsonString(match.groupValues[1])
+                                if (unescaped.isNotEmpty()) {
+                                    deltaContent = unescaped
                                 }
                             }
-                        } catch (_: Exception) {}
+                        }
+
+                        if (!deltaContent.isNullEmpty()) {
+                            accumulated.append(deltaContent)
+                            val currentText = accumulated.toString()
+                            withContext(Dispatchers.Main) {
+                                _messages.value = _messages.value.map { msg ->
+                                    if (msg.id == assistantMsgId) msg.copy(content = currentText) else msg
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -476,6 +494,45 @@ class CopilotChatBackend(
 
     companion object {
         private const val TAG = "CopilotChatBackend"
+        private val CONTENT_JSON_REGEX = Regex("\"content\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"")
+
+        private fun unescapeJsonString(input: String): String {
+            if (!input.contains('\\')) return input
+            val sb = StringBuilder(input.length)
+            var i = 0
+            while (i < input.length) {
+                val c = input[i]
+                if (c == '\\' && i + 1 < input.length) {
+                    when (val next = input[i + 1]) {
+                        'n' -> sb.append('\n')
+                        'r' -> sb.append('\r')
+                        't' -> sb.append('\t')
+                        '\\' -> sb.append('\\')
+                        '"' -> sb.append('"')
+                        '/' -> sb.append('/')
+                        'u' -> {
+                            if (i + 5 < input.length) {
+                                try {
+                                    val code = input.substring(i + 2, i + 6).toInt(16)
+                                    sb.append(code.toChar())
+                                    i += 5
+                                } catch (_: Exception) {
+                                    sb.append(c)
+                                }
+                            } else {
+                                sb.append(c)
+                            }
+                        }
+                        else -> sb.append(next)
+                    }
+                    i += 2
+                } else {
+                    sb.append(c)
+                    i++
+                }
+            }
+            return sb.toString()
+        }
 
         fun CopilotModelInfo.toAiModel(isDefault: Boolean = false): AiModel {
             val family = when {
@@ -484,11 +541,10 @@ class CopilotChatBackend(
                 else -> ModelFamily.OTHER
             }
             val nameStr = displayName()
-            val desc = when {
-                id.contains("claude", ignoreCase = true) -> "Anthropic coding model on Copilot"
-                id.contains("o1", ignoreCase = true) || id.contains("o3", ignoreCase = true) -> "Reasoning model on Copilot"
-                id.contains("gpt-4o", ignoreCase = true) -> "OpenAI flagship model on Copilot"
-                else -> vendor?.let { "$it model on Copilot" } ?: "GitHub Copilot model"
+            val includedTag = if (isIncludedFree()) "Included in plan (No extra charge)" else "Standard / AI Credits"
+            val desc = buildString {
+                append(includedTag)
+                if (!vendor.isNullOrBlank()) append(" • $vendor")
             }
             val supportsThinking = id.contains("o1", ignoreCase = true) || id.contains("o3", ignoreCase = true) || id.contains("thinking", ignoreCase = true)
             return AiModel(

@@ -35,6 +35,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -620,269 +622,504 @@ private fun MainSettingsMenu(
     val agyOn = com.example.gemini.domain.model.AgentKind.AGY in enabledAgents
     val claudeOn = com.example.gemini.domain.model.AgentKind.CLAUDE in enabledAgents
     val copilotOn = com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents
+
+    var expAgents by rememberSaveable { mutableStateOf(false) }
+    var expAgy by rememberSaveable { mutableStateOf(agyOn && !claudeOn && !copilotOn) }
+    var expClaude by rememberSaveable { mutableStateOf(claudeOn && !agyOn) }
+    var expCopilot by rememberSaveable { mutableStateOf(copilotOn && !agyOn && !claudeOn) }
+    var expApp by rememberSaveable { mutableStateOf(false) }
+    var expUtilities by rememberSaveable { mutableStateOf(false) }
+
+    val anyExpanded = expAgents || expAgy || expClaude || expCopilot || expApp || expUtilities
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        SettingsGroupHeader("Agents", MaterialTheme.colorScheme.primary, "Which agents run, and the local server they share")
-        SettingsCategoryCard(
+        // React Bits inspired quick toggle header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "PREFERENCES & CATEGORIES",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+            TextButton(
+                onClick = {
+                    val target = !anyExpanded
+                    expAgents = target
+                    expAgy = target
+                    expClaude = target
+                    expCopilot = target
+                    expApp = target
+                    expUtilities = target
+                },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    if (anyExpanded) "Collapse All" else "Expand All",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        // ==========================================
+        // 1. Agents & Connections
+        // ==========================================
+        ExpandableSettingsGroup(
+            title = "Agents & Runtime",
+            subtitle = "Which agents run, and the local server they share",
+            accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Outlined.SmartToy,
-            iconTint = MaterialTheme.colorScheme.primary,
-            title = "Agents",
-            subtitle = when {
-                enabledAgents.size >= 3 -> "Antigravity, Claude Code and Copilot"
-                agyOn && claudeOn -> "Antigravity and Claude Code"
-                agyOn && copilotOn -> "Antigravity and Copilot"
-                claudeOn && copilotOn -> "Claude Code and Copilot"
-                claudeOn -> "Claude Code only"
-                copilotOn -> "GitHub Copilot only"
-                else -> "Antigravity only"
-            },
             badgeText = "${enabledAgents.size} on",
             badgeColor = MaterialTheme.colorScheme.primary,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.AGENTS) }
-        )
-        // Section 2: Servers & Network
-        val (serverBadge, serverColor) = when {
-            isServerOnline && isBridgeOnline -> "Online" to QuotaGreen
-            isServerOnline || isBridgeOnline -> "Partial" to Color(0xFFFFA000)
-            else -> "Offline" to Color.Red
-        }
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Dns,
-            iconTint = serverColor,
-            title = "Servers & Connectivity",
-            subtitle = "AGY Hub & IDE Bridge endpoints",
-            badgeText = serverBadge,
-            badgeColor = serverColor,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.SERVERS) }
-        )
-
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Extension,
-            iconTint = Color(0xFF818CF8),
-            title = "Custom Gravent Plugins",
-            subtitle = "Install ZIP, update, rename, enable or disable plugins with MCP tools and skills",
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.WEBVIEW_EXTENSIONS) }
-        )
-
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Terminal,
-            iconTint = Color(0xFF38BDF8),
-            title = "Slash Commands",
-            subtitle = "Create / commands that expand into longer prompts or attach a plugin skill",
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.SLASH_COMMANDS) }
-        )
-
-        if (agyOn) {
-        SettingsGroupHeader("Antigravity", Color(0xFF60A5FA), "Google Antigravity agent (agy hub)")
-
-        SettingsCategoryCard(
-            icon = Icons.Outlined.SmartToy,
-            iconTint = Color(0xFF38BDF8),
-            title = "Antigravity CLI & Updates",
-            subtitle = "Installed binary, version check, update to latest, and diagnostics",
-            badgeText = "CLI",
-            badgeColor = Color(0xFF38BDF8),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.AGY_CLI) }
-        )
-
-        // Section 3: MCP Servers & Tools
-        val activeMcpCount = mcpServers.count { it.isEnabled }
-        val totalMcpCount = mcpServers.size
-        val mcpBadge = when {
-            totalMcpCount == 0 -> "0 Configured"
-            activeMcpCount > 0 -> "$activeMcpCount Active"
-            else -> "Disabled"
-        }
-        val mcpColor = when {
-            activeMcpCount > 0 -> Color(0xFF34D399)
-            totalMcpCount > 0 -> Color(0xFFFBBF24)
-            else -> Color(0xFF71717A)
-        }
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Hub,
-            iconTint = mcpColor,
-            title = "MCP Servers & Tools",
-            subtitle = if (totalMcpCount > 0) "$totalMcpCount server(s) • global mcp_config.json" else "Model Context Protocol tools & integrations",
-            badgeText = mcpBadge,
-            badgeColor = mcpColor,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.MCP) }
-        )
-
-        // Section 3.5: Skills & Plugins
-        val totalSkillsCount = allSkills.size
-        val totalPluginsCount = installedPlugins.size
-        val skillsBadge = "$totalSkillsCount Skills • $totalPluginsCount Plugins"
-        SettingsCategoryCard(
-            icon = Icons.Outlined.AutoAwesome,
-            iconTint = Color(0xFFFBBF24),
-            title = "Skills & Plugins",
-            subtitle = "Installed skills, Google plugins catalog, and markdown guides",
-            badgeText = skillsBadge,
-            badgeColor = Color(0xFFFBBF24),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.SKILLS_PLUGINS) }
-        )
-
-        // Section 5: Commands & Permissions
-        val (policyBadge, policyColor) = when {
-            commandAutoExecutionPolicy.contains("EAGER", ignoreCase = true) -> "Auto-Run" to Color(0xFF34D399)
-            commandAutoExecutionPolicy.contains("AUTO", ignoreCase = true) -> "Smart Safety" to Color(0xFF38BDF8)
-            else -> "Ask User" to Color(0xFFFBBF24)
-        }
-        val sandboxSummary = if (commandSandboxEnabled) "Sandbox ON" else "Sandbox OFF"
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Shield,
-            iconTint = policyColor,
-            title = "Commands & Permissions",
-            subtitle = "Policy: $policyBadge • $sandboxSummary",
-            badgeText = policyBadge,
-            badgeColor = policyColor,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.COMMANDS) }
-        )
-
-        }
-
-        if (claudeGroup != null && claudeOn) {
-            SettingsGroupHeader("Claude Code", Color(0xFFF97316), "Anthropic Claude Code CLI")
-            claudeGroup()
-        }
-
-        if (copilotAccount != null && (copilotOn || com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents)) {
-            val copilotAuthState by copilotAccount.authState.collectAsState()
-            SettingsGroupHeader("GitHub Copilot", com.example.gemini.ui.copilot.CopilotPurple, "GitHub Copilot subscription & models")
+            isExpanded = expAgents,
+            onToggle = { expAgents = !expAgents }
+        ) {
             SettingsCategoryCard(
-                icon = Icons.Outlined.Code,
-                iconTint = com.example.gemini.ui.copilot.CopilotPurple,
-                title = "GitHub Copilot",
-                subtitle = if (copilotAuthState.isLoggedIn) "Connected as @${copilotAuthState.user?.login}" else "Connect GitHub, subscription & models",
-                badgeText = if (copilotAuthState.hasCopilotAccess) "Active" else if (copilotAuthState.isLoggedIn) "Connected" else null,
-                badgeColor = com.example.gemini.ui.copilot.CopilotPurple,
+                icon = Icons.Outlined.SmartToy,
+                iconTint = MaterialTheme.colorScheme.primary,
+                title = "Agents",
+                subtitle = when {
+                    enabledAgents.size >= 3 -> "Antigravity, Claude Code and Copilot"
+                    agyOn && claudeOn -> "Antigravity and Claude Code"
+                    agyOn && copilotOn -> "Antigravity and Copilot"
+                    claudeOn && copilotOn -> "Claude Code and Copilot"
+                    claudeOn -> "Claude Code only"
+                    copilotOn -> "GitHub Copilot only"
+                    else -> "Antigravity only"
+                },
+                badgeText = "${enabledAgents.size} on",
+                badgeColor = MaterialTheme.colorScheme.primary,
                 cardBg = cardBg,
                 cardBorder = cardBorder,
-                onClick = { onNavigate(SettingsSection.COPILOT) }
+                onClick = { onNavigate(SettingsSection.AGENTS) }
+            )
+
+            val (serverBadge, serverColor) = when {
+                isServerOnline && isBridgeOnline -> "Online" to QuotaGreen
+                isServerOnline || isBridgeOnline -> "Partial" to Color(0xFFFFA000)
+                else -> "Offline" to Color.Red
+            }
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Dns,
+                iconTint = serverColor,
+                title = "Servers & Connectivity",
+                subtitle = "AGY Hub & IDE Bridge endpoints",
+                badgeText = serverBadge,
+                badgeColor = serverColor,
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.SERVERS) }
+            )
+
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Extension,
+                iconTint = Color(0xFF818CF8),
+                title = "Custom Gravent Plugins",
+                subtitle = "Install ZIP, update, rename, enable or disable plugins with MCP tools and skills",
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.WEBVIEW_EXTENSIONS) }
+            )
+
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Terminal,
+                iconTint = Color(0xFF38BDF8),
+                title = "Slash Commands",
+                subtitle = "Create / commands that expand into longer prompts or attach a plugin skill",
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.SLASH_COMMANDS) }
             )
         }
 
-        SettingsGroupHeader("App", Color(0xFFA1A1AA), "Shared by all agents")
-        // Section 1: Appearance & Display
+        // ==========================================
+        // 2. Google Antigravity
+        // ==========================================
+        if (agyOn) {
+            val activeMcpCount = mcpServers.count { it.isEnabled }
+            val totalMcpCount = mcpServers.size
+            val mcpBadge = when {
+                totalMcpCount == 0 -> "0 Configured"
+                activeMcpCount > 0 -> "$activeMcpCount Active"
+                else -> "Disabled"
+            }
+            val mcpColor = when {
+                activeMcpCount > 0 -> Color(0xFF34D399)
+                totalMcpCount > 0 -> Color(0xFFFBBF24)
+                else -> Color(0xFF71717A)
+            }
+
+            ExpandableSettingsGroup(
+                title = "Google Antigravity",
+                subtitle = "Google Antigravity agent (agy hub) & MCP tools",
+                accent = Color(0xFF60A5FA),
+                icon = Icons.Outlined.Hub,
+                badgeText = mcpBadge,
+                badgeColor = mcpColor,
+                isExpanded = expAgy,
+                onToggle = { expAgy = !expAgy }
+            ) {
+                SettingsCategoryCard(
+                    icon = Icons.Outlined.SmartToy,
+                    iconTint = Color(0xFF38BDF8),
+                    title = "Antigravity CLI & Updates",
+                    subtitle = "Installed binary, version check, update to latest, and diagnostics",
+                    badgeText = "CLI",
+                    badgeColor = Color(0xFF38BDF8),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onClick = { onNavigate(SettingsSection.AGY_CLI) }
+                )
+
+                SettingsCategoryCard(
+                    icon = Icons.Outlined.Hub,
+                    iconTint = mcpColor,
+                    title = "MCP Servers & Tools",
+                    subtitle = if (totalMcpCount > 0) "$totalMcpCount server(s) • global mcp_config.json" else "Model Context Protocol tools & integrations",
+                    badgeText = mcpBadge,
+                    badgeColor = mcpColor,
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onClick = { onNavigate(SettingsSection.MCP) }
+                )
+
+                val totalSkillsCount = allSkills.size
+                val totalPluginsCount = installedPlugins.size
+                val skillsBadge = "$totalSkillsCount Skills • $totalPluginsCount Plugins"
+                SettingsCategoryCard(
+                    icon = Icons.Outlined.AutoAwesome,
+                    iconTint = Color(0xFFFBBF24),
+                    title = "Skills & Plugins",
+                    subtitle = "Installed skills, Google plugins catalog, and markdown guides",
+                    badgeText = skillsBadge,
+                    badgeColor = Color(0xFFFBBF24),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onClick = { onNavigate(SettingsSection.SKILLS_PLUGINS) }
+                )
+
+                val (policyBadge, policyColor) = when {
+                    commandAutoExecutionPolicy.contains("EAGER", ignoreCase = true) -> "Auto-Run" to Color(0xFF34D399)
+                    commandAutoExecutionPolicy.contains("AUTO", ignoreCase = true) -> "Smart Safety" to Color(0xFF38BDF8)
+                    else -> "Ask User" to Color(0xFFFBBF24)
+                }
+                val sandboxSummary = if (commandSandboxEnabled) "Sandbox ON" else "Sandbox OFF"
+                SettingsCategoryCard(
+                    icon = Icons.Outlined.Shield,
+                    iconTint = policyColor,
+                    title = "Commands & Permissions",
+                    subtitle = "Policy: $policyBadge • $sandboxSummary",
+                    badgeText = policyBadge,
+                    badgeColor = policyColor,
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onClick = { onNavigate(SettingsSection.COMMANDS) }
+                )
+            }
+        }
+
+        // ==========================================
+        // 3. Claude Code
+        // ==========================================
+        if (claudeGroup != null && claudeOn) {
+            ExpandableSettingsGroup(
+                title = "Claude Code",
+                subtitle = "Anthropic Claude Code CLI settings & integrations",
+                accent = Color(0xFFF97316),
+                icon = Icons.Outlined.Code,
+                badgeText = "Claude",
+                badgeColor = Color(0xFFF97316),
+                isExpanded = expClaude,
+                onToggle = { expClaude = !expClaude }
+            ) {
+                claudeGroup()
+            }
+        }
+
+        // ==========================================
+        // 4. GitHub Copilot
+        // ==========================================
+        if (copilotAccount != null && (copilotOn || com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents)) {
+            val copilotAuthState by copilotAccount.authState.collectAsState()
+            val copilotBadge = if (copilotAuthState.hasCopilotAccess) {
+                copilotAuthState.planTier ?: "Copilot Active"
+            } else if (copilotAuthState.isLoggedIn) "Connected" else "Sign in"
+
+            ExpandableSettingsGroup(
+                title = "GitHub Copilot",
+                subtitle = if (copilotAuthState.isLoggedIn) "Connected as @${copilotAuthState.user?.login ?: "user"} • ${copilotAuthState.planTier ?: "Copilot Pro"}" else "GitHub Copilot subscription, models & tools",
+                accent = com.example.gemini.ui.copilot.CopilotPurple,
+                icon = Icons.Outlined.Terminal,
+                badgeText = copilotBadge,
+                badgeColor = com.example.gemini.ui.copilot.CopilotPurple,
+                isExpanded = expCopilot,
+                onToggle = { expCopilot = !expCopilot }
+            ) {
+                SettingsCategoryCard(
+                    icon = Icons.Outlined.Code,
+                    iconTint = com.example.gemini.ui.copilot.CopilotPurple,
+                    title = "GitHub Copilot",
+                    subtitle = if (copilotAuthState.isLoggedIn) "Connected as @${copilotAuthState.user?.login} • ${copilotAuthState.planTier ?: "Copilot Pro"}" else "Connect GitHub, subscription & models",
+                    badgeText = if (copilotAuthState.hasCopilotAccess) "Active" else if (copilotAuthState.isLoggedIn) "Connected" else null,
+                    badgeColor = com.example.gemini.ui.copilot.CopilotPurple,
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onClick = { onNavigate(SettingsSection.COPILOT) }
+                )
+            }
+        }
+
+        // ==========================================
+        // 5. App Preferences
+        // ==========================================
         val themeLabel = when (themeMode) {
             "DARK" -> "Dark Mode"
             "LIGHT" -> "Light Mode"
             else -> "Auto (System)"
         }
-        SettingsCategoryCard(
+        ExpandableSettingsGroup(
+            title = "App Preferences",
+            subtitle = "Theme, terminal environment, backups & data protection",
+            accent = Color(0xFFA855F7),
             icon = Icons.Outlined.Palette,
-            iconTint = Color(0xFFA855F7),
-            title = "Appearance & Theme",
-            subtitle = "$themeLabel • ${(chatFontScale * 100).toInt()}% text scale",
             badgeText = themeLabel,
             badgeColor = Color(0xFFA855F7),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.APPEARANCE) }
-        )
-
-        // Section 5: Terminal & Shell
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Terminal,
-            iconTint = Color(0xFF22D3EE),
-            title = "Terminal & Shell Execution",
-            subtitle = if (useSshTerminal) "SSH Mode (Termux sshd)" else "Local Linux Environment",
-            badgeText = if (useSshTerminal) "SSH" else "Local",
-            badgeColor = Color(0xFF22D3EE),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.TERMINAL) }
-        )
-
-        // Section 5.5: Backups & Restore (only for rootfs installed app)
-        if (isLocalToolsInstalled) {
+            isExpanded = expApp,
+            onToggle = { expApp = !expApp }
+        ) {
             SettingsCategoryCard(
-                icon = Icons.Outlined.Backup,
-                iconTint = Color(0xFF60A5FA),
-                title = "Backups & Restore",
-                subtitle = "Backup rootfs environment and AGY chat histories",
-                badgeText = "Rootfs Active",
-                badgeColor = Color(0xFF60A5FA),
+                icon = Icons.Outlined.Palette,
+                iconTint = Color(0xFFA855F7),
+                title = "Appearance & Theme",
+                subtitle = "$themeLabel • ${(chatFontScale * 100).toInt()}% text scale",
+                badgeText = themeLabel,
+                badgeColor = Color(0xFFA855F7),
                 cardBg = cardBg,
                 cardBorder = cardBorder,
-                onClick = { onNavigate(SettingsSection.BACKUPS) }
+                onClick = { onNavigate(SettingsSection.APPEARANCE) }
+            )
+
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Terminal,
+                iconTint = Color(0xFF22D3EE),
+                title = "Terminal & Shell Execution",
+                subtitle = if (useSshTerminal) "SSH Mode (Termux sshd)" else "Local Linux Environment",
+                badgeText = if (useSshTerminal) "SSH" else "Local",
+                badgeColor = Color(0xFF22D3EE),
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.TERMINAL) }
+            )
+
+            if (isLocalToolsInstalled) {
+                SettingsCategoryCard(
+                    icon = Icons.Outlined.Backup,
+                    iconTint = Color(0xFF60A5FA),
+                    title = "Backups & Restore",
+                    subtitle = "Backup rootfs environment and AGY chat histories",
+                    badgeText = "Rootfs Active",
+                    badgeColor = Color(0xFF60A5FA),
+                    cardBg = cardBg,
+                    cardBorder = cardBorder,
+                    onClick = { onNavigate(SettingsSection.BACKUPS) }
+                )
+            }
+
+            SettingsCategoryCard(
+                icon = Icons.Outlined.AdminPanelSettings,
+                iconTint = Color(0xFF10B981),
+                title = "Data Loss Protection",
+                subtitle = "Accidental uninstall shield & App Info clear data protection",
+                badgeText = "Shield",
+                badgeColor = Color(0xFF10B981),
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.DATA_PROTECTION) }
+            )
+
+            val diagBadge = if (isFloatingDiagnosticsEnabled) "HUD ON" else "HUD OFF"
+            val diagColor = if (isFloatingDiagnosticsEnabled) Color(0xFF34D399) else Color(0xFF71717A)
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Speed,
+                iconTint = if (isFloatingDiagnosticsEnabled) Color(0xFF34D399) else Color(0xFFFB7185),
+                title = "Diagnostics & Performance",
+                subtitle = if (isFloatingDiagnosticsEnabled) "Floating live metrics HUD enabled" else "Live network connections, active streams & thread HUD",
+                badgeText = diagBadge,
+                badgeColor = diagColor,
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.DIAGNOSTICS) }
             )
         }
 
-        // Section 5.6: Data Loss Protection
-        SettingsCategoryCard(
-            icon = Icons.Outlined.AdminPanelSettings,
-            iconTint = Color(0xFF10B981),
-            title = "Data Loss Protection",
-            subtitle = "Accidental uninstall shield & App Info clear data protection",
-            badgeText = "Shield",
-            badgeColor = Color(0xFF10B981),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.DATA_PROTECTION) }
-        )
-
-        // Section 6: Diagnostics & Performance
-        val diagBadge = if (isFloatingDiagnosticsEnabled) "HUD ON" else "HUD OFF"
-        val diagColor = if (isFloatingDiagnosticsEnabled) Color(0xFF34D399) else Color(0xFF71717A)
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Speed,
-            iconTint = if (isFloatingDiagnosticsEnabled) Color(0xFF34D399) else Color(0xFFFB7185),
-            title = "Diagnostics & Performance",
-            subtitle = if (isFloatingDiagnosticsEnabled) "Floating live metrics HUD enabled" else "Live network connections, active streams & thread HUD",
-            badgeText = diagBadge,
-            badgeColor = diagColor,
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.DIAGNOSTICS) }
-        )
-
-        SettingsGroupHeader("Utilities", Color(0xFFFB923C), "Handy device tools")
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Handyman,
-            iconTint = Color(0xFFFB923C),
-            title = "Utilities",
-            subtitle = "ADB Connect, Android Automation",
-            badgeColor = Color(0xFFFB923C),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.UTILITIES) }
-        )
-
-        // Section 7: About & Info
+        // ==========================================
+        // 6. Utilities & About
+        // ==========================================
         val variantLabel = if (BuildConfig.IS_SHARED_USER_ID) "Shared UID" else "Standalone"
-        SettingsCategoryCard(
-            icon = Icons.Outlined.Info,
-            iconTint = Color(0xFF818CF8),
-            title = "About Gravent",
-            subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) • ${BuildConfig.APPLICATION_ID} [$variantLabel]",
-            badgeText = "v${BuildConfig.VERSION_NAME} ($variantLabel)",
-            badgeColor = if (BuildConfig.IS_SHARED_USER_ID) QuotaGreen else Color(0xFF818CF8),
-            cardBg = cardBg,
-            cardBorder = cardBorder,
-            onClick = { onNavigate(SettingsSection.ABOUT) }
-        )
+        ExpandableSettingsGroup(
+            title = "Utilities & About",
+            subtitle = "ADB Connect, automation tools & system version",
+            accent = Color(0xFFFB923C),
+            icon = Icons.Outlined.Handyman,
+            badgeText = "v${BuildConfig.VERSION_NAME}",
+            badgeColor = Color(0xFFFB923C),
+            isExpanded = expUtilities,
+            onToggle = { expUtilities = !expUtilities }
+        ) {
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Handyman,
+                iconTint = Color(0xFFFB923C),
+                title = "Utilities",
+                subtitle = "ADB Connect, Android Automation",
+                badgeColor = Color(0xFFFB923C),
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.UTILITIES) }
+            )
+
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Info,
+                iconTint = Color(0xFF818CF8),
+                title = "About Gravent",
+                subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) • ${BuildConfig.APPLICATION_ID} [$variantLabel]",
+                badgeText = "v${BuildConfig.VERSION_NAME} ($variantLabel)",
+                badgeColor = if (BuildConfig.IS_SHARED_USER_ID) QuotaGreen else Color(0xFF818CF8),
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.ABOUT) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandableSettingsGroup(
+    title: String,
+    subtitle: String?,
+    accent: Color,
+    icon: ImageVector,
+    badgeText: String? = null,
+    badgeColor: Color = accent,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "chevronRotation"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFF141418),
+        border = BorderStroke(1.dp, if (isExpanded) accent.copy(alpha = 0.35f) else Color(0xFF24242C)),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onToggle() }
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(accent.copy(alpha = 0.15f))
+                        .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            title,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        if (badgeText != null) {
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = badgeColor.copy(alpha = 0.18f),
+                                contentColor = badgeColor
+                            ) {
+                                Text(
+                                    badgeText,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    if (!subtitle.isNullOrBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            subtitle,
+                            fontSize = 11.5.sp,
+                            color = Color(0xFFA1A1AA),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Outlined.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = if (isExpanded) accent else Color(0xFF71717A),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(rotation)
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    content()
+                }
+            }
+        }
     }
 }
 

@@ -1,12 +1,13 @@
 {
-  "version_code": 143,
-  "version_name": "1.0.43",
+  "version_code": 144,
+  "version_name": "1.0.44",
   "min_supported_version_code": 1,
   "changelog": [
-    "Dynamic Copilot Plan Model Fetching: Automatically queries GET https://api.githubcopilot.com/models to detect and populate only the models supported by the user's active GitHub Copilot subscription, removing invalid hardcoded models and automatically defaulting to supported models (e.g. GPT-4o)",
-    "Robust Copilot Chat & Error Diagnostics: Added detection and user-friendly error banners for unsupported models (400 modelnotsupported) and empty stream responses, with persistent error message saving so generation errors never vanish from the chat",
-    "Model Refresh & 1-Tap Sync: Added 'Refresh Plan' button in Copilot settings and bottom sheet to re-fetch plan capabilities at any time",
-    "Token-Optimized Smart Long-Running Execution: Enforced single-shot watching and non-blocking background task architecture across providers to eliminate wasteful polling loops and maximize context token efficiency"
+    "Copilot Membership Tier & Model Policy Detection: Queries copilot_internal/user to detect subscription tier (Pro, Free, Business, Enterprise) and inspects model policies/endpoints from api.githubcopilot.com/models, filtering out disabled models (e.g. claude-sonnet-5) and highlighting free/included models without extra charges",
+    "Bulletproof SSE Streaming & R8 Keep Rules: Added ProGuard rules for Copilot serialization classes and implemented robust dual-layer SSE parsing with token fallback regex so streaming tokens are never swallowed or lost in release builds",
+    "Integrated Copilot in Accounts Bar & Switcher: Added GitHub Copilot to the bottom-bar accounts pill alongside AG and Claude, and integrated Copilot account details into the Accounts modal dialog",
+    "Collapsible Subscription Spaces: Added interactive expand/collapse toggles to each agent card in the Accounts dialog, reducing vertical clutter and keeping the switcher compact",
+    "Settings UI Redesign (React Bits-inspired Expandable Accordions): Redesigned the main settings screen into sleek, glassmorphic expandable category sections with quick Expand/Collapse All controls, keeping 100% of settings options cleanly organized"
   ],
   "is_critical": false
 }

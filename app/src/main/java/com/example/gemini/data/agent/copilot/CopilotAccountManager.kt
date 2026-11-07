@@ -43,7 +43,8 @@ class CopilotAccountManager(
                     name = prefs.userName.value,
                     avatarUrl = prefs.userAvatarUrl.value
                 )
-            } else null
+            } else null,
+            planTier = prefs.copilotPlan.value ?: "Copilot Pro"
         )
     )
     val authState: StateFlow<CopilotAuthState> = _authState.asStateFlow()
@@ -100,17 +101,20 @@ class CopilotAccountManager(
             val respBody = response.body?.string().orEmpty()
             if (response.isSuccessful && respBody.isNotBlank()) {
                 val parsed = json.decodeFromString<CopilotModelsResponse>(respBody)
-                if (parsed.data.isNotEmpty()) {
+                // Filter out disabled models and non-chat endpoints
+                val chatModels = parsed.data.filter { it.isChatSupported() }
+                val finalModels = if (chatModels.isNotEmpty()) chatModels else parsed.data
+                if (finalModels.isNotEmpty()) {
                     prefs.setAvailableModelsJson(respBody)
-                    _availableModels.value = parsed.data
-                    Log.d(TAG, "Fetched ${parsed.data.size} models from Copilot plan: ${parsed.data.map { it.id }}")
+                    _availableModels.value = finalModels
+                    Log.d(TAG, "Fetched ${finalModels.size} valid chat models from Copilot plan: ${finalModels.map { it.id }}")
                     // If currently selected model is not in available models, auto-switch to first valid model or gpt-4o
                     val curSel = prefs.selectedModel.value
-                    if (parsed.data.none { it.id == curSel }) {
-                        val fallback = parsed.data.firstOrNull { it.id == "gpt-4o" }?.id ?: parsed.data.first().id
+                    if (finalModels.none { it.id == curSel }) {
+                        val fallback = finalModels.firstOrNull { it.id == "gpt-4o" }?.id ?: finalModels.first().id
                         prefs.setSelectedModel(fallback)
                     }
-                    return@withContext parsed.data
+                    return@withContext finalModels
                 }
             } else {
                 Log.w(TAG, "Fetch Copilot models returned ${response.code}: $respBody")
@@ -135,11 +139,13 @@ class CopilotAccountManager(
                     prefs.setUserProfile(user.login, user.name, user.avatarUrl)
                 }
                 val copilotToken = ensureValidCopilotTokenInternal(token)
+                val detectedPlan = if (copilotToken != null) fetchCopilotPlanInfo(copilotToken) else null
                 _authState.value = CopilotAuthState(
                     isLoggedIn = true,
                     user = user ?: _authState.value.user,
                     hasCopilotAccess = copilotToken != null,
                     isChecking = false,
+                    planTier = detectedPlan ?: prefs.copilotPlan.value ?: "Copilot Pro",
                     error = if (copilotToken == null) "No active GitHub Copilot subscription found" else null
                 )
                 if (copilotToken != null) {
@@ -254,11 +260,13 @@ class CopilotAccountManager(
                 prefs.setUserProfile(user.login, user.name, user.avatarUrl)
 
                 val copilotToken = ensureValidCopilotTokenInternal(cleanToken)
+                val detectedPlan = if (copilotToken != null) fetchCopilotPlanInfo(copilotToken) else null
                 _authState.value = CopilotAuthState(
                     isLoggedIn = true,
                     user = user,
                     hasCopilotAccess = copilotToken != null,
                     isChecking = false,
+                    planTier = detectedPlan ?: prefs.copilotPlan.value ?: "Copilot Pro",
                     error = if (copilotToken == null) "No active GitHub Copilot subscription found" else null
                 )
                 if (copilotToken != null) {
@@ -316,6 +324,42 @@ class CopilotAccountManager(
             Log.e(TAG, "Failed to get Copilot token", e)
             null
         }
+    }
+
+    suspend fun fetchCopilotPlanInfo(copilotToken: String): String = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("https://api.github.com/copilot_internal/user")
+                .header("Authorization", "Bearer $copilotToken")
+                .header("User-Agent", "GithubCopilot/1.155.0")
+                .header("Editor-Version", "vscode/1.96.0")
+                .header("Editor-Plugin-Version", "copilot-chat/0.24.1")
+                .header("Accept", "application/json")
+                .get()
+                .build()
+
+            val response = httpClient.newCall(request).execute()
+            val respBody = response.body?.string().orEmpty()
+            if (response.isSuccessful && respBody.isNotBlank()) {
+                val userResp = json.decodeFromString<CopilotInternalUserResponse>(respBody)
+                val rawPlan = userResp.copilotPlan?.name ?: userResp.sku ?: ""
+                val formatted = when {
+                    rawPlan.contains("pro", ignoreCase = true) -> "Copilot Pro"
+                    rawPlan.contains("business", ignoreCase = true) -> "Copilot Business"
+                    rawPlan.contains("enterprise", ignoreCase = true) -> "Copilot Enterprise"
+                    rawPlan.contains("edu", ignoreCase = true) -> "Copilot Student"
+                    rawPlan.contains("free", ignoreCase = true) -> "Copilot Free"
+                    rawPlan.isNotBlank() -> rawPlan.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                    else -> "Copilot Pro"
+                }
+                prefs.setCopilotPlan(formatted, userResp.copilotPlan?.sku ?: userResp.sku)
+                Log.d(TAG, "Detected Copilot plan: $formatted (sku: ${userResp.sku ?: userResp.copilotPlan?.sku})")
+                return@withContext formatted
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not fetch copilot_internal/user: ${e.message}")
+        }
+        prefs.copilotPlan.value ?: "Copilot Pro"
     }
 
     private fun fetchUserDirect(token: String): GitHubUser? {

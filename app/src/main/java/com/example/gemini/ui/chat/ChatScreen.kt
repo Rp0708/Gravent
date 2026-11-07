@@ -1030,8 +1030,10 @@ fun ChatScreen(
                     com.example.gemini.ui.agents.AccountsButton(
                         agy = agyEntry,
                         claude = claudeEntry,
+                        copilot = copilotEntry,
                         agyAuth = agyAuthInfo,
                         claudeStatus = claudeStatus,
+                        copilotUser = copilotAuthState.user,
                         savedAgyAccounts = savedAgyAccounts,
                         activeAgyAccountId = activeAgyAccountId,
                         onSwitchAgyAccount = { viewModel.switchAgyAccount(it) },
@@ -2523,8 +2525,11 @@ fun ChatScreen(
         com.example.gemini.ui.agents.AccountsDialog(
             agy = agyEntry,
             claude = claudeEntry,
+            copilot = copilotEntry,
             agyAuth = agyAuthInfo,
             claudeStatus = claudeStatus,
+            copilotAuthState = copilotAuthState,
+            copilotSelectedModel = viewModel.copilotBackend.selectedModelId.collectAsState().value,
             savedAgyAccounts = savedAgyAccounts,
             activeAgyAccountId = activeAgyAccountId,
             onSwitchAgyAccount = { viewModel.switchAgyAccount(it) },
@@ -2536,6 +2541,11 @@ fun ChatScreen(
             onClaudeSettings = {
                 scope.launch { drawerState.close() }
                 openClaudeSetup()
+            },
+            onCopilotSignOut = { viewModel.copilotAccount.logout() },
+            onCopilotSettings = {
+                scope.launch { drawerState.close() }
+                showSettingsDialog = true
             },
             onDismiss = { showAccountsDialog = false }
         )
