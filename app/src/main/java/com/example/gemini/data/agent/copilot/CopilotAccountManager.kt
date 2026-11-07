@@ -306,6 +306,11 @@ class CopilotAccountManager(
     suspend fun syncTokenToGhCli(): Result<String> = withContext(Dispatchers.IO) {
         val token = prefs.githubToken.value ?: return@withContext Result.failure(IllegalStateException("No GitHub token stored"))
         try {
+            // If gh is already authenticated with repo/workflow scopes, do not overwrite with a read-only Copilot token
+            val status = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("gh auth status 2>&1 || true", context = context)
+            if (status.output.contains("repo") && token.startsWith("ghu_")) {
+                return@withContext Result.success("GitHub CLI is already authenticated with repo permissions. Existing credentials preserved!")
+            }
             val cmd = "printf '%s' \"$token\" | gh auth login --with-token"
             val result = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand(cmd, context = context)
             if (result.exitCode == 0) {
