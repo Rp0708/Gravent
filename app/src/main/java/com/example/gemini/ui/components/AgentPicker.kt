@@ -1,7 +1,7 @@
 package com.example.gemini.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,25 +10,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gemini.R
 import com.example.gemini.domain.model.AgentKind
 
 val ClaudeAccent = Color(0xFFFAFAFA)
-val CopilotAccent = Color(0xFF8957E5)
+val CopilotAccent = Color(0xFFFAFAFA)
 
 /** Antigravity's color across the app (minimalist monochrome). */
-val AgyAccent = Color(0xFFE4E4E7)
+val AgyAccent = Color(0xFFFAFAFA)
 
 fun AgentKind.label(): String = when (this) {
     AgentKind.AGY -> "Antigravity"
@@ -36,15 +39,11 @@ fun AgentKind.label(): String = when (this) {
     AgentKind.COPILOT -> "Copilot"
 }
 
-fun AgentKind.accent(): Color = when (this) {
-    AgentKind.AGY -> AgyAccent
-    AgentKind.CLAUDE -> ClaudeAccent
-    AgentKind.COPILOT -> CopilotAccent
-}
+fun AgentKind.accent(): Color = Color(0xFFFAFAFA)
 
 /**
- * Segmented picker for the agent of a new chat. Shows only [agents] (the enabled ones) and nothing when there is
- * a single one; [statusColors] adds each agent's status dot.
+ * Clean monochrome segmented picker for the agent of a new chat.
+ * Uses official vector brand logos with strict developer aesthetic.
  */
 @Composable
 fun AgentPicker(
@@ -55,36 +54,51 @@ fun AgentPicker(
     statusColors: Map<AgentKind, Color> = emptyMap()
 ) {
     if (agents.size < 2) return
-    val shape = RoundedCornerShape(20.dp)
-    Row(
-        modifier = modifier
-            .clip(shape)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), shape)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalAlignment = Alignment.CenterVertically
+    val shape = RoundedCornerShape(14.dp)
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = Color(0xFF141417),
+        border = BorderStroke(1.dp, Color(0xFF27272A))
     ) {
-        AgentKind.entries.filter { it in agents }.forEach { agent ->
-            val isSelected = agent == selected
-            val accent = agent.accent()
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(if (isSelected) accent.copy(alpha = 0.16f) else Color.Transparent)
-                    .clickable { onSelect(agent) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                statusColors[agent]?.let { dot ->
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
-                    Spacer(Modifier.width(7.dp))
+        Row(
+            modifier = Modifier.padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AgentKind.entries.filter { it in agents }.forEach { agent ->
+                val isSelected = agent == selected
+                val itemShape = RoundedCornerShape(11.dp)
+                Surface(
+                    onClick = { onSelect(agent) },
+                    shape = itemShape,
+                    color = if (isSelected) Color(0xFF27272A) else Color.Transparent,
+                    border = if (isSelected) BorderStroke(1.dp, Color(0xFF3F3F46)) else null
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val logoRes = when (agent) {
+                            AgentKind.AGY -> R.drawable.ic_antigravity_logo
+                            AgentKind.CLAUDE -> R.drawable.ic_claude_logo
+                            AgentKind.COPILOT -> R.drawable.ic_copilot_logo
+                        }
+                        Icon(
+                            painter = painterResource(id = logoRes),
+                            contentDescription = agent.label(),
+                            tint = if (isSelected) Color(0xFFFAFAFA) else Color(0xFF71717A),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = agent.label(),
+                            fontSize = 12.5.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (isSelected) Color(0xFFFAFAFA) else Color(0xFF71717A)
+                        )
+                    }
                 }
-                Text(
-                    text = agent.label(),
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

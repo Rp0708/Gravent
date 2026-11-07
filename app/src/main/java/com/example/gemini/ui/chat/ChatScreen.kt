@@ -77,6 +77,8 @@ import com.example.gemini.domain.model.ToolType
 import com.example.gemini.theme.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.gemini.R
+import androidx.compose.ui.res.painterResource
 import com.example.gemini.ui.components.ActiveContextSummaryCard
 import com.example.gemini.ui.components.AttachmentSelectorBottomSheet
 import com.example.gemini.ui.components.ChatInputBar
@@ -1183,48 +1185,11 @@ fun ChatScreen(
                         }
 
                         val activeAgent = currentConv?.agent ?: newChatAgent
-                        val activeAgentColor = when (activeAgent) {
-                            com.example.gemini.domain.model.AgentKind.COPILOT -> CopilotPurple
-                            com.example.gemini.domain.model.AgentKind.CLAUDE -> ClaudeTerracotta
-                            else -> Color(0xFF38BDF8)
-                        }
                         val activeAgentName = when (activeAgent) {
                             com.example.gemini.domain.model.AgentKind.COPILOT -> "Copilot"
                             com.example.gemini.domain.model.AgentKind.CLAUDE -> "Claude Code"
                             else -> "Antigravity"
                         }
-
-                        val infiniteTransition = rememberInfiniteTransition(label = "TopBarShiny")
-                        val shimmerOffset by infiniteTransition.animateFloat(
-                            initialValue = -250f,
-                            targetValue = 900f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(2800, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "ShimmerOffset"
-                        )
-                        val dotPulse by infiniteTransition.animateFloat(
-                            initialValue = 0.45f,
-                            targetValue = 1f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(1300, easing = FastOutSlowInEasing),
-                                repeatMode = RepeatMode.Reverse
-                            ),
-                            label = "DotPulse"
-                        )
-
-                        val shinyBrush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.onSurface,
-                                activeAgentColor.copy(alpha = 0.85f),
-                                Color.White,
-                                activeAgentColor.copy(alpha = 0.85f),
-                                MaterialTheme.colorScheme.onSurface
-                            ),
-                            start = Offset(shimmerOffset, 0f),
-                            end = Offset(shimmerOffset + 240f, 0f)
-                        )
 
                         val isChatStarted = messages.isNotEmpty()
                         val displayedProjectName = remember(currentConv?.workspaceUri, isChatStarted) {
@@ -1241,104 +1206,100 @@ fun ChatScreen(
                             Text(
                                 text = displayedChatTitle,
                                 fontSize = 15.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                style = TextStyle(brush = shinyBrush),
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFFAFAFA),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color(0xFF141417).copy(alpha = 0.75f),
-                                border = BorderStroke(0.6.dp, Color(0xFF27272A).copy(alpha = 0.8f))
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF141417),
+                                border = BorderStroke(1.dp, Color(0xFF27272A))
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable(enabled = !isChatStarted) {
+                                            showProjectPickerDialog = true
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .clip(CircleShape)
-                                            .background(activeAgentColor.copy(alpha = dotPulse))
+                                    val logoRes = when (activeAgent) {
+                                        com.example.gemini.domain.model.AgentKind.CLAUDE -> R.drawable.ic_claude_logo
+                                        com.example.gemini.domain.model.AgentKind.COPILOT -> R.drawable.ic_copilot_logo
+                                        else -> R.drawable.ic_antigravity_logo
+                                    }
+                                    Icon(
+                                        painter = painterResource(id = logoRes),
+                                        contentDescription = activeAgentName,
+                                        tint = Color(0xFFFAFAFA),
+                                        modifier = Modifier.size(11.5.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.5.dp))
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Text(
                                         text = activeAgentName,
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = activeAgentColor
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFFE4E4E7)
                                     )
-                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "›",
+                                        text = "/",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF71717A)
+                                        color = Color(0xFF52525B)
                                     )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .clickable(enabled = !isChatStarted) {
-                                                showProjectPickerDialog = true
-                                            },
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Outlined.Folder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(11.dp),
+                                        tint = Color(0xFFA1A1AA)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.5.dp))
+                                    Text(
+                                        text = displayedProjectName,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = Color(0xFFA1A1AA)
+                                    )
+                                    if (!isChatStarted) {
+                                        Spacer(modifier = Modifier.width(2.dp))
                                         Icon(
-                                            imageVector = Icons.Outlined.Folder,
+                                            imageVector = Icons.Default.ArrowDropDown,
                                             contentDescription = null,
-                                            modifier = Modifier.size(11.5.dp),
-                                            tint = if (displayedProjectName != "Select Project" && displayedProjectName != "Outside") activeAgentColor else Color(0xFFA1A1AA)
+                                            modifier = Modifier.size(13.dp),
+                                            tint = Color(0xFF71717A)
                                         )
-                                        Spacer(modifier = Modifier.width(3.5.dp))
-                                        Text(
-                                            text = displayedProjectName,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (displayedProjectName != "Select Project") Color(0xFFE4E4E7) else Color(0xFFA1A1AA)
-                                        )
-                                        if (!isChatStarted) {
-                                            Spacer(modifier = Modifier.width(2.dp))
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowDropDown,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(12.dp),
-                                                tint = Color(0xFFA1A1AA)
-                                            )
-                                        }
                                     }
                                 }
                             }
                         }
                     },
                     navigationIcon = {
-                        Box(
+                        Surface(
+                            onClick = {
+                                if (conversationBackStack.isNotEmpty()) {
+                                    navigateBackConversation()
+                                } else {
+                                    scope.launch { drawerState.open() }
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF141417),
+                            border = BorderStroke(1.dp, Color(0xFF27272A)),
                             modifier = Modifier
                                 .padding(start = 12.dp)
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF18181B).copy(alpha = 0.65f))
-                                .border(0.75.dp, Color(0xFF27272A), CircleShape),
-                            contentAlignment = Alignment.Center
+                                .size(36.dp)
                         ) {
-                            if (conversationBackStack.isNotEmpty()) {
-                                IconButton(onClick = navigateBackConversation, modifier = Modifier.size(38.dp)) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            } else {
-                                IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(38.dp)) {
-                                    Icon(
-                                        imageVector = Icons.Default.Menu,
-                                        contentDescription = "Open Drawer",
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (conversationBackStack.isNotEmpty()) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                                    contentDescription = if (conversationBackStack.isNotEmpty()) "Back" else "Open Drawer",
+                                    tint = Color(0xFFFAFAFA),
+                                    modifier = Modifier.size(17.dp)
+                                )
                             }
                         }
                     },
@@ -1365,7 +1326,7 @@ fun ChatScreen(
                                     id = "browser",
                                     icon = Icons.Outlined.Language,
                                     contentDescription = "Web Browser Preview",
-                                    activeTint = Color.White,
+                                    activeTint = Color(0xFFFAFAFA),
                                     inactiveTint = Color(0xFFA1A1AA),
                                     onClick = onNavigateToBrowser
                                 ),
@@ -1373,8 +1334,8 @@ fun ChatScreen(
                                     id = "terminal",
                                     icon = Icons.Outlined.Terminal,
                                     contentDescription = "Terminal",
-                                    activeTint = ClaudeTerracotta,
-                                    inactiveTint = if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) ClaudeTerracotta.copy(alpha = 0.85f) else Color(0xFFA1A1AA),
+                                    activeTint = Color(0xFFFAFAFA),
+                                    inactiveTint = Color(0xFFA1A1AA),
                                     onClick = {
                                         if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) {
                                             onNavigateToTerminal()
@@ -1390,7 +1351,7 @@ fun ChatScreen(
                                     id = "ide",
                                     icon = Icons.Default.Code,
                                     contentDescription = "Code Editor IDE",
-                                    activeTint = Color(0xFF38BDF8),
+                                    activeTint = Color(0xFFFAFAFA),
                                     inactiveTint = Color(0xFFA1A1AA),
                                     onClick = onNavigateToIde
                                 )
@@ -1398,7 +1359,11 @@ fun ChatScreen(
                         }
                         GooeyNav(
                             items = gooeyTools,
-                            modifier = Modifier.padding(end = 4.dp)
+                            modifier = Modifier.padding(end = 6.dp),
+                            bubbleColor = Color(0xFF27272A),
+                            containerColor = Color(0xFF141417),
+                            borderColor = Color(0xFF27272A),
+                            cornerRadius = 10.dp
                         )
                         if (isDevModeEnabled) {
                             IconButton(onClick = { showChatTelemetryDialog = true }) {
@@ -1457,9 +1422,9 @@ fun ChatScreen(
                                     com.example.gemini.ui.components.AgentPicker(
                                         selected = currentConv?.agent ?: newChatAgent,
                                         onSelect = { viewModel.setNewChatAgent(it) },
-                                        modifier = Modifier.padding(bottom = 20.dp),
+                                        modifier = Modifier.padding(bottom = 24.dp),
                                         agents = enabledAgents,
-                                        statusColors = agentEntries.associate { it.agent to it.color }
+                                        statusColors = emptyMap()
                                     )
                                 }
                                 com.example.gemini.ui.components.ServerStoppedPromptCard()
@@ -1539,9 +1504,9 @@ fun ChatScreen(
                                     com.example.gemini.ui.components.AgentPicker(
                                         selected = currentConv?.agent ?: newChatAgent,
                                         onSelect = { viewModel.setNewChatAgent(it) },
-                                        modifier = Modifier.padding(bottom = 20.dp),
+                                        modifier = Modifier.padding(bottom = 24.dp),
                                         agents = enabledAgents,
-                                        statusColors = agentEntries.associate { it.agent to it.color }
+                                        statusColors = emptyMap()
                                     )
                                 }
 
@@ -1592,20 +1557,77 @@ fun ChatScreen(
                                         }
                                     }
                                     else -> {
+                                        val activeHeroAgent = currentConv?.agent ?: newChatAgent
+                                        val heroTitle = when (activeHeroAgent) {
+                                            com.example.gemini.domain.model.AgentKind.CLAUDE -> "Claude Code"
+                                            com.example.gemini.domain.model.AgentKind.COPILOT -> "GitHub Copilot"
+                                            else -> "Google Antigravity"
+                                        }
+                                        val heroSubtitle = when (activeHeroAgent) {
+                                            com.example.gemini.domain.model.AgentKind.CLAUDE -> "Autonomous terminal agent & codebase editing"
+                                            com.example.gemini.domain.model.AgentKind.COPILOT -> "Repository assistant & intelligent completions"
+                                            else -> "Autonomous multi-agent workspace with local tools & MCP"
+                                        }
+
+                                        // Minimalist Hero Brand Mark
+                                        com.example.gemini.ui.agents.AgentMark(
+                                            agent = activeHeroAgent,
+                                            size = 46.dp,
+                                            statusColor = null
+                                        )
+                                        Spacer(modifier = Modifier.height(14.dp))
                                         Text(
-                                            text = "How can I help you today?",
-                                            fontSize = 22.sp,
+                                            text = heroTitle,
+                                            fontSize = 20.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            color = Color(0xFFFAFAFA),
                                             textAlign = TextAlign.Center
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(6.dp))
                                         Text(
-                                            text = "Ask a question, brainstorm ideas, or start coding",
-                                            fontSize = 14.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                                            textAlign = TextAlign.Center
+                                            text = heroSubtitle,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Normal,
+                                            color = Color(0xFF71717A),
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(horizontal = 16.dp)
                                         )
+
+                                        Spacer(modifier = Modifier.height(24.dp))
+
+                                        // Quick Developer Starter Chips (Raycast / Cursor style)
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 8.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            HomePromptStarterChip(
+                                                label = "/plan",
+                                                desc = "Architecture",
+                                                onClick = {
+                                                    textFieldValue = TextFieldValue("/plan ", selection = TextRange(6))
+                                                    chatInputFocusRequester.requestFocus()
+                                                }
+                                            )
+                                            HomePromptStarterChip(
+                                                label = "@workspace",
+                                                desc = "Audit code",
+                                                onClick = {
+                                                    textFieldValue = TextFieldValue("@workspace Find bugs & issues", selection = TextRange(28))
+                                                    chatInputFocusRequester.requestFocus()
+                                                }
+                                            )
+                                            HomePromptStarterChip(
+                                                label = "/goal",
+                                                desc = "Run task",
+                                                onClick = {
+                                                    textFieldValue = TextFieldValue("/goal ", selection = TextRange(6))
+                                                    chatInputFocusRequester.requestFocus()
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -2255,6 +2277,8 @@ fun ChatScreen(
                     onRemoveAttachment = { viewModel.removeAttachment(it) },
                     onAddAttachment = { viewModel.addAttachment(it) },
                     onAttachClick = { showAttachmentSelector = true },
+                    onPickImage = { photoPickerLauncher.launch("image/*") },
+                    onPickFile = { filePickerLauncher.launch("*/*") },
                     onTranscribeAudioFile = { file, onDone, onError ->
                         viewModel.transcribeAudioFile(file, onDone, onError)
                     },
@@ -3223,5 +3247,39 @@ private fun flattenFileNodes(nodes: List<com.example.gemini.data.daemon.FileNode
         }
     }
     return result
+}
+
+@Composable
+private fun HomePromptStarterChip(
+    label: String,
+    desc: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF141417),
+        border = BorderStroke(1.dp, Color(0xFF27272A))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFFAFAFA)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = desc,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF71717A)
+            )
+        }
+    }
 }
 

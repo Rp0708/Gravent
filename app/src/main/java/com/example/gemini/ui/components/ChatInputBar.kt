@@ -185,6 +185,8 @@ fun ChatInputBar(
     onRemoveAttachment: (String) -> Unit = {},
     onAddAttachment: (ChatAttachment) -> Unit = {},
     onAttachClick: () -> Unit = {},
+    onPickImage: () -> Unit = {},
+    onPickFile: () -> Unit = {},
     onTranscribeAudioFile: ((File, onDone: (String) -> Unit, onError: (String) -> Unit) -> Unit)? = null,
     isTranscribingAudio: Boolean = false,
     speechManager: com.example.gemini.data.audio.SpeechTranscriber? = null,
@@ -647,11 +649,20 @@ fun ChatInputBar(
                     ) {
                         PromptActionItem(
                             icon = Icons.Outlined.Image,
-                            title = "Photos & files",
-                            subtitle = "Upload from this device",
+                            title = "Photos & media",
+                            subtitle = "Upload pictures from device",
                             onClick = {
                                 showActionsMenu = false
-                                onAttachClick()
+                                onPickImage()
+                            }
+                        )
+                        PromptActionItem(
+                            icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
+                            title = "Files & documents",
+                            subtitle = "Upload PDFs, code & files",
+                            onClick = {
+                                showActionsMenu = false
+                                onPickFile()
                             }
                         )
                         PromptActionItem(
