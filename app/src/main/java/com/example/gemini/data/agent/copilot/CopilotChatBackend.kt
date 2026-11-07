@@ -224,9 +224,9 @@ class CopilotChatBackend(
                 val reader = BufferedReader(InputStreamReader(responseStream))
                 val accumulated = StringBuilder()
 
-                var line: String?
-                while (isActive && reader.readLine().also { line = it } != null) {
-                    val raw = line?.trim() ?: continue
+                while (isActive) {
+                    val currentLine = reader.readLine() ?: break
+                    val raw = currentLine.trim()
                     if (raw.isEmpty()) continue
                     if (raw.startsWith("data: ")) {
                         val data = raw.removePrefix("data: ").trim()

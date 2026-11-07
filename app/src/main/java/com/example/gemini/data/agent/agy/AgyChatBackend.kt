@@ -1310,7 +1310,6 @@ class AgyChatBackend(
         }
         _attachments.value = emptyList()
 
-        val conv = _currentConversation.value ?: return
         val userMsg = ChatMessage(
             conversationId = conv.id,
             role = MessageRole.USER,
