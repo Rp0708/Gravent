@@ -89,6 +89,7 @@ enum class SettingsSection(val title: String, val subtitle: String) {
     SERVERS("Servers & Connectivity", "Configure AGY Hub and IDE Bridge endpoints"),
     WEBVIEW_EXTENSIONS("Custom AntiGem Plugins", "Install and manage plugins: MCP tools and skills"),
     SLASH_COMMANDS("Slash Commands", "Your own / commands and what they expand to"),
+    AGY_CLI("Antigravity CLI", "Version check, updates, and CLI binary diagnostics"),
     MCP("MCP Servers", "Model Context Protocol tools & integrations"),
     SKILLS_PLUGINS("Skills & Plugins", "Agent capabilities, Google plugins, and extensions"),
     TERMINAL("Terminal & Shell", "SSH configuration, local tools, and styling"),
@@ -413,6 +414,12 @@ fun SettingsDialog(
 
                     SettingsSection.SLASH_COMMANDS -> CustomSlashCommandsScreen()
 
+                    SettingsSection.AGY_CLI -> AntigravityCliSubScreen(
+                        cardBg = cardBg,
+                        cardBorder = cardBorder,
+                        onBack = { currentSection = SettingsSection.MAIN }
+                    )
+
                     SettingsSection.MCP -> McpSubScreen(
                         mcpServers = mcpServers,
                         isLoading = isMcpLoading,
@@ -657,6 +664,19 @@ private fun MainSettingsMenu(
 
         if (agyOn) {
         SettingsGroupHeader("Antigravity", Color(0xFF60A5FA), "Google Antigravity agent (agy hub)")
+
+        SettingsCategoryCard(
+            icon = Icons.Outlined.SmartToy,
+            iconTint = Color(0xFF38BDF8),
+            title = "Antigravity CLI & Updates",
+            subtitle = "Installed binary, version check, update to latest, and diagnostics",
+            badgeText = "CLI",
+            badgeColor = Color(0xFF38BDF8),
+            cardBg = cardBg,
+            cardBorder = cardBorder,
+            onClick = { onNavigate(SettingsSection.AGY_CLI) }
+        )
+
         // Section 3: MCP Servers & Tools
         val activeMcpCount = mcpServers.count { it.isEnabled }
         val totalMcpCount = mcpServers.size
@@ -3935,6 +3955,46 @@ private fun TerminalSubScreen(
     var showExternalApiInstructionDialog by remember { mutableStateOf(false) }
     var activeCommandExecution by remember { mutableStateOf<Pair<String, String>?>(null) }
 
+    var agyVerState by remember { mutableStateOf("Checking…") }
+    var claudeVerState by remember { mutableStateOf("Checking…") }
+    var nodeVerState by remember { mutableStateOf("Checking…") }
+    var pnpmVerState by remember { mutableStateOf("Checking…") }
+    var pythonVerState by remember { mutableStateOf("Checking…") }
+    var toolUpdatingState by remember { mutableStateOf<String?>(null) }
+    var toolFeedbackState by remember { mutableStateOf<String?>(null) }
+
+    val refreshToolVersions: () -> Unit = {
+        coroutineScope.launch {
+            val agyRes = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("agy --version", context = context)
+            if (agyRes.exitCode == 0 && agyRes.output.isNotBlank()) {
+                val v = agyRes.output.lines().lastOrNull { it.trim().matches(Regex(".*\\d+\\.\\d+\\.\\d+.*")) }?.trim() ?: agyRes.output.trim().lines().last()
+                agyVerState = "v$v"
+            } else {
+                agyVerState = "Not installed"
+            }
+
+            val claudeRes = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("claude --version", context = context)
+            claudeVerState = if (claudeRes.exitCode == 0 && claudeRes.output.isNotBlank()) {
+                claudeRes.output.trim().lines().firstOrNull() ?: "Installed"
+            } else {
+                "Not installed"
+            }
+
+            val nodeRes = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("node -v", context = context)
+            nodeVerState = if (nodeRes.exitCode == 0) nodeRes.output.trim() else "Not installed"
+
+            val pnpmRes = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("pnpm -v", context = context)
+            pnpmVerState = if (pnpmRes.exitCode == 0) "v${pnpmRes.output.trim()}" else "Not installed"
+
+            val pyRes = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("python3 --version", context = context)
+            pythonVerState = if (pyRes.exitCode == 0) pyRes.output.trim() else "Not installed"
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshToolVersions()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -4177,6 +4237,188 @@ private fun TerminalSubScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Installed Developer Tools & CLIs Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            border = cardBorder
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Build,
+                        contentDescription = null,
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Installed Developer Tools & CLIs",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Check version status and update installed tools",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    IconButton(onClick = refreshToolVersions) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh", tint = Color(0xFFA1A1AA))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Antigravity CLI
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Google Antigravity (agy)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(agyVerState, fontSize = 11.5.sp, color = if (agyVerState.contains("Not installed")) QuotaRed else Color(0xFFA1A1AA))
+                    }
+                    if (toolUpdatingState == "agy") {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else if (!agyVerState.contains("Not installed")) {
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    toolUpdatingState = "agy"
+                                    toolFeedbackState = null
+                                    val r = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("agy update", context = context)
+                                    toolUpdatingState = null
+                                    toolFeedbackState = if (r.exitCode == 0) "✓ Antigravity CLI updated successfully!" else "✗ Update failed: ${r.output.takeLast(100)}"
+                                    refreshToolVersions()
+                                }
+                            },
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Update", fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // Claude Code CLI
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Claude Code CLI (claude)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(claudeVerState, fontSize = 11.5.sp, color = if (claudeVerState.contains("Not installed")) QuotaRed else Color(0xFFA1A1AA))
+                    }
+                    if (toolUpdatingState == "claude") {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else if (!claudeVerState.contains("Not installed")) {
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    toolUpdatingState = "claude"
+                                    toolFeedbackState = null
+                                    val r = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("claude update", context = context)
+                                    toolUpdatingState = null
+                                    toolFeedbackState = if (r.exitCode == 0) "✓ Claude Code updated successfully!" else "✗ Update failed: ${r.output.takeLast(100)}"
+                                    refreshToolVersions()
+                                }
+                            },
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Update", fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // pnpm Package Manager
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("pnpm Package Manager", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(pnpmVerState, fontSize = 11.5.sp, color = if (pnpmVerState.contains("Not installed")) QuotaRed else Color(0xFFA1A1AA))
+                    }
+                    if (toolUpdatingState == "pnpm") {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else if (!pnpmVerState.contains("Not installed")) {
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    toolUpdatingState = "pnpm"
+                                    toolFeedbackState = null
+                                    val r = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand("npm install -g pnpm@latest", context = context)
+                                    toolUpdatingState = null
+                                    toolFeedbackState = if (r.exitCode == 0) "✓ pnpm updated successfully!" else "✗ Update failed: ${r.output.takeLast(100)}"
+                                    refreshToolVersions()
+                                }
+                            },
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Update", fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // Node.js
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Node.js Runtime", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(nodeVerState, fontSize = 11.5.sp, color = if (nodeVerState.contains("Not installed")) QuotaRed else Color(0xFFA1A1AA))
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // Python 3
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Python 3", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(pythonVerState, fontSize = 11.5.sp, color = if (pythonVerState.contains("Not installed")) QuotaRed else Color(0xFFA1A1AA))
+                    }
+                }
+
+                if (toolFeedbackState != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = toolFeedbackState ?: "",
+                        fontSize = 12.sp,
+                        color = if (toolFeedbackState?.startsWith("✓") == true) QuotaGreen else QuotaRed,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
