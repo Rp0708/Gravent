@@ -1,12 +1,12 @@
 {
-  "version_code": 135,
-  "version_name": "1.0.35",
+  "version_code": 136,
+  "version_name": "1.0.36",
   "min_supported_version_code": 1,
   "changelog": [
-    "StarBorder Redesign & Off-White Color: Replaced blue border with elegant off-white starlight particle with dynamic stardust trail that orbits smoothly around the chat input card",
-    "Zero-Allocation Animation Pipeline: Pre-allocated geometry buffers and path caching in StarBorder to eliminate per-frame garbage collection stutter",
-    "FloatingLines Power Pacing: Cached sRGB linear stops in the GPU render loop and added visibility-based hibernation to reduce idle background battery usage to zero",
-    "DecryptedText & ShinyText Polish: Pre-allocated gradient color buffers and converted DecryptedText to zero-overhead plain Text once resolution completes"
+    "React Bits Startup Redesign: Completely redesigned the engine warming screen to match the official React Bits editorial layout with an open canvas, bottom dark gradient scrim, live status pill, bold typography ('Intelligence in motion.'), and white pill button",
+    "Quiet Native Chat Input: Removed StarBorder animation from the input bar in favor of a clean, static, low-overhead native surface border",
+    "Instant Conversation Title: Replaced DecryptedText title scrambling with instant native typography for a clean look with zero lag or glitching on low-end devices",
+    "Drawer Ambience Polish: Bottom-anchored engine connection notice with high-contrast typography and subtle gradient scrim"
   ],
   "is_critical": false
 }

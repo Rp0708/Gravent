@@ -597,19 +597,16 @@ fun ChatInputBar(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
-            // Claude-style unified rounded input card with React Bits StarBorder
-            StarBorder(
+            // Claude-style unified rounded input card
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                isActive = isStreaming || canSend,
-                starColor = if (isStreaming) familyColor else Color(0xFFF4F4F5),
-                baseBorderColor = Color(0xFF222226),
-                cornerRadius = 24.dp
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF0D0D10),
+                border = BorderStroke(
+                    1.dp,
+                    Color(0xFF222226)
+                )
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFF0D0D10)
-                ) {
                 if (isRecordingAudio) {
                     val infiniteTransition = rememberInfiniteTransition(label = "recPulse")
                     val pulseAlpha by infiniteTransition.animateFloat(
@@ -1286,7 +1283,6 @@ fun ChatInputBar(
                         }
                     }
                 }
-            }
             }
         }
     }

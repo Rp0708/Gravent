@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Person
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,10 +36,9 @@ fun EngineWarmingUpView(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = modifier.fillMaxSize()
     ) {
-        // Luminous React Bits Floating Lines interactive background
+        // 1. Fullscreen Luminous React Bits Floating Lines GPU background
         FloatingLines(
             modifier = Modifier.fillMaxSize(),
             linesGradient = listOf(
@@ -57,49 +58,117 @@ fun EngineWarmingUpView(
             clickSwirl = true
         )
 
-        // Glassmorphic / Elevated Center Card
+        // 2. High-contrast vertical gradient scrim covering lower 55% for editorial legibility
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.55f)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x6609090B),
+                            Color(0xCC09090B),
+                            Color(0xF509090B),
+                            Color(0xFF09090B)
+                        )
+                    )
+                )
+        )
+
+        // 3. React Bits Editorial Hero Section anchored to bottom
         Column(
             modifier = Modifier
-                .padding(horizontal = 32.dp, vertical = 40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            horizontalAlignment = Alignment.Start
         ) {
-            Box(
-                modifier = Modifier
-                    .size(68.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF121217).copy(alpha = 0.85f))
-                    .border(BorderStroke(1.dp, Color(0xFF27272A).copy(alpha = 0.85f)), CircleShape),
-                contentAlignment = Alignment.Center
+            // Subtle live status pill
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF18181B).copy(alpha = 0.85f),
+                border = BorderStroke(1.dp, Color(0xFF27272A))
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.SmartToy,
-                    contentDescription = null,
-                    tint = ClaudeTerracotta,
-                    modifier = Modifier.size(34.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Warming engine",
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFD4D4D8)
+                        )
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            ShinyText(
-                text = "Waking up Antigravity...",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                baseColor = MaterialTheme.colorScheme.onSurface,
-                shinyColor = Color(0xFF38BDF8),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+            // Bold confident React Bits headline
             Text(
-                text = "The background AI engine is starting up. Your chats and workspace will be ready in a moment.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp
+                text = "Intelligence in motion.",
+                style = TextStyle(
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = (-0.6).sp,
+                    lineHeight = 36.sp
+                )
             )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Crisp readable subtext
+            Text(
+                text = "The background AI engine is connecting. Your chats and workspace tools will be live in a moment.",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFA1A1AA),
+                    lineHeight = 21.sp
+                )
+            )
+
+            Spacer(modifier = Modifier.height(26.dp))
+
+            // React Bits styled primary pill button
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = Color(0xFFFAFAFA),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Initializing Antigravity",
+                            style = TextStyle(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF09090B)
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color(0xFF09090B),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -112,7 +181,7 @@ fun DrawerEngineWarmingUpView(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.BottomStart
     ) {
         FloatingLines(
             modifier = Modifier.fillMaxSize(),
@@ -131,48 +200,47 @@ fun DrawerEngineWarmingUpView(
             clickSwirl = false
         )
 
+        // Scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x9909090B),
+                            Color(0xF009090B)
+                        )
+                    )
+                )
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 18.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.Start
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF121217).copy(alpha = 0.85f))
-                    .border(BorderStroke(1.dp, Color(0xFF27272A).copy(alpha = 0.85f)), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.SmartToy,
-                    contentDescription = null,
-                    tint = ClaudeTerracotta,
-                    modifier = Modifier.size(24.dp)
+            Text(
+                text = "Connecting Engine",
+                style = TextStyle(
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = (-0.3).sp
                 )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            ShinyText(
-                text = "Waking up Antigravity...",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                baseColor = MaterialTheme.colorScheme.onSurface,
-                shinyColor = Color(0xFF38BDF8),
-                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Your chats will appear as soon as the engine connects.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center,
-                lineHeight = 16.sp
+                text = "Your chats will appear once connected.",
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFA1A1AA),
+                    lineHeight = 16.sp
+                )
             )
         }
     }
