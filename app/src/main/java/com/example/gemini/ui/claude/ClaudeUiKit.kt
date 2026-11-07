@@ -69,52 +69,85 @@ fun SettingsGroupHeader(title: String, accent: Color, subtitle: String? = null, 
 @Composable
 fun claudeCardColor(): Color = Color(0xFF09090B)
 
-/** Navigation card matching the existing settings cards. */
+/** Navigation card matching the existing settings cards (Monochrome B&W standard). */
 @Composable
 fun ClaudeNavCard(
     icon: ImageVector,
     title: String,
     subtitle: String,
     badge: String? = null,
-    badgeColor: Color = Color(0xFF818CF8),
-    tint: Color = Color(0xFF818CF8),
+    badgeColor: Color = Color(0xFFD4D4D8),
+    tint: Color = Color(0xFF8E8E93),
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF181820)),
-        border = BorderStroke(1.dp, Color(0xFF262630))
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF141417),
+        border = BorderStroke(1.dp, Color(0xFF222226))
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
-                Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF1F1F28)).border(1.dp, Color(0xFF2A2A38), RoundedCornerShape(8.dp)),
+                modifier = Modifier.size(24.dp),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp)) }
-            Spacer(Modifier.width(12.dp))
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color(0xFF8E8E93),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFF1F1F4))
+                Text(
+                    text = title,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFFAFAFA),
+                    letterSpacing = (-0.2).sp
+                )
                 Spacer(Modifier.height(1.5.dp))
                 Text(
-                    subtitle, fontSize = 11.sp, color = Color(0xFF71717E),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = Color(0xFF8E8E93),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             if (badge != null) {
                 Spacer(Modifier.width(8.dp))
                 Surface(
-                    shape = RoundedCornerShape(5.dp),
-                    color = badgeColor.copy(alpha = 0.1f),
-                    border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.25f))
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color(0xFF18181B),
+                    border = BorderStroke(1.dp, Color(0xFF27272A))
                 ) {
                     Text(
-                        badge, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp)
+                        text = badge.uppercase(),
+                        fontSize = 9.5.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFD4D4D8),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
             }
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF5A5A66), modifier = Modifier.size(16.dp))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color(0xFF52525B),
+                modifier = Modifier.size(15.dp)
+            )
         }
     }
 }

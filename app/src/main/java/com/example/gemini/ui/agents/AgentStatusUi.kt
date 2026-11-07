@@ -33,6 +33,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import com.example.gemini.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -197,25 +199,23 @@ fun AgentMark(agent: AgentKind, modifier: Modifier = Modifier, size: Dp = 32.dp,
             contentAlignment = Alignment.Center
         ) {
             when (agent) {
-                AgentKind.AGY -> Text(
-                    "AG",
-                    color = Color(0xFFFAFAFA),
-                    fontWeight = FontWeight.Black,
-                    fontSize = (size.value * 0.38f).sp,
-                    letterSpacing = (-0.5).sp
+                AgentKind.AGY -> Icon(
+                    painter = painterResource(id = R.drawable.ic_antigravity_logo),
+                    contentDescription = "Antigravity",
+                    tint = Color(0xFFFAFAFA),
+                    modifier = Modifier.size(size * 0.54f)
                 )
-                AgentKind.CLAUDE -> Text(
-                    "✻",
-                    color = Color(0xFFFAFAFA),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = (size.value * 0.52f).sp
+                AgentKind.CLAUDE -> Icon(
+                    painter = painterResource(id = R.drawable.ic_claude_logo),
+                    contentDescription = "Claude Code",
+                    tint = Color(0xFFFAFAFA),
+                    modifier = Modifier.size(size * 0.54f)
                 )
-                AgentKind.COPILOT -> Text(
-                    "CP",
-                    color = Color(0xFF8957E5),
-                    fontWeight = FontWeight.Black,
-                    fontSize = (size.value * 0.38f).sp,
-                    letterSpacing = (-0.5).sp
+                AgentKind.COPILOT -> Icon(
+                    painter = painterResource(id = R.drawable.ic_copilot_logo),
+                    contentDescription = "GitHub Copilot",
+                    tint = Color(0xFFFAFAFA),
+                    modifier = Modifier.size(size * 0.58f)
                 )
             }
         }

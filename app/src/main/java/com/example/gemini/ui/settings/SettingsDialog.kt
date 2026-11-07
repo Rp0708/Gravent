@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -269,12 +270,12 @@ fun SettingsDialog(
     }
 
     val isDark = true
-    val cardBg = Color(0xFF15151A)
-    val cardBorder = BorderStroke(1.dp, Color(0xFF24242C))
+    val cardBg = Color(0xFF141417)
+    val cardBorder = BorderStroke(1.dp, Color(0xFF222226))
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF0E0E11)
+        color = Color(0xFF09090B)
     ) {
         Column(
             modifier = Modifier
@@ -291,9 +292,10 @@ fun SettingsDialog(
                     Column {
                         Text(
                             text = if (isClaudePage) "Claude Code · ${claudePage.title}" else currentSection.title,
-                            fontSize = 16.5.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFF1F1F4),
+                            color = Color(0xFFFAFAFA),
+                            letterSpacing = (-0.3).sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -301,7 +303,7 @@ fun SettingsDialog(
                             Text(
                                 text = if (isClaudePage) claudePage.subtitle else currentSection.subtitle,
                                 fontSize = 11.sp,
-                                color = Color(0xFF71717E),
+                                color = Color(0xFF8E8E93),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -319,36 +321,36 @@ fun SettingsDialog(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color(0xFFF1F1F4)
+                            tint = Color(0xFFFAFAFA)
                         )
                     }
                 },
                 actions = {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF1C1C22),
-                        border = BorderStroke(1.dp, Color(0xFF282834)),
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF18181B),
+                        border = BorderStroke(1.dp, Color(0xFF27272A)),
                         modifier = Modifier
                             .padding(end = 12.dp)
                             .clickable { onDismiss() }
                     ) {
                         Text(
                             text = "Done",
-                            color = Color(0xFF818CF8),
+                            color = Color(0xFFFAFAFA),
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.5.sp,
+                            fontSize = 12.sp,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0E0E11)
+                    containerColor = Color(0xFF09090B)
                 )
             )
 
             HorizontalDivider(
                 thickness = 1.dp,
-                color = Color(0xFF24242C)
+                color = Color(0xFF1E1E22)
             )
 
             // Animated Screen Content
@@ -650,9 +652,9 @@ private fun MainSettingsMenu(
     ) {
         // System Daemon Status HUD & Controls (Linear/Raycast inspired)
         Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = Color(0xFF15151A),
-            border = BorderStroke(1.dp, Color(0xFF24242C)),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF111114),
+            border = BorderStroke(1.dp, Color(0xFF202024)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -662,55 +664,44 @@ private fun MainSettingsMenu(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Vitals indicators
+                // Vitals indicators (responsive weight ensures toggle pill is never clipped)
                 Row(
+                    modifier = Modifier.weight(1f, fill = false),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF22C55E))
-                    )
-                    Text(
-                        text = "${enabledAgents.size} Active Agents",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFF1F1F4)
-                    )
-                    Text(
-                        text = "•",
-                        fontSize = 11.sp,
-                        color = Color(0xFF71717E)
+                            .background(Color(0xFFFAFAFA))
                     )
                     val activeMcp = mcpServers.count { it.isEnabled }
                     Text(
-                        text = "$activeMcp MCP",
-                        fontSize = 11.5.sp,
+                        text = buildString {
+                            append("${enabledAgents.size} AGENTS")
+                            append(" • ")
+                            append("$activeMcp MCP")
+                            if (isServerOnline) {
+                                append(" • HUB ONLINE")
+                            }
+                        },
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Medium,
-                        color = if (activeMcp > 0) Color(0xFF22C55E) else Color(0xFF71717E)
+                        color = Color(0xFF8E8E93),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    if (isServerOnline) {
-                        Text(
-                            text = "•",
-                            fontSize = 11.sp,
-                            color = Color(0xFF71717E)
-                        )
-                        Text(
-                            text = "Hub Online",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF22C55E)
-                        )
-                    }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Global Expand/Collapse Toggle Pill
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFF1C1C22),
-                    border = BorderStroke(1.dp, Color(0xFF2E2E3A)),
+                    color = Color(0xFF18181B),
+                    border = BorderStroke(1.dp, Color(0xFF27272A)),
                     modifier = Modifier.clickable {
                         val target = !anyExpanded
                         expAgents = target
@@ -729,14 +720,14 @@ private fun MainSettingsMenu(
                         Icon(
                             imageVector = if (anyExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,
-                            tint = Color(0xFF818CF8),
-                            modifier = Modifier.size(14.dp)
+                            tint = Color(0xFFFAFAFA),
+                            modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = if (anyExpanded) "Collapse All" else "Expand All",
+                            text = if (anyExpanded) "Collapse" else "Expand",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF818CF8)
+                            color = Color(0xFFFAFAFA)
                         )
                     }
                 }
@@ -749,16 +740,20 @@ private fun MainSettingsMenu(
         ExpandableSettingsGroup(
             title = "Agents & Runtime",
             subtitle = "Which agents run, and the local server they share",
-            accent = Color(0xFF818CF8),
-            icon = Icons.Outlined.SmartToy,
-            badgeText = "${enabledAgents.size} on",
-            badgeColor = Color(0xFF818CF8),
+            badgeText = "${enabledAgents.size} ON",
             isExpanded = expAgents,
-            onToggle = { expAgents = !expAgents }
+            onToggle = { expAgents = !expAgents },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Outlined.Layers,
+                    contentDescription = null,
+                    tint = Color(0xFFFAFAFA),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         ) {
             SettingsCategoryCard(
                 icon = Icons.Outlined.SmartToy,
-                iconTint = Color(0xFF818CF8),
                 title = "Agents",
                 subtitle = when {
                     enabledAgents.size >= 3 -> "Antigravity, Claude Code and Copilot"
@@ -769,25 +764,22 @@ private fun MainSettingsMenu(
                     copilotOn -> "GitHub Copilot only"
                     else -> "Antigravity only"
                 },
-                badgeText = "${enabledAgents.size} on",
-                badgeColor = Color(0xFF818CF8),
+                badgeText = "${enabledAgents.size} ON",
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.AGENTS) }
             )
 
-            val (serverBadge, serverColor) = when {
-                isServerOnline && isBridgeOnline -> "Online" to Color(0xFF22C55E)
-                isServerOnline || isBridgeOnline -> "Partial" to Color(0xFFF59E0B)
-                else -> "Offline" to Color(0xFF71717E)
+            val serverBadge = when {
+                isServerOnline && isBridgeOnline -> "ONLINE"
+                isServerOnline || isBridgeOnline -> "PARTIAL"
+                else -> "OFFLINE"
             }
             SettingsCategoryCard(
                 icon = Icons.Outlined.Dns,
-                iconTint = serverColor,
                 title = "Servers & Connectivity",
                 subtitle = "AGY Hub & IDE Bridge endpoints",
                 badgeText = serverBadge,
-                badgeColor = serverColor,
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.SERVERS) }
@@ -795,7 +787,6 @@ private fun MainSettingsMenu(
 
             SettingsCategoryCard(
                 icon = Icons.Outlined.Extension,
-                iconTint = Color(0xFF818CF8),
                 title = "Custom Gravent Plugins",
                 subtitle = "Install ZIP, update, rename, enable or disable plugins with MCP tools and skills",
                 cardBg = cardBg,
@@ -805,7 +796,6 @@ private fun MainSettingsMenu(
 
             SettingsCategoryCard(
                 icon = Icons.Outlined.Terminal,
-                iconTint = Color(0xFF818CF8),
                 title = "Slash Commands",
                 subtitle = "Create / commands that expand into longer prompts or attach a plugin skill",
                 cardBg = cardBg,
@@ -821,29 +811,31 @@ private fun MainSettingsMenu(
             val activeMcpCount = mcpServers.count { it.isEnabled }
             val totalMcpCount = mcpServers.size
             val mcpBadge = when {
-                totalMcpCount == 0 -> "0 Configured"
-                activeMcpCount > 0 -> "$activeMcpCount Active"
-                else -> "Disabled"
+                totalMcpCount == 0 -> "0 CONFIGURED"
+                activeMcpCount > 0 -> "$activeMcpCount ACTIVE"
+                else -> "DISABLED"
             }
-            val mcpColor = if (activeMcpCount > 0) Color(0xFF22C55E) else Color(0xFF71717E)
 
             ExpandableSettingsGroup(
                 title = "Google Antigravity",
                 subtitle = "Google Antigravity agent (agy hub) & MCP tools",
-                accent = Color(0xFF818CF8),
-                icon = Icons.Outlined.Hub,
                 badgeText = mcpBadge,
-                badgeColor = if (activeMcpCount > 0) Color(0xFF22C55E) else Color(0xFF818CF8),
                 isExpanded = expAgy,
-                onToggle = { expAgy = !expAgy }
+                onToggle = { expAgy = !expAgy },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_antigravity_logo),
+                        contentDescription = "Google Antigravity",
+                        tint = Color(0xFFFAFAFA),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             ) {
                 SettingsCategoryCard(
                     icon = Icons.Outlined.SmartToy,
-                    iconTint = Color(0xFF818CF8),
                     title = "Antigravity CLI & Updates",
                     subtitle = "Installed binary, version check, update to latest, and diagnostics",
                     badgeText = "CLI",
-                    badgeColor = Color(0xFF818CF8),
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     onClick = { onNavigate(SettingsSection.AGY_CLI) }
@@ -851,11 +843,9 @@ private fun MainSettingsMenu(
 
                 SettingsCategoryCard(
                     icon = Icons.Outlined.Hub,
-                    iconTint = if (activeMcpCount > 0) Color(0xFF22C55E) else Color(0xFF818CF8),
                     title = "MCP Servers & Tools",
                     subtitle = if (totalMcpCount > 0) "$totalMcpCount server(s) • global mcp_config.json" else "Model Context Protocol tools & integrations",
                     badgeText = mcpBadge,
-                    badgeColor = mcpColor,
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     onClick = { onNavigate(SettingsSection.MCP) }
@@ -863,32 +853,28 @@ private fun MainSettingsMenu(
 
                 val totalSkillsCount = allSkills.size
                 val totalPluginsCount = installedPlugins.size
-                val skillsBadge = "$totalSkillsCount Skills • $totalPluginsCount Plugins"
+                val skillsBadge = "$totalSkillsCount SKILLS"
                 SettingsCategoryCard(
                     icon = Icons.Outlined.AutoAwesome,
-                    iconTint = Color(0xFF818CF8),
                     title = "Skills & Plugins",
                     subtitle = "Installed skills, Google plugins catalog, and markdown guides",
                     badgeText = skillsBadge,
-                    badgeColor = Color(0xFF818CF8),
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     onClick = { onNavigate(SettingsSection.SKILLS_PLUGINS) }
                 )
 
-                val (policyBadge, policyColor) = when {
-                    commandAutoExecutionPolicy.contains("EAGER", ignoreCase = true) -> "Auto-Run" to Color(0xFF22C55E)
-                    commandAutoExecutionPolicy.contains("AUTO", ignoreCase = true) -> "Smart Safety" to Color(0xFF818CF8)
-                    else -> "Ask User" to Color(0xFF71717E)
+                val policyBadge = when {
+                    commandAutoExecutionPolicy.contains("EAGER", ignoreCase = true) -> "AUTO-RUN"
+                    commandAutoExecutionPolicy.contains("AUTO", ignoreCase = true) -> "SMART SAFETY"
+                    else -> "ASK USER"
                 }
                 val sandboxSummary = if (commandSandboxEnabled) "Sandbox ON" else "Sandbox OFF"
                 SettingsCategoryCard(
                     icon = Icons.Outlined.Shield,
-                    iconTint = policyColor,
                     title = "Commands & Permissions",
                     subtitle = "Policy: $policyBadge • $sandboxSummary",
                     badgeText = policyBadge,
-                    badgeColor = policyColor,
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     onClick = { onNavigate(SettingsSection.COMMANDS) }
@@ -903,12 +889,17 @@ private fun MainSettingsMenu(
             ExpandableSettingsGroup(
                 title = "Claude Code",
                 subtitle = "Anthropic Claude Code CLI settings & integrations",
-                accent = Color(0xFF818CF8),
-                icon = Icons.Outlined.Code,
-                badgeText = "Claude",
-                badgeColor = Color(0xFF818CF8),
+                badgeText = "CLAUDE",
                 isExpanded = expClaude,
-                onToggle = { expClaude = !expClaude }
+                onToggle = { expClaude = !expClaude },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_claude_logo),
+                        contentDescription = "Claude Code",
+                        tint = Color(0xFFFAFAFA),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             ) {
                 claudeGroup()
             }
@@ -920,26 +911,29 @@ private fun MainSettingsMenu(
         if (copilotAccount != null && (copilotOn || com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents)) {
             val copilotAuthState by copilotAccount.authState.collectAsState()
             val copilotBadge = if (copilotAuthState.hasCopilotAccess) {
-                copilotAuthState.planTier ?: "Copilot Active"
-            } else if (copilotAuthState.isLoggedIn) "Connected" else "Sign in"
+                copilotAuthState.planTier?.uppercase() ?: "COPILOT PRO"
+            } else if (copilotAuthState.isLoggedIn) "CONNECTED" else "SIGN IN"
 
             ExpandableSettingsGroup(
                 title = "GitHub Copilot",
                 subtitle = if (copilotAuthState.isLoggedIn) "Connected as @${copilotAuthState.user?.login ?: "user"} • ${copilotAuthState.planTier ?: "Copilot Pro"}" else "GitHub Copilot subscription, models & tools",
-                accent = Color(0xFF818CF8),
-                icon = Icons.Outlined.Terminal,
                 badgeText = copilotBadge,
-                badgeColor = if (copilotAuthState.hasCopilotAccess) Color(0xFF22C55E) else Color(0xFF818CF8),
                 isExpanded = expCopilot,
-                onToggle = { expCopilot = !expCopilot }
+                onToggle = { expCopilot = !expCopilot },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_copilot_logo),
+                        contentDescription = "GitHub Copilot",
+                        tint = Color(0xFFFAFAFA),
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
             ) {
                 SettingsCategoryCard(
                     icon = Icons.Outlined.Code,
-                    iconTint = Color(0xFF818CF8),
                     title = "GitHub Copilot",
                     subtitle = if (copilotAuthState.isLoggedIn) "Connected as @${copilotAuthState.user?.login} • ${copilotAuthState.planTier ?: "Copilot Pro"}" else "Connect GitHub, subscription & models",
-                    badgeText = if (copilotAuthState.hasCopilotAccess) "Active" else if (copilotAuthState.isLoggedIn) "Connected" else null,
-                    badgeColor = if (copilotAuthState.hasCopilotAccess) Color(0xFF22C55E) else Color(0xFF818CF8),
+                    badgeText = if (copilotAuthState.hasCopilotAccess) "ACTIVE" else if (copilotAuthState.isLoggedIn) "CONNECTED" else null,
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     onClick = { onNavigate(SettingsSection.COPILOT) }
@@ -951,27 +945,30 @@ private fun MainSettingsMenu(
         // 5. App Preferences
         // ==========================================
         val themeLabel = when (themeMode) {
-            "DARK" -> "Dark Mode"
-            "LIGHT" -> "Light Mode"
-            else -> "Auto (System)"
+            "DARK" -> "DARK"
+            "LIGHT" -> "LIGHT"
+            else -> "SYSTEM"
         }
         ExpandableSettingsGroup(
             title = "App Preferences",
             subtitle = "Theme, terminal environment, backups & data protection",
-            accent = Color(0xFF818CF8),
-            icon = Icons.Outlined.Palette,
             badgeText = themeLabel,
-            badgeColor = Color(0xFF818CF8),
             isExpanded = expApp,
-            onToggle = { expApp = !expApp }
+            onToggle = { expApp = !expApp },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = null,
+                    tint = Color(0xFFFAFAFA),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         ) {
             SettingsCategoryCard(
                 icon = Icons.Outlined.Palette,
-                iconTint = Color(0xFF818CF8),
                 title = "Appearance & Theme",
-                subtitle = "$themeLabel • ${(chatFontScale * 100).toInt()}% text scale",
+                subtitle = "${if (themeMode == "DARK") "Dark Mode" else if (themeMode == "LIGHT") "Light Mode" else "Auto (System)"} • ${(chatFontScale * 100).toInt()}% text scale",
                 badgeText = themeLabel,
-                badgeColor = Color(0xFF818CF8),
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.APPEARANCE) }
@@ -979,11 +976,9 @@ private fun MainSettingsMenu(
 
             SettingsCategoryCard(
                 icon = Icons.Outlined.Terminal,
-                iconTint = Color(0xFF818CF8),
                 title = "Terminal & Shell Execution",
                 subtitle = if (useSshTerminal) "SSH Mode (Termux sshd)" else "Local Linux Environment",
-                badgeText = if (useSshTerminal) "SSH" else "Local",
-                badgeColor = Color(0xFF818CF8),
+                badgeText = if (useSshTerminal) "SSH" else "LOCAL",
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.TERMINAL) }
@@ -992,11 +987,9 @@ private fun MainSettingsMenu(
             if (isLocalToolsInstalled) {
                 SettingsCategoryCard(
                     icon = Icons.Outlined.Backup,
-                    iconTint = Color(0xFF818CF8),
                     title = "Backups & Restore",
                     subtitle = "Backup rootfs environment and AGY chat histories",
-                    badgeText = "Rootfs Active",
-                    badgeColor = Color(0xFF22C55E),
+                    badgeText = "ROOTFS ACTIVE",
                     cardBg = cardBg,
                     cardBorder = cardBorder,
                     onClick = { onNavigate(SettingsSection.BACKUPS) }
@@ -1005,25 +998,20 @@ private fun MainSettingsMenu(
 
             SettingsCategoryCard(
                 icon = Icons.Outlined.AdminPanelSettings,
-                iconTint = Color(0xFF818CF8),
                 title = "Data Loss Protection",
                 subtitle = "Accidental uninstall shield & App Info clear data protection",
-                badgeText = "Shield",
-                badgeColor = Color(0xFF818CF8),
+                badgeText = "SHIELD",
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.DATA_PROTECTION) }
             )
 
             val diagBadge = if (isFloatingDiagnosticsEnabled) "HUD ON" else "HUD OFF"
-            val diagColor = if (isFloatingDiagnosticsEnabled) Color(0xFF22C55E) else Color(0xFF71717E)
             SettingsCategoryCard(
                 icon = Icons.Outlined.Speed,
-                iconTint = if (isFloatingDiagnosticsEnabled) Color(0xFF22C55E) else Color(0xFF818CF8),
                 title = "Diagnostics & Performance",
                 subtitle = if (isFloatingDiagnosticsEnabled) "Floating live metrics HUD enabled" else "Live network connections, active streams & thread HUD",
                 badgeText = diagBadge,
-                badgeColor = diagColor,
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.DIAGNOSTICS) }
@@ -1033,23 +1021,26 @@ private fun MainSettingsMenu(
         // ==========================================
         // 6. Utilities & About
         // ==========================================
-        val variantLabel = if (BuildConfig.IS_SHARED_USER_ID) "Shared UID" else "Standalone"
+        val variantLabel = if (BuildConfig.IS_SHARED_USER_ID) "SHARED UID" else "STANDALONE"
         ExpandableSettingsGroup(
             title = "Utilities & About",
             subtitle = "ADB Connect, automation tools & system version",
-            accent = Color(0xFF818CF8),
-            icon = Icons.Outlined.Handyman,
-            badgeText = "v${BuildConfig.VERSION_NAME}",
-            badgeColor = Color(0xFF818CF8),
+            badgeText = "V${BuildConfig.VERSION_NAME}",
             isExpanded = expUtilities,
-            onToggle = { expUtilities = !expUtilities }
+            onToggle = { expUtilities = !expUtilities },
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Outlined.Build,
+                    contentDescription = null,
+                    tint = Color(0xFFFAFAFA),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         ) {
             SettingsCategoryCard(
                 icon = Icons.Outlined.Handyman,
-                iconTint = Color(0xFF818CF8),
                 title = "Utilities",
                 subtitle = "ADB Connect, Android Automation",
-                badgeColor = Color(0xFF818CF8),
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.UTILITIES) }
@@ -1057,11 +1048,9 @@ private fun MainSettingsMenu(
 
             SettingsCategoryCard(
                 icon = Icons.Outlined.Info,
-                iconTint = Color(0xFF818CF8),
                 title = "About Gravent",
                 subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) • ${BuildConfig.APPLICATION_ID} [$variantLabel]",
-                badgeText = "v${BuildConfig.VERSION_NAME} ($variantLabel)",
-                badgeColor = if (BuildConfig.IS_SHARED_USER_ID) Color(0xFF22C55E) else Color(0xFF818CF8),
+                badgeText = "V${BuildConfig.VERSION_NAME}",
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.ABOUT) }
@@ -1074,13 +1063,11 @@ private fun MainSettingsMenu(
 private fun ExpandableSettingsGroup(
     title: String,
     subtitle: String?,
-    accent: Color,
-    icon: ImageVector,
     badgeText: String? = null,
-    badgeColor: Color = accent,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    leadingContent: @Composable () -> Unit,
     content: @Composable () -> Unit
 ) {
     val rotation by animateFloatAsState(
@@ -1090,9 +1077,9 @@ private fun ExpandableSettingsGroup(
     )
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF15151A),
-        border = BorderStroke(1.dp, if (isExpanded) Color(0xFF363644) else Color(0xFF24242C)),
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF111114),
+        border = BorderStroke(1.dp, if (isExpanded) Color(0xFF333338) else Color(0xFF202024)),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -1104,46 +1091,39 @@ private fun ExpandableSettingsGroup(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { onToggle() }
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .padding(horizontal = 6.dp, vertical = 6.dp)
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF1C1C22))
-                        .border(1.dp, Color(0xFF282834), RoundedCornerShape(10.dp)),
+                    modifier = Modifier.size(26.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    leadingContent()
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             title,
                             fontSize = 14.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFF1F1F4)
+                            color = Color(0xFFFAFAFA),
+                            letterSpacing = (-0.2).sp
                         )
                         if (badgeText != null) {
                             Spacer(Modifier.width(8.dp))
                             Surface(
-                                shape = RoundedCornerShape(5.dp),
-                                color = badgeColor.copy(alpha = 0.12f),
-                                border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.25f)),
-                                contentColor = badgeColor
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF18181B),
+                                border = BorderStroke(1.dp, Color(0xFF27272A))
                             ) {
                                 Text(
                                     badgeText,
-                                    fontSize = 10.sp,
+                                    fontSize = 9.5.sp,
+                                    fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Medium,
+                                    color = Color(0xFFD4D4D8),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -1154,7 +1134,7 @@ private fun ExpandableSettingsGroup(
                         Text(
                             subtitle,
                             fontSize = 11.5.sp,
-                            color = Color(0xFF71717E),
+                            color = Color(0xFF8E8E93),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1164,9 +1144,9 @@ private fun ExpandableSettingsGroup(
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = if (isExpanded) accent else Color(0xFF71717E),
+                    tint = Color(0xFF71717A),
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(18.dp)
                         .rotate(rotation)
                 )
             }
@@ -1207,19 +1187,17 @@ private fun UtilitiesSubScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         SettingsCategoryCard(
             icon = Icons.Outlined.PhonelinkSetup,
-            iconTint = if (connected != null) Color(0xFF22C55E) else Color(0xFF818CF8),
             title = "ADB Connect",
             subtitle = connected?.serial ?: "Use adb in the terminal over Wireless debugging",
             badgeText = when {
-                connected != null -> "Connected"
-                adb.adbInstalled == false -> "Not installed"
+                connected != null -> "CONNECTED"
+                adb.adbInstalled == false -> "NOT INSTALLED"
                 else -> null
             },
-            badgeColor = if (connected != null) Color(0xFF22C55E) else Color(0xFF71717E),
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.ADB_CONNECT) }
@@ -1233,11 +1211,9 @@ private fun UtilitiesSubScreen(
         }
         SettingsCategoryCard(
             icon = Icons.Outlined.TouchApp,
-            iconTint = if (automationAllowed) Color(0xFF22C55E) else Color(0xFF818CF8),
             title = "Android Automation",
             subtitle = "Let AI agents read the screen, tap, type and open apps (MCP)",
-            badgeText = if (automationAllowed) "Allowed" else "Off",
-            badgeColor = if (automationAllowed) Color(0xFF22C55E) else Color(0xFF71717E),
+            badgeText = if (automationAllowed) "ACTIVE" else "OFF",
             cardBg = cardBg,
             cardBorder = cardBorder,
             onClick = { onNavigate(SettingsSection.ANDROID_AUTOMATION) }
@@ -1248,60 +1224,55 @@ private fun UtilitiesSubScreen(
 @Composable
 private fun SettingsCategoryCard(
     icon: ImageVector,
-    iconTint: Color,
     title: String,
     subtitle: String,
     badgeText: String? = null,
-    badgeColor: Color = Color(0xFF818CF8),
-    cardBg: Color = Color(0xFF181820),
-    cardBorder: BorderStroke = BorderStroke(1.dp, Color(0xFF262630)),
+    cardBg: Color = Color(0xFF141417),
+    cardBorder: BorderStroke = BorderStroke(1.dp, Color(0xFF222226)),
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF181820)),
-        border = BorderStroke(1.dp, Color(0xFF262630))
+        shape = RoundedCornerShape(10.dp),
+        color = cardBg,
+        border = cardBorder
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 11.dp),
+                .padding(horizontal = 14.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF1F1F28))
-                    .border(1.dp, Color(0xFF2A2A38), RoundedCornerShape(8.dp)),
+                modifier = Modifier.size(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = iconTint,
+                    tint = Color(0xFF8E8E93),
                     modifier = Modifier.size(18.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFF1F1F4)
+                    color = Color(0xFFFAFAFA),
+                    letterSpacing = (-0.2).sp
                 )
                 Spacer(modifier = Modifier.height(1.5.dp))
                 Text(
                     text = subtitle,
                     fontSize = 11.sp,
-                    color = Color(0xFF71717E),
+                    color = Color(0xFF8E8E93),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1310,16 +1281,17 @@ private fun SettingsCategoryCard(
             if (badgeText != null) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    shape = RoundedCornerShape(5.dp),
-                    color = badgeColor.copy(alpha = 0.1f),
-                    border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.25f))
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color(0xFF18181B),
+                    border = BorderStroke(1.dp, Color(0xFF27272A))
                 ) {
                     Text(
                         text = badgeText,
-                        fontSize = 10.sp,
+                        fontSize = 9.5.sp,
+                        fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Medium,
-                        color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp)
+                        color = Color(0xFFD4D4D8),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
             }
@@ -1328,8 +1300,8 @@ private fun SettingsCategoryCard(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color(0xFF5A5A66),
-                modifier = Modifier.size(16.dp)
+                tint = Color(0xFF52525B),
+                modifier = Modifier.size(15.dp)
             )
         }
     }

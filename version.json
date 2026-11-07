@@ -1,12 +1,12 @@
 {
-  "version_code": 145,
-  "version_name": "1.0.45",
+  "version_code": 146,
+  "version_name": "1.0.46",
   "min_supported_version_code": 1,
   "changelog": [
-    "Stitch-Guided Minimal Dark Settings Panel Redesign: Redesigned the settings panel following Google Stitch guidelines to match Gravent's elite mobile IDE aesthetic with Level 1/2 dark surfaces (#15151A, #181820), hairline borders (#24242C, #262630), crisp typography hierarchy, and restrained indigo (#818CF8) and live status (#22C55E) accents, eliminating rainbow color chaos",
-    "Developer Daemon HUD Status Ribbon: Added a live runtime status strip at the top of the settings panel showing active agents count, MCP server health, Hub connectivity, and a global Expand/Collapse All pill control",
-    "Harmonized Category & Nav Card Styling: Unified all 6 expandable category groups and sub-screens (including Claude Code and Utilities) with squircle icon badges, hairline chevron rotation, and muted status tags",
-    "Ultra-Resilient Copilot Token Streaming: Enhanced streaming parser to extract content and text tokens from both chunk deltas and non-streaming responses, ensuring zero dropped messages"
+    "Monochrome Black & White Settings Redesign: Strict developer aesthetic (Linear/Raycast standard) with official embedded logos (Google Antigravity 4-point spark, Claude Code sunburst spark, GitHub Copilot mark) directly on dark surfaces with no background boxes, monospace badges, and unclipped responsive HUD telemetry ribbon",
+    "GitHub Copilot Full Integration in Accounts & Status Bar: Added GitHub Copilot to the drawer footer account status bar with official logo badge, and first-class Copilot section in the Accounts sheet",
+    "Space-Efficient Expandable Accounts Sheet: Added collapsible provider accordions and an Expand/Collapse All toggle in the Accounts dialog so multiple configured subscriptions don't consume excessive screen space",
+    "Ultra-Resilient Copilot Chat Completions: Fixed streaming & non-streaming response handling, multi-line JSON parsing, conversation file persistence, and tier-specific free included models (GPT-4o, Claude 3.5 Sonnet, o3-mini)"
   ],
   "is_critical": false
 }

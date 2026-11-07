@@ -409,8 +409,8 @@ fun ChatScreen(
     } else null
     val copilotAuthState by viewModel.copilotAccount.authState.collectAsState()
     val copilotDeviceCode by viewModel.copilotAccount.deviceCodeFlow.collectAsState()
-    val copilotEntry = if (com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents) {
-        val copilotColor = if (copilotAuthState.hasCopilotAccess) Color(0xFF22C55E) else if (copilotAuthState.isLoggedIn) Color(0xFFFFA000) else Color.Red
+    val copilotEntry = if (com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents || copilotAuthState.isLoggedIn) {
+        val copilotColor = if (copilotAuthState.hasCopilotAccess) Color(0xFF22C55E) else if (copilotAuthState.isLoggedIn) Color(0xFFFFA000) else Color(0xFF71717A)
         com.example.gemini.ui.agents.AgentStatusEntry(
             agent = com.example.gemini.domain.model.AgentKind.COPILOT,
             label = if (copilotAuthState.hasCopilotAccess) "Active" else if (copilotAuthState.isLoggedIn) "Connected" else "Signed out",

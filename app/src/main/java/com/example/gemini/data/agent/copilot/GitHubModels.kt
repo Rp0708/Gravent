@@ -86,19 +86,28 @@ data class CopilotChatRequest(
     val model: String,
     val stream: Boolean = true,
     val messages: List<CopilotChatMessagePayload>,
-    val temperature: Double = 0.2
+    val temperature: Double? = 0.2
+)
+
+@Serializable
+data class CopilotChatMessage(
+    val role: String? = null,
+    val content: String? = null
 )
 
 @Serializable
 data class CopilotChatDelta(
     val role: String? = null,
-    val content: String? = null
+    val content: String? = null,
+    val text: String? = null
 )
 
 @Serializable
 data class CopilotChatChoice(
     val index: Int = 0,
     val delta: CopilotChatDelta? = null,
+    val message: CopilotChatMessage? = null,
+    val text: String? = null,
     @SerialName("finish_reason") val finishReason: String? = null
 )
 

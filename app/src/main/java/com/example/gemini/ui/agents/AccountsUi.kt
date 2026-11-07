@@ -109,7 +109,7 @@ private fun AccountAvatar(
                 loading = { InitialCircle(initial, accent, size) },
                 error = { InitialCircle(initial, accent, size) }
             )
-            else -> Box(ring) { InitialCircle(initial, accent, size) }
+            else -> Box(ring) { if (initial != null) InitialCircle(initial, accent, size) else AgentMark(agent, size = size) }
         }
         Box(
             Modifier
@@ -323,27 +323,59 @@ fun AccountsDialog(
     val context = LocalContext.current
     var agyExpanded by remember { mutableStateOf(agy?.isReady == true) }
     var claudeExpanded by remember { mutableStateOf(claude?.isReady == true && agy?.isReady != true) }
-    var copilotExpanded by remember { mutableStateOf(copilot?.isReady == true && agy?.isReady != true && claude?.isReady != true) }
+    var copilotExpanded by remember { mutableStateOf(copilot?.isReady == true || copilotAuthState?.isLoggedIn == true) }
+
+    val anyExpanded = agyExpanded || claudeExpanded || copilotExpanded
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF111114)),
             border = BorderStroke(1.dp, Color(0xFF222226)),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()).padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Accounts", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(30.dp)) {
-                        Icon(Icons.Outlined.Close, "Close", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text(
+                        "Accounts",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFAFAFA),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Expand / Collapse All Toggle Pill
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF18181B),
+                        border = BorderStroke(1.dp, Color(0xFF27272A)),
+                        modifier = Modifier.clickable {
+                            val target = !anyExpanded
+                            agyExpanded = target
+                            claudeExpanded = target
+                            copilotExpanded = target
+                        }
+                    ) {
+                        Text(
+                            text = if (anyExpanded) "Collapse All" else "Expand All",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFFAFAFA),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Outlined.Close, "Close", tint = Color(0xFF8E8E93))
                     }
                 }
                 Text(
                     "Switch or configure Google, Claude & GitHub Copilot accounts.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    fontSize = 11.5.sp,
+                    color = Color(0xFF8E8E93)
                 )
                 Spacer(Modifier.height(14.dp))
 
@@ -471,42 +503,56 @@ fun AccountsDialog(
                     }
                 }
 
-                if ((agy != null || claude != null) && copilot != null) Spacer(Modifier.height(12.dp))
+                if (agy != null || claude != null) Spacer(Modifier.height(12.dp))
 
-                copilot?.let { entry ->
-                    val user = copilotAuthState?.user
-                    AccountSection(
-                        entry = entry,
-                        avatar = { AccountAvatar(AgentKind.COPILOT, entry, user?.login?.firstOrNull(), user?.avatarUrl, size = 44.dp) },
-                        title = if (entry.isReady) (user?.name?.ifBlank { user.login } ?: user?.login ?: "GitHub Copilot") else "GitHub Copilot",
-                        subtitle = if (entry.isReady) "@${user?.login}" else entry.detail,
-                        facts = if (entry.isReady) listOfNotNull(
-                            copilotAuthState?.planTier ?: "Copilot Pro",
-                            copilotSelectedModel?.let { "Model: $it" }
-                        ) else emptyList(),
-                        expanded = copilotExpanded,
-                        onToggleExpand = { copilotExpanded = !copilotExpanded }
-                    ) {
-                        if (entry.isReady) {
-                            SectionButton("Copilot settings", Icons.Outlined.Settings) {
-                                onCopilotSettings()
+                // GitHub Copilot Section (Always accessible)
+                val effectiveCopilot = copilot ?: AgentStatusEntry(
+                    agent = AgentKind.COPILOT,
+                    label = if (copilotAuthState?.hasCopilotAccess == true) "Active" else if (copilotAuthState?.isLoggedIn == true) "Connected" else "Signed out",
+                    color = if (copilotAuthState?.hasCopilotAccess == true) Color(0xFF22C55E) else if (copilotAuthState?.isLoggedIn == true) Color(0xFFFFA000) else Color(0xFF71717A),
+                    detail = if (copilotAuthState?.isLoggedIn == true) "@${copilotAuthState.user?.login}" else "GitHub Copilot",
+                    isReady = copilotAuthState?.hasCopilotAccess == true,
+                    isSignedOut = copilotAuthState?.isLoggedIn != true,
+                    action = if (copilotAuthState?.isLoggedIn != true) {
+                        AgentStatusAction("Sign in") {
+                            onCopilotSettings()
+                            onDismiss()
+                        }
+                    } else null
+                )
+
+                val user = copilotAuthState?.user
+                AccountSection(
+                    entry = effectiveCopilot,
+                    avatar = { AccountAvatar(AgentKind.COPILOT, effectiveCopilot, user?.login?.firstOrNull(), user?.avatarUrl, size = 44.dp) },
+                    title = if (effectiveCopilot.isReady) (user?.name?.ifBlank { user.login } ?: user?.login ?: "GitHub Copilot") else "GitHub Copilot",
+                    subtitle = if (effectiveCopilot.isReady) "@${user?.login}" else effectiveCopilot.detail,
+                    facts = if (effectiveCopilot.isReady) listOfNotNull(
+                        copilotAuthState?.planTier ?: "Copilot Pro",
+                        copilotSelectedModel?.let { "Model: $it" }
+                    ) else emptyList(),
+                    expanded = copilotExpanded,
+                    onToggleExpand = { copilotExpanded = !copilotExpanded }
+                ) {
+                    if (effectiveCopilot.isReady || copilotAuthState?.isLoggedIn == true) {
+                        SectionButton("Copilot settings", Icons.Outlined.Settings) {
+                            onCopilotSettings()
+                            onDismiss()
+                        }
+                        SectionButton("Sign out", Icons.AutoMirrored.Outlined.Logout, danger = true) {
+                            onCopilotSignOut()
+                            onDismiss()
+                        }
+                    } else {
+                        effectiveCopilot.action?.let {
+                            SectionButton(it.label, primary = AgentKind.COPILOT.accent()) {
+                                it.onClick()
                                 onDismiss()
                             }
-                            SectionButton("Sign out", Icons.AutoMirrored.Outlined.Logout, danger = true) {
-                                onCopilotSignOut()
-                                onDismiss()
-                            }
-                        } else {
-                            entry.action?.let {
-                                SectionButton(it.label, primary = AgentKind.COPILOT.accent()) {
-                                    it.onClick()
-                                    onDismiss()
-                                }
-                            }
-                            SectionButton("Copilot settings", Icons.Outlined.Settings) {
-                                onCopilotSettings()
-                                onDismiss()
-                            }
+                        }
+                        SectionButton("Copilot settings", Icons.Outlined.Settings) {
+                            onCopilotSettings()
+                            onDismiss()
                         }
                     }
                 }
