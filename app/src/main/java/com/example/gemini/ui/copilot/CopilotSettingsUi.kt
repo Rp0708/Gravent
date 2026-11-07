@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -62,8 +63,6 @@ fun CopilotSubScreen(
     val authState by accountManager.authState.collectAsState()
     val deviceCode by accountManager.deviceCodeFlow.collectAsState()
     val selectedModel by backend.selectedModelId.collectAsState()
-    val availableModels by backend.availableModels.collectAsState()
-    val isRefreshingModels by backend.isRefreshingModels.collectAsState()
     val availableModels by backend.availableModels.collectAsState()
     val isRefreshingModels by backend.isRefreshingModels.collectAsState()
     val userRepos by accountManager.userRepos.collectAsState()
