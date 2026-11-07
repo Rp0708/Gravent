@@ -1,12 +1,12 @@
 {
-  "version_code": 146,
-  "version_name": "1.0.46",
+  "version_code": 147,
+  "version_name": "1.0.47",
   "min_supported_version_code": 1,
   "changelog": [
-    "Monochrome Black & White Settings Redesign: Strict developer aesthetic (Linear/Raycast standard) with official embedded logos (Google Antigravity 4-point spark, Claude Code sunburst spark, GitHub Copilot mark) directly on dark surfaces with no background boxes, monospace badges, and unclipped responsive HUD telemetry ribbon",
-    "GitHub Copilot Full Integration in Accounts & Status Bar: Added GitHub Copilot to the drawer footer account status bar with official logo badge, and first-class Copilot section in the Accounts sheet",
-    "Space-Efficient Expandable Accounts Sheet: Added collapsible provider accordions and an Expand/Collapse All toggle in the Accounts dialog so multiple configured subscriptions don't consume excessive screen space",
-    "Ultra-Resilient Copilot Chat Completions: Fixed streaming & non-streaming response handling, multi-line JSON parsing, conversation file persistence, and tier-specific free included models (GPT-4o, Claude 3.5 Sonnet, o3-mini)"
+    "React Bits Prompt Bar Redesign: Pixel-perfect recreation of reactbits.dev/micro/prompt-bar with dark zinc container, 'Ask anything...' placeholder, and elegant rounded controls",
+    "Actions Popover Menu: Smooth floating panel with quick actions for Photos & Files, Web Search (@web), Workspace Files (@), Slash Commands (/), and Voice Notes",
+    "Interactive Reasoning Effort Slider: Smooth stepped slider popover (Off, Low, Med, High) with animated pill thumb and direct preference synchronization, plus quick access to advanced token settings",
+    "Model Picker & State-Aware Controls: Compact model pill with quota indicator, integrated dictation/voice toggle, and morphing squircle Send/Stop button"
   ],
   "is_critical": false
 }

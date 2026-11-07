@@ -12,17 +12,25 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import com.example.gemini.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
@@ -33,7 +41,12 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.*
@@ -45,8 +58,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import android.net.Uri
@@ -68,6 +85,7 @@ import com.example.gemini.domain.model.AiModel
 import com.example.gemini.domain.model.ChatAttachment
 import com.example.gemini.domain.model.ModelFamily
 import com.example.gemini.domain.model.ModelQuota
+import com.example.gemini.domain.model.ThinkingLevel
 import com.example.gemini.domain.model.ThinkingPreference
 import com.example.gemini.theme.*
 import kotlinx.coroutines.Job
@@ -157,6 +175,7 @@ fun ChatInputBar(
     onTextFieldValueChange: (TextFieldValue) -> Unit,
     onOpenModelSelector: () -> Unit,
     onOpenThinkingSelector: () -> Unit,
+    onSetThinkingPreference: (ThinkingPreference) -> Unit = {},
     isStreaming: Boolean,
     isBackgroundActive: Boolean = false,
     onSendMessage: (String) -> Unit,
@@ -184,6 +203,17 @@ fun ChatInputBar(
     val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val isDark = isAppInDarkTheme()
+
+    // React Bits Prompt Bar Popover States
+    var showActionsMenu by remember { mutableStateOf(false) }
+    var showEffortMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isStreaming) {
+        if (isStreaming) {
+            showActionsMenu = false
+            showEffortMenu = false
+        }
+    }
 
     // Audio recording & Speech-to-Text state
     var recordMode by remember { mutableStateOf(AudioRecordMode.VOICE_NOTE) }
@@ -597,14 +627,126 @@ fun ChatInputBar(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
-            // Claude-style unified rounded input card
+            // React Bits Actions Popover Menu
+            AnimatedVisibility(
+                visible = showActionsMenu,
+                enter = fadeIn(tween(180)) + slideInVertically { it / 4 },
+                exit = fadeOut(tween(140)) + slideOutVertically { it / 4 }
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF161619),
+                    border = BorderStroke(1.dp, Color(0xFF27272A)),
+                    shadowElevation = 8.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
+                    ) {
+                        PromptActionItem(
+                            icon = Icons.Outlined.Image,
+                            title = "Photos & files",
+                            subtitle = "Upload from this device",
+                            onClick = {
+                                showActionsMenu = false
+                                onAttachClick()
+                            }
+                        )
+                        PromptActionItem(
+                            icon = Icons.Outlined.Language,
+                            title = "Web search",
+                            subtitle = "Live results",
+                            onClick = {
+                                showActionsMenu = false
+                                val cur = textFieldValue.text
+                                val updated = if (cur.startsWith("@web ")) cur else "@web $cur"
+                                onTextFieldValueChange(TextFieldValue(updated, selection = TextRange(updated.length)))
+                                focusRequester.requestFocus()
+                            }
+                        )
+                        PromptActionItem(
+                            icon = Icons.Outlined.Folder,
+                            title = "Workspace files (@)",
+                            subtitle = "Reference project files",
+                            onClick = {
+                                showActionsMenu = false
+                                val cur = textFieldValue.text
+                                val sel = textFieldValue.selection.start.coerceIn(0, cur.length)
+                                val prefix = cur.substring(0, sel)
+                                val suffix = cur.substring(sel)
+                                val insert = if (prefix.endsWith(" ") || prefix.isEmpty()) "@" else " @"
+                                val updated = prefix + insert + suffix
+                                val newCursor = (prefix + insert).length
+                                onTextFieldValueChange(TextFieldValue(updated, selection = TextRange(newCursor)))
+                                focusRequester.requestFocus()
+                            }
+                        )
+                        PromptActionItem(
+                            icon = Icons.Outlined.Bolt,
+                            title = "Slash commands (/)",
+                            subtitle = "Quick actions & skills",
+                            onClick = {
+                                showActionsMenu = false
+                                val cur = textFieldValue.text
+                                val sel = textFieldValue.selection.start.coerceIn(0, cur.length)
+                                val prefix = cur.substring(0, sel)
+                                val suffix = cur.substring(sel)
+                                val insert = if (prefix.endsWith(" ") || prefix.isEmpty()) "/" else " /"
+                                val updated = prefix + insert + suffix
+                                val newCursor = (prefix + insert).length
+                                onTextFieldValueChange(TextFieldValue(updated, selection = TextRange(newCursor)))
+                                focusRequester.requestFocus()
+                            }
+                        )
+                        PromptActionItem(
+                            icon = Icons.Rounded.Mic,
+                            title = "Voice note",
+                            subtitle = "Audio memo & recording",
+                            onClick = {
+                                showActionsMenu = false
+                                recordMode = AudioRecordMode.VOICE_NOTE
+                                triggerMicClick()
+                            }
+                        )
+                    }
+                }
+            }
+
+            // React Bits Effort Slider Popover
+            AnimatedVisibility(
+                visible = showEffortMenu,
+                enter = fadeIn(tween(180)) + slideInVertically { it / 4 },
+                exit = fadeOut(tween(140)) + slideOutVertically { it / 4 }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    EffortPopover(
+                        thinkingPreference = thinkingPreference,
+                        onLevelSelected = { newLevel ->
+                            onSetThinkingPreference(ThinkingPreference(level = newLevel))
+                        },
+                        onOpenAdvanced = {
+                            showEffortMenu = false
+                            onOpenThinkingSelector()
+                        }
+                    )
+                }
+            }
+
+            // React Bits Prompt Bar Card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                color = Color(0xFF0D0D10),
+                shape = RoundedCornerShape(18.dp),
+                color = Color(0xFF161619),
                 border = BorderStroke(
                     1.dp,
-                    Color(0xFF222226)
+                    Color(0xFF26262B)
                 )
             ) {
                 if (isRecordingAudio) {
@@ -877,37 +1019,45 @@ fun ChatInputBar(
                         }
 
                         // 1. Text Field Area on Top
-                        TextField(
-                        value = textFieldValue,
-                        onValueChange = onTextFieldValueChange,
-                        placeholder = {
-                            Text(
-                                text = "Reply to ${selectedModel.displayName.split(" ").firstOrNull() ?: "Gemini"}...",
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 6.dp, vertical = 6.dp)
+                        ) {
+                            BasicTextField(
+                                value = textFieldValue,
+                                onValueChange = {
+                                    if (showActionsMenu) showActionsMenu = false
+                                    if (showEffortMenu) showEffortMenu = false
+                                    onTextFieldValueChange(it)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                textStyle = TextStyle(
+                                    fontSize = 15.sp,
+                                    lineHeight = 22.sp,
+                                    color = Color(0xFFFAFAFA),
+                                    fontWeight = FontWeight.Normal
+                                ),
+                                cursorBrush = SolidColor(Color(0xFFFAFAFA)),
+                                decorationBox = { innerTextField ->
+                                    Box {
+                                        if (textFieldValue.text.isEmpty()) {
+                                            Text(
+                                                text = "Ask anything...",
+                                                fontSize = 15.sp,
+                                                color = Color(0xFF71717A),
+                                                fontWeight = FontWeight.Normal
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                },
+                                maxLines = 6,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
                             )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester)
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            cursorColor = ClaudeTerracotta
-                        ),
-                        textStyle = TextStyle(
-                            fontSize = 15.sp,
-                            lineHeight = 21.sp
-                        ),
-                        maxLines = 6,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default)
-                    )
+                        }
 
                     // 2. Attachments Preview (if any)
                     if (attachments.isNotEmpty() || isUploadingAttachment) {
@@ -1077,125 +1227,157 @@ fun ChatInputBar(
                         }
                     }
 
-                    // 3. Bottom Action Row: [+] [Model Chip] ... [Voice / Send / Stop Button]
+                    // 3. Bottom Action Row: [+] [Model Chip ⌄] [✨ Effort] ... [Mic] [Send Squircle]
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 4.dp, end = 4.dp, bottom = 2.dp, top = 2.dp),
+                            .padding(start = 2.dp, end = 2.dp, top = 6.dp, bottom = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // [+] Attachment Button
+                        // [+] Attachment & Skills Actions Menu
                         Surface(
-                            onClick = onAttachClick,
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.background,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
-                            modifier = Modifier.size(34.dp)
+                            onClick = {
+                                showActionsMenu = !showActionsMenu
+                                showEffortMenu = false
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (showActionsMenu) Color(0xFF27272A) else Color.Transparent,
+                            border = if (showActionsMenu) BorderStroke(1.dp, Color(0xFF3F3F46)) else null,
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Outlined.Add,
-                                    contentDescription = "Add attachments",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                                    modifier = Modifier.size(19.dp)
+                                    contentDescription = "Actions menu",
+                                    tint = if (showActionsMenu) Color(0xFFFAFAFA) else Color(0xFFA1A1AA),
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
 
-                        // Middle Area: Model Selector Pill (takes up to 100% of the available space between [+] and right actions)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 6.dp),
-                            contentAlignment = Alignment.CenterStart
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // Model Picker Pill: [ ModelName ⌄ ]
+                        Surface(
+                            onClick = {
+                                showActionsMenu = false
+                                showEffortMenu = false
+                                focusManager.clearFocus(force = true)
+                                keyboardController?.hide()
+                                onOpenModelSelector()
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF1E1E22),
+                            border = BorderStroke(1.dp, Color(0xFF2E2E34)),
+                            modifier = Modifier.height(32.dp)
                         ) {
-                            Surface(
-                                onClick = {
-                                    focusManager.clearFocus(force = true)
-                                    keyboardController?.hide()
-                                    onOpenModelSelector()
-                                },
-                                shape = RoundedCornerShape(18.dp),
-                                color = MaterialTheme.colorScheme.background,
-                                border = BorderStroke(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                                )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = familyColor,
-                                        modifier = Modifier.size(13.dp)
-                                    )
+                                Text(
+                                    text = selectedModel.displayName,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFFE4E4E7),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 130.dp)
+                                )
+
+                                val pct = quota?.percentage
+                                if (pct != null) {
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = selectedModel.displayName,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f, fill = false)
-                                    )
-
-                                    val pct = quota?.percentage
-                                    if (pct != null) {
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        val badgeColor = if (pct > 50) QuotaGreen else if (pct > 20) QuotaAmber else QuotaRed
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(badgeColor.copy(alpha = 0.15f))
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                                        ) {
-                                            Text(
-                                                text = "$pct%",
-                                                fontSize = 9.5.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = badgeColor
-                                            )
-                                        }
+                                    val badgeColor = if (pct > 50) QuotaGreen else if (pct > 20) QuotaAmber else QuotaRed
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(badgeColor.copy(alpha = 0.15f))
+                                            .padding(horizontal = 3.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "$pct%",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = badgeColor
+                                        )
                                     }
-
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.KeyboardArrowDown,
-                                        contentDescription = "Switch Model",
-                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(14.dp)
-                                    )
                                 }
+
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Switch Model",
+                                    tint = Color(0xFF71717A),
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         }
 
-                        // Dedicated Speech-to-Text Live Dictation Button (AGY Hub)
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // Thinking / Effort Pill: [ ✨ High ]
+                        val effortLabel = when (thinkingPreference.level) {
+                            ThinkingLevel.OFF -> "Off"
+                            ThinkingLevel.LOW -> "Low"
+                            ThinkingLevel.MEDIUM -> "Med"
+                            ThinkingLevel.HIGH -> "High"
+                            ThinkingLevel.CUSTOM -> "Custom"
+                        }
+                        Surface(
+                            onClick = {
+                                showEffortMenu = !showEffortMenu
+                                showActionsMenu = false
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (showEffortMenu) Color(0xFF27272A) else Color(0xFF1E1E22),
+                            border = BorderStroke(1.dp, if (showEffortMenu) Color(0xFF3F3F46) else Color(0xFF2E2E34)),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = if (thinkingPreference.isEnabled) Color(0xFFFAFAFA) else Color(0xFF71717A),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = effortLabel,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (thinkingPreference.isEnabled) Color(0xFFFAFAFA) else Color(0xFF71717A)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        // Dictation / Voice Button
                         if (!isStreaming && !isRecordingAudio) {
                             Surface(
                                 onClick = {
-                                    if (isLiveDictating) {
-                                        stopLiveDictation()
+                                    showActionsMenu = false
+                                    showEffortMenu = false
+                                    if (voiceNotesAsText || speechManager != null) {
+                                        if (isLiveDictating) stopLiveDictation() else startLiveDictation()
                                     } else {
-                                        startLiveDictation()
+                                        recordMode = AudioRecordMode.VOICE_NOTE
+                                        triggerMicClick()
                                     }
                                 },
-                                shape = CircleShape,
-                                color = if (isLiveDictating) GeminiBlue.copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isLiveDictating) GeminiBlue.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                                ),
-                                modifier = Modifier.size(34.dp)
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isLiveDictating) GeminiBlue.copy(alpha = 0.2f) else Color.Transparent,
+                                modifier = Modifier.size(32.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Rounded.GraphicEq,
-                                        contentDescription = if (isLiveDictating) "Stop Dictation" else "Live Dictation",
-                                        tint = if (isLiveDictating) GeminiBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                                        imageVector = Icons.Rounded.Mic,
+                                        contentDescription = if (isLiveDictating) "Stop dictation" else "Dictation",
+                                        tint = if (isLiveDictating) GeminiBlue else Color(0xFFA1A1AA),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -1203,80 +1385,52 @@ fun ChatInputBar(
                             Spacer(modifier = Modifier.width(6.dp))
                         }
 
-                        // Action Button (Send / Stop / Voice Recorder)
-                        if (isStreaming) {
-                            Surface(
-                                onClick = onStopStreaming,
-                                shape = CircleShape,
-                                color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
+                        // Send / Stop Squircle Button
+                        Surface(
+                            onClick = {
+                                showActionsMenu = false
+                                showEffortMenu = false
+                                if (isStreaming) {
+                                    onStopStreaming()
+                                } else if (canSend) {
+                                    val trimmed = textFieldValue.text.trim()
+                                    if (!isAuth) {
+                                        Toast.makeText(context, "Please sign in first to send messages.", Toast.LENGTH_SHORT).show()
+                                        return@Surface
+                                    }
+                                    if (!isOnline) {
+                                        Toast.makeText(context, offlineMessage, Toast.LENGTH_SHORT).show()
+                                        return@Surface
+                                    }
+                                    if (isLiveDictating) {
+                                        stopLiveDictation()
+                                    }
+                                    onSendMessage(trimmed)
+                                    onTextFieldValueChange(TextFieldValue(""))
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = when {
+                                isStreaming -> Color(0xFFFAFAFA)
+                                canSend -> Color(0xFFFAFAFA)
+                                else -> Color(0xFF222226)
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (isStreaming) {
                                     Icon(
                                         imageVector = Icons.Default.Stop,
                                         contentDescription = "Stop",
-                                        tint = if (isDark) Color(0xFF09090B) else Color.White,
-                                        modifier = Modifier.size(18.dp)
+                                        tint = Color(0xFF09090B),
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                }
-                            }
-                        } else if (canSend) {
-                            val sendBtnColor = if (!isAuth) Color(0xFF27272A) else if (!isOnline) Color(0xFF27272A) else if (isBackgroundActive) Color(0xFFF59E0B) else ClaudeTerracotta
-                            Surface(
-                                onClick = {
-                                    val trimmed = textFieldValue.text.trim()
-                                        if (!isAuth) {
-                                            Toast.makeText(context, "Please sign in first to send messages.", Toast.LENGTH_SHORT).show()
-                                            return@Surface
-                                        }
-                                        if (!isOnline) {
-                                            Toast.makeText(context, offlineMessage, Toast.LENGTH_SHORT).show()
-                                            return@Surface
-                                        }
-                                        if (isLiveDictating) {
-                                            stopLiveDictation()
-                                        }
-                                        onSendMessage(trimmed)
-                                        onTextFieldValueChange(TextFieldValue(""))
-                                },
-                                shape = CircleShape,
-                                color = sendBtnColor,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                } else {
                                     Icon(
                                         imageVector = Icons.Default.ArrowUpward,
                                         contentDescription = "Send",
-                                        tint = if (isAuth && isOnline) (if (isBackgroundActive) Color(0xFF09090B) else (if (isDark) Color(0xFF09090B) else Color.White)) else Color(0xFF71717A),
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-                            }
-                        } else {
-                            // Claude-style Microphone Voice Recorder Button
-                            val voiceBgColor = if (isDark) Color(0xFFEDEDED) else Color(0xFF1F1F1F)
-                            val voiceIconColor = if (isDark) Color(0xFF1B1B1B) else Color.White
-
-                            Surface(
-                                onClick = {
-                                    if (voiceNotesAsText) {
-                                        startAutoTranscribe()
-                                    } else {
-                                        recordMode = AudioRecordMode.VOICE_NOTE
-                                        triggerMicClick()
-                                    }
-                                },
-                                shape = CircleShape,
-                                color = voiceBgColor,
-                                shadowElevation = 1.dp,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Mic,
-                                        contentDescription = if (voiceNotesAsText) "Record and transcribe" else "Record voice note",
-                                        tint = voiceIconColor,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = if (canSend) Color(0xFF09090B) else Color(0xFF52525B),
+                                        modifier = Modifier.size(17.dp)
                                     )
                                 }
                             }
@@ -1287,6 +1441,227 @@ fun ChatInputBar(
         }
     }
 }
+}
+
+@Composable
+private fun PromptActionItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = Color.Transparent,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFFA1A1AA),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = title,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFFAFAFA)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF71717A),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun EffortPopover(
+    thinkingPreference: ThinkingPreference,
+    onLevelSelected: (ThinkingLevel) -> Unit,
+    onOpenAdvanced: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFF161619),
+        border = BorderStroke(1.dp, Color(0xFF27272A)),
+        shadowElevation = 8.dp,
+        modifier = modifier.widthIn(max = 260.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            // Header: Effort [Level]       (?)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Effort",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFFA1A1AA)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = when (thinkingPreference.level) {
+                            ThinkingLevel.OFF -> "Off"
+                            ThinkingLevel.LOW -> "Low"
+                            ThinkingLevel.MEDIUM -> "Med"
+                            ThinkingLevel.HIGH -> "High"
+                            ThinkingLevel.CUSTOM -> "Custom"
+                        },
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFAFAFA)
+                    )
+                }
+
+                IconButton(
+                    onClick = onOpenAdvanced,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "Thinking details",
+                        tint = Color(0xFF71717A),
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Subtitle: Faster             Smarter
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Faster",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF71717A)
+                )
+                Text(
+                    text = "Smarter",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF71717A)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Stepped Slider
+            EffortStepSlider(
+                currentLevel = thinkingPreference.level,
+                onLevelSelected = onLevelSelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun EffortStepSlider(
+    currentLevel: ThinkingLevel,
+    onLevelSelected: (ThinkingLevel) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val levels = listOf(ThinkingLevel.OFF, ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH)
+    val currentIndex = when (currentLevel) {
+        ThinkingLevel.OFF -> 0
+        ThinkingLevel.LOW -> 1
+        ThinkingLevel.MEDIUM -> 2
+        ThinkingLevel.HIGH -> 3
+        ThinkingLevel.CUSTOM -> 2
+    }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(28.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF27272A))
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val fraction = (offset.x / size.width).coerceIn(0f, 1f)
+                    val targetIndex = (fraction * 3f + 0.5f).toInt().coerceIn(0, 3)
+                    onLevelSelected(levels[targetIndex])
+                }
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { change, _ ->
+                    val fraction = (change.position.x / size.width).coerceIn(0f, 1f)
+                    val targetIndex = (fraction * 3f + 0.5f).toInt().coerceIn(0, 3)
+                    onLevelSelected(levels[targetIndex])
+                }
+            },
+        contentAlignment = Alignment.CenterStart
+    ) {
+        val density = LocalDensity.current
+        val trackWidthPx = constraints.maxWidth.toFloat()
+        val thumbWidthDp = 34.dp
+        val thumbHeightDp = 22.dp
+        val thumbWidthPx = with(density) { thumbWidthDp.toPx() }
+        val paddingPx = with(density) { 3.dp.toPx() }
+        val usableWidthPx = (trackWidthPx - thumbWidthPx - (paddingPx * 2)).coerceAtLeast(1f)
+
+        // Stepped dots along the track
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(4) {
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF52525B))
+                )
+            }
+        }
+
+        // Animated thumb
+        val targetOffsetPx = paddingPx + (currentIndex.toFloat() / 3f) * usableWidthPx
+        val animatedOffsetPx by animateFloatAsState(
+            targetValue = targetOffsetPx,
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+            label = "effortThumb"
+        )
+        val animatedOffsetDp = with(density) { animatedOffsetPx.toDp() }
+
+        Surface(
+            modifier = Modifier
+                .offset(x = animatedOffsetDp)
+                .size(width = thumbWidthDp, height = thumbHeightDp),
+            shape = RoundedCornerShape(11.dp),
+            color = Color(0xFFFAFAFA),
+            shadowElevation = 2.dp
+        ) {}
+    }
 }
 
 enum class AudioRecordMode { VOICE_NOTE, TRANSCRIBE, LIVE_DICTATION }

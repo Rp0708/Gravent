@@ -2206,6 +2206,7 @@ fun ChatScreen(
                     selectedModel = currentModel,
                     quota = currentQuota,
                     thinkingPreference = thinkingPref,
+                    onSetThinkingPreference = { pref -> viewModel.setThinkingPreference(pref) },
                     textFieldValue = textFieldValue,
                     onTextFieldValueChange = {
                         textFieldValue = it
