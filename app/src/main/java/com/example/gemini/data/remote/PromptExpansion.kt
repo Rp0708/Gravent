@@ -17,7 +17,7 @@ object PromptExpansion {
     private val TOKEN = Regex("(?<=^|\\s)/(plu:[A-Za-z0-9_-]+(?::[A-Za-z0-9._-]*)?|[A-Za-z0-9][A-Za-z0-9_-]{0,47})(?=\\s|$)")
     private val BLOCK = Regex("<(?:$TAG|$LEGACY_TAG) command=\"([^\"]*)\">[\\s\\S]*?</(?:$TAG|$LEGACY_TAG)>")
 
-    fun expand(text: String, agentKind: AgentKind = AgentKind.ANTIGRAVITY): String {
+    fun expand(text: String, agentKind: AgentKind = AgentKind.AGY): String {
         if (!text.contains('/')) return text
         val out = StringBuilder()
         var last = 0

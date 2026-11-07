@@ -353,7 +353,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val kind = when {
             isClaudeActive -> com.example.gemini.domain.model.AgentKind.CLAUDE
             isCopilotActive -> com.example.gemini.domain.model.AgentKind.COPILOT
-            else -> com.example.gemini.domain.model.AgentKind.ANTIGRAVITY
+            else -> com.example.gemini.domain.model.AgentKind.AGY
         }
         val expanded = PromptExpansion.expand(content, kind)
         when (kind) {

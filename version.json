@@ -7,7 +7,8 @@
     "Grounded GitHub Copilot Capability Model: Pure Advisory & Code Generation Consultant with bounded skill preloading, removing false local command and filesystem claims",
     "Provider-Native Instruction Loading: Clean ingestion via AGENTS.md for Antigravity daemon, CLAUDE.md for Claude Code CLI, and system/developer payload for Copilot API",
     "Backend-Aware PromptExpansion: Migrated envelope tags to <gravent-expansion> with dual-regex backward compatibility for historical chats",
-    "4-Stage MCP Readiness Lifecycle: Independent tracking of tools, resources, and prompts across Configured -> Connected -> Initialized -> Ready states with disconnect invalidation"
+    "4-Stage MCP Readiness Lifecycle: Independent tracking of tools, resources, and prompts across Configured -> Connected -> Initialized -> Ready states with disconnect invalidation",
+    "Resolved backend AgentKind mapping for Antigravity in PromptExpansion and ChatViewModel"
   ],
   "is_critical": false
 }
