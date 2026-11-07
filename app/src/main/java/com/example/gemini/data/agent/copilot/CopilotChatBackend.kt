@@ -214,15 +214,7 @@ class CopilotChatBackend(
                     throw IllegalStateException("GitHub Copilot token not available. Please sign in via Settings → GitHub Copilot.")
                 }
 
-                val systemPrompt = """
-                    You are an AI programming assistant running inside Gravent (an advanced Android agentic IDE and developer environment).
-                    You are executing on Android (Linux kernel) within Termux and PRoot Linux.
-                    The user interacts with you via the Gravent mobile interface.
-                    You know everything about the Gravent application, Termux tools, git, node, pnpm, python, and the local workspace.
-                    If the user asks which model you are, who created you, or what environment you are in, you must clearly state that you are running inside Gravent on Android.
-                    Provide clean, production-grade code, explanations, and shell commands.
-                    When executing or monitoring long-running processes (such as builds, tests, git clone, or CI workflows), execute them as single-shot blocking or watching commands (e.g. 'gh run watch <run_id> --exit-status') rather than repeated tight polling loops, ensuring optimal token economy and smart performance.
-                """.trimIndent()
+                val systemPrompt = com.example.gemini.data.agent.AgentInstructionManager.buildCopilotSystemPrompt(modelId)
 
                 val isReasoningModel = modelId.contains("o1", ignoreCase = true) || modelId.contains("o3", ignoreCase = true)
                 val systemRole = if (isReasoningModel) "developer" else "system"

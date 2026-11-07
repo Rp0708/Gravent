@@ -348,12 +348,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         isCopilotActive -> copilotBackend.selectModel(modelId)
         else -> agyBackend.selectModel(modelId)
     }
-    /** `/plu:` plugin skills and custom slash commands are expanded here, for all agents. */
-    fun sendMessage(content: String) = PromptExpansion.expand(content).let {
-        when {
-            isClaudeActive -> claudeBackend.sendMessage(it)
-            isCopilotActive -> copilotBackend.sendMessage(it)
-            else -> agyBackend.sendMessage(it)
+    /** `/plu:` plugin skills and custom slash commands are expanded here, tailored to the active backend. */
+    fun sendMessage(content: String) {
+        val kind = when {
+            isClaudeActive -> com.example.gemini.domain.model.AgentKind.CLAUDE
+            isCopilotActive -> com.example.gemini.domain.model.AgentKind.COPILOT
+            else -> com.example.gemini.domain.model.AgentKind.ANTIGRAVITY
+        }
+        val expanded = PromptExpansion.expand(content, kind)
+        when (kind) {
+            com.example.gemini.domain.model.AgentKind.CLAUDE -> claudeBackend.sendMessage(expanded)
+            com.example.gemini.domain.model.AgentKind.COPILOT -> copilotBackend.sendMessage(expanded)
+            else -> agyBackend.sendMessage(expanded)
         }
     }
     val isTranscribingAudio = agyBackend.isTranscribingAudio

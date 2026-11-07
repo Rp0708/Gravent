@@ -66,6 +66,14 @@ class AgyMcpManager(
         _mcpErrorMessage.value = null
     }
 
+    /** Returns whether the specified MCP server has reached the READY lifecycle state. */
+    fun isServerReady(name: String): Boolean =
+        _mcpServers.value.find { it.name.equals(name, ignoreCase = true) }?.isReady == true
+
+    /** Returns all currently active and ready MCP servers. */
+    fun readyServers(): List<com.example.gemini.domain.model.McpServerState> =
+        _mcpServers.value.filter { it.isReady }
+
     private val _availableCascadePlugins = MutableStateFlow<List<com.example.gemini.data.remote.dto.AvailableCascadePluginDto>>(emptyList())
     val availableCascadePlugins: StateFlow<List<com.example.gemini.data.remote.dto.AvailableCascadePluginDto>> = _availableCascadePlugins.asStateFlow()
 

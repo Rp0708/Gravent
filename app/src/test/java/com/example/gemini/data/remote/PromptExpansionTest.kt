@@ -1,5 +1,6 @@
 package com.example.gemini.data.remote
 
+import com.example.gemini.domain.model.AgentKind
 import com.example.gemini.ui.browser.BrowserExtension
 import com.example.gemini.ui.browser.BrowserExtensionManager
 import org.junit.After
@@ -18,7 +19,7 @@ class PromptExpansionTest {
     private fun plugin(id: String, tools: Int): File {
         val dir = temporary.newFolder(id)
         File(dir, "skills").mkdirs()
-        File(dir, "skills/upload.md").writeText("# Upload")
+        File(dir, "skills/upload.md").writeText("# Upload\nUpload video to channel.")
         val skill = com.example.gemini.ui.browser.ExtensionSkill("upload", "Upload", "", File(dir, "skills/upload.md").absolutePath, null)
         BrowserExtensionManager.instance.extensions.add(BrowserExtension(id, id, "1", "", toolCount = tools, skillCount = 1, dirPath = dir.absolutePath, skills = listOf(skill)))
         return dir
@@ -37,7 +38,7 @@ class PromptExpansionTest {
         plugin("yt", tools = 2)
         val notes = plugin("notes", tools = 0)
         val sent = PromptExpansion.expand("/plu:yt:upload")
-        assertTrue(sent.contains("depends on another custom AntiGem plugin"))
+        assertTrue(sent.contains("depends on another custom Gravent plugin"))
         assertTrue(sent.contains("notes (${File(notes, "skills").absolutePath}/)"))
         assertFalse(PromptExpansion.expand("/plu:yt").substringAfter("Other installed plugins with skills:").contains("yt ("))
     }
@@ -47,6 +48,28 @@ class PromptExpansionTest {
         val sent = PromptExpansion.expand("/plu:notes:upload")
         assertTrue(sent.contains("no tools of its own"))
         assertFalse(sent.contains("MCP settings"))
+    }
+
+    @Test fun copilotReceivesBoundedSkillReferenceWithoutToolCommands() {
+        val dir = plugin("yt", tools = 2)
+        val sent = PromptExpansion.expand("/plu:yt:upload my video", AgentKind.COPILOT)
+        assertTrue(sent.contains("<skill_reference name=\"upload\" plugin=\"yt\" mode=\"advisory\">"))
+        assertTrue(sent.contains("# Upload"))
+        assertTrue(sent.contains("Upload video to channel."))
+        assertTrue(sent.contains("This is read-only reference documentation. You do not possess local tool, terminal, or filesystem execution capabilities."))
+        assertFalse(sent.contains("call its get_skill tool"))
+        assertFalse(sent.contains("Check whether the task depends on them"))
+        assertEquals("/plu:yt:upload my video", PromptExpansion.collapse(sent))
+    }
+
+    @Test fun legacyAntigemTagCollapsesCleanly() {
+        val legacy = "<antigem-expansion command=\"/custom_cmd arg\">Expanded instruction body</antigem-expansion>"
+        assertEquals("/custom_cmd arg", PromptExpansion.collapse(legacy))
+    }
+
+    @Test fun graventExpansionTagCollapsesCleanly() {
+        val modern = "<gravent-expansion command=\"/custom_cmd arg\">Expanded instruction body</gravent-expansion>"
+        assertEquals("/custom_cmd arg", PromptExpansion.collapse(modern))
     }
 
     @Test fun customCommandExpandsAndCollapsesBack() {

@@ -296,12 +296,36 @@ data class McpServerSpec(
 )
 
 @Serializable
+enum class McpLifecycleState {
+    CONFIGURED,
+    CONNECTED,
+    INITIALIZED,
+    READY,
+    DISCONNECTED
+}
+
+@Serializable
 data class McpServerState(
     val name: String,
     val spec: McpServerSpec? = null,
     val status: String = "MCP_SERVER_STATUS_UNKNOWN",
     val error: String? = null,
     val tools: List<McpToolInfo> = emptyList(),
+    val resources: List<String> = emptyList(),
+    val prompts: List<String> = emptyList(),
     val instructions: String? = null,
     val isEnabled: Boolean = true
-)
+) {
+    val lifecycleState: McpLifecycleState
+        get() = when {
+            !isEnabled || status.contains("DISABLED", ignoreCase = true) -> McpLifecycleState.CONFIGURED
+            error != null || status.contains("ERROR", ignoreCase = true) -> McpLifecycleState.DISCONNECTED
+            status == "MCP_SERVER_STATUS_READY" || status == "READY" -> McpLifecycleState.READY
+            status == "MCP_SERVER_STATUS_PENDING" || status == "INITIALIZED" -> McpLifecycleState.INITIALIZED
+            status.contains("RUNNING", ignoreCase = true) || status == "CONNECTED" -> McpLifecycleState.CONNECTED
+            else -> McpLifecycleState.CONFIGURED
+        }
+
+    val isReady: Boolean
+        get() = lifecycleState == McpLifecycleState.READY
+}
