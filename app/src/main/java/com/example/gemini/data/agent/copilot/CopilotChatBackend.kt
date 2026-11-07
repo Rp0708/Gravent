@@ -195,6 +195,7 @@ class CopilotChatBackend(
         _isTurnActive.value = true
         _conversationError.value = null
 
+        val modelId = _selectedModelId.value
         val assistantMsgId = UUID.randomUUID().toString()
         val initialAssistantMsg = ChatMessage(
             id = assistantMsgId,
@@ -202,7 +203,7 @@ class CopilotChatBackend(
             role = MessageRole.ASSISTANT,
             content = "",
             isStreaming = true,
-            modelId = _selectedModelId.value
+            modelId = modelId
         )
         _messages.value = history + initialAssistantMsg
 
@@ -234,7 +235,6 @@ class CopilotChatBackend(
                     }
                 }
 
-                val modelId = _selectedModelId.value
                 val requestBodyObj = CopilotChatRequest(
                     model = modelId,
                     stream = true,
