@@ -2,16 +2,29 @@
 
 # Gravent
 
-**An ultra-minimalist AI coding workspace for Android: Deep Black aesthetic, Antigravity and Claude Code agents, real Linux terminal, code editor, and browser.**
+**An intelligent, multi-agent AI coding workspace engineered for Android.**
+*Featuring native Google Antigravity, Claude Code, and GitHub Copilot engines, a full Linux environment, code editor, and developer browser.*
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Go](https://img.shields.io/badge/Bridge-Go-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Releases](https://img.shields.io/github/v/release/Rp0708/Gravent?style=flat-square&label=Download)](https://github.com/Rp0708/Gravent/releases)
 
-[Download](https://github.com/Rp0708/Gravent/releases) · [Source Code](https://github.com/Rp0708/Gravent) · [Plugin SDK](extension_docs/README.md)
+[Download APK](https://github.com/Rp0708/Gravent/releases) &middot; [Architecture](#architecture) &middot; [Features](#features) &middot; [Plugin SDK](extension_docs/README.md) &middot; [Build Guide](#building-from-source)
 
 </div>
+
+---
+
+## Overview
+
+Gravent is a native Android development environment designed for agentic pair programming. Rather than wrapping web interfaces or scraping terminal output, Gravent interfaces directly with official agent protocol streams (gRPC and stream-json) to render real-time collapsible thinking trees, interactive tool approvals, diff viewers, and subagent state.
+
+The application natively integrates three major coding backends:
+
+- **Google Antigravity (`agy`)**: Direct high-throughput gRPC communication with the local `agy` language daemon, offering subagent execution, tool approvals, and live account quota telemetry.
+- **Anthropic Claude Code**: The official `claude` CLI running directly inside the local Linux environment, streaming structured JSON events per conversation session with support for custom third-party providers (OpenRouter, DeepSeek, Kimi).
+- **GitHub Copilot**: Native Copilot chat completions and intelligent code generation with automatic subscription tier detection (Copilot Pro and Business) and streaming token parsing.
 
 ---
 
@@ -19,236 +32,172 @@
 
 <table>
   <tr>
-    <td align="center" width="25%"><img src="docs/resources/chat_screen.jpg" alt="Agent chat" width="200"><br><sub>Agent chat</sub></td>
-    <td align="center" width="25%"><img src="docs/resources/ide_code_editor.jpg" alt="Code editor" width="200"><br><sub>Code editor</sub></td>
-    <td align="center" width="25%"><img src="docs/resources/linux_terminal.jpg" alt="Linux terminal" width="200"><br><sub>Linux terminal</sub></td>
-    <td align="center" width="25%"><img src="docs/resources/integrated_browser.jpg" alt="Built-in browser" width="200"><br><sub>Built-in browser</sub></td>
+    <td align="center" width="25%"><img src="docs/resources/chat_screen.jpg" alt="Agent Chat" width="200"><br><sub>Agent Chat</sub></td>
+    <td align="center" width="25%"><img src="docs/resources/ide_code_editor.jpg" alt="Code Editor" width="200"><br><sub>Code Editor</sub></td>
+    <td align="center" width="25%"><img src="docs/resources/linux_terminal.jpg" alt="Linux Terminal" width="200"><br><sub>Linux Terminal</sub></td>
+    <td align="center" width="25%"><img src="docs/resources/integrated_browser.jpg" alt="Developer Browser" width="200"><br><sub>Developer Browser</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/resources/sidebar_navigation.jpg" alt="Chat history" width="200"><br><sub>Chat history</sub></td>
-    <td align="center"><img src="docs/resources/account_profile_quota.jpg" alt="Account and quota" width="200"><br><sub>Account &amp; quota</sub></td>
-    <td align="center"><img src="docs/resources/settings_preferences.jpg" alt="Settings" width="200"><br><sub>Settings</sub></td>
+    <td align="center"><img src="docs/resources/sidebar_navigation.jpg" alt="Chat History" width="200"><br><sub>Workspace History</sub></td>
+    <td align="center"><img src="docs/resources/account_profile_quota.jpg" alt="Account and Quota" width="200"><br><sub>Account &amp; Quota</sub></td>
+    <td align="center"><img src="docs/resources/settings_preferences.jpg" alt="Settings" width="200"><br><sub>Settings &amp; Tools</sub></td>
     <td></td>
   </tr>
 </table>
 
 ---
 
-## What it is
+## Architecture
 
-AntiGem runs two coding agents on your phone:
+Gravent connects Jetpack Compose Android UI to local background processes via an embedded Go bridge (`agy_ide_bridge`):
 
-- **Antigravity (`agy`)**: the app talks to the `agy` language server directly over gRPC.
-- **Claude Code**: Anthropic's official `claude` CLI runs inside the app's Linux environment, and the app talks to it over its stream-json protocol, with one CLI process per chat.
-
-You can turn on either agent or both, on first launch or later in **Settings → Agents**. An agent you turn off does not run.
-
-The app reads each agent's structured protocol, not its terminal output. That is how it shows streaming replies, tool approvals, the agent's questions, subagents and file changes as normal chat UI.
+```text
++------------------------------------------------------------------+
+|                        Gravent Android App                       |
+|   Compose UI -- React Bits Prompt Bar -- Editor -- Browser -- MCP |
++---------------------------------+--------------------------------+
+                                  | Local WebSocket / gRPC
++---------------------------------v--------------------------------+
+|                    agy_ide_bridge (Local Go)                     |
+|      Git Host -- File System -- Claude Relay -- Plugin Manager   |
++-----------------+-------------------------------+----------------+
+                  | gRPC                          | stream-json
++-----------------v---------------+ +-------------v----------------+
+|     Antigravity (agy) Daemon    | |       Claude Code CLI        |
+|   Language Server & Subagents   | |  Isolated Session per Chat   |
++---------------------------------+ +------------------------------+
+```
 
 ---
 
 ## Features
 
-### Agents and chat
-- Live streaming replies, collapsible thinking, tool cards, diffs and subagent progress.
-- Tool approvals, plan approval and the agent's multiple-choice questions, answered inside the chat.
-- Switch model, effort, thinking and permission mode during a chat.
-- Image and file attachments, voice dictation, and audio playback.
-- Edit or regenerate a message, fork, rename, share, export and delete chats.
-- Slash commands, plus your own custom slash commands that expand into full prompts.
-- Markdown, syntax-highlighted code, Mermaid diagrams and an artifacts drawer.
-- A floating chat bubble you can use over other apps.
+### Prompt Bar & Interaction Architecture
+- **React Bits Prompt Bar**: Micro-interaction chat composer with dark zinc container, `"Ask anything..."` text field, and morphing squircle send/stop state button.
+- **Actions Popover**: Quick floating action menu for direct photo/media upload, document selection, live web search (`@web`), workspace file referencing (`@`), slash commands (`/`), and voice dictation.
+- **Interactive Effort Slider**: Real-time stepped reasoning budget control (`Off`, `Low`, `Med`, `High`) with smooth physics spring thumb tracking and direct preference synchronization.
+- **Model Selector Pill**: Displays active provider model, remaining quota percentage, and dropdown switcher.
 
-### Claude Code
-- Install and update the official `claude` CLI from **Settings → Claude Code**.
-- Sign in with a Claude subscription or an Anthropic Console account.
-- **Third-party providers**: add any Anthropic-compatible API, such as OpenRouter, Kimi or DeepSeek, with your own key. OpenRouter is a one-tap preset that can fetch its free models. Provider models appear in the model picker next to Claude's own.
-- Usage at a glance: prompt-cache timer, context window use, 5-hour and weekly plan limits, and token counts for each reply.
-- Settings for chat defaults, permission rules, the command sandbox, MCP servers, plugins and marketplaces, `CLAUDE.md` and Claude's memory.
+### Multi-Agent Engines
+- **Antigravity**: Direct gRPC connection to `agy`, multi-agent coordination, subagent status tracking, automatic command execution rules, and security permission sandboxing.
+- **Claude Code**: Native CLI installation and update management, Anthropic Console and subscription authentication, context window utilization monitoring, and prompt-cache telemetry.
+- **GitHub Copilot**: Device-flow authentication, dynamic model availability based on active account entitlement (GPT-4o, Claude 3.5 Sonnet, o3-mini), and conversation persistence.
+- **Third-Party Providers**: Route Claude Code sessions through any Anthropic-compatible API endpoint (OpenRouter, DeepSeek, Kimi, local LLMs).
 
-### Antigravity
-- Direct gRPC connection to the `agy` daemon.
-- Model picker with live quota, Google sign-in and account details.
-- Security presets and per-project rules for command auto-run and file access.
-- MCP servers, skills and Google plugins.
+### Linux Terminal & Environment
+- **Native Execution**: Standalone Termux-based Linux environment with `pkg`/`apt`, bash, Python, Node.js, Go, Rust, and Git. Runs at native binary speeds without proot overhead.
+- **ADB Connect**: Automated pairing and connection to the device's Wireless Debugging interface via loopback network for root-like automation.
+- **Background Persistence**: Dedicated foreground service maintains long-running builds, servers, and scripts when the application is backgrounded.
 
-### Built-in MCP servers
-Each one is a one-tap preset in **Settings → MCP Servers**, for both agents.
+### Built-in Model Context Protocol (MCP) Suite
+Gravent includes built-in MCP servers accessible to all active agents with one-tap configuration toggles:
 
-| MCP | What the agent can do |
+| Server | Capabilities |
 | :--- | :--- |
-| **Browser** | Open, switch and close tabs, click and type on pages, run JavaScript, inspect the DOM, read console logs, take screenshots, upload files, download URLs and control media. |
-| **Terminal** | Create terminal sessions, send commands, read output, kill processes, and change the terminal's theme and font. |
-| **Android** | Read the screen's UI tree, tap, swipe, scroll, type, press keys, take screenshots, launch and list apps, open intents, and (with ADB) install, uninstall or force-stop apps and run `adb shell`. |
-| **Notes & To-dos** | List, read, create, edit and delete your notes and to-do items. |
-| **Custom Plugin** | Use the tools of any installed AntiGem plugin. |
-| **Plugin Developer** | Create, install, test and debug AntiGem plugins from the chat. |
-| **Stitch** | Google Stitch UI design, with your own API key. |
+| **Browser** | Automate headless or visual browser tabs, navigate URLs, inspect DOM trees, execute JavaScript, capture screenshots, and query console logs. |
+| **Terminal** | Spawn background shells, execute build commands, capture streaming output, monitor exit codes, and manage process lifecycles. |
+| **Android** | Query accessibility node trees, dispatch touch and gesture events, send keystrokes, launch applications, and inspect device state. |
+| **Notes & Tasks** | Create, query, modify, and manage local task lists and structured notes directly from conversational prompts. |
+| **Stitch** | Visual UI design prototyping and layout generation via Google Stitch. |
+| **Custom Plugins** | User-installed extensions written against the Gravent Plugin API. |
 
-### Custom AntiGem plugins
-- Plugins are small packages with a `manifest.json` and a JavaScript worker that add MCP tools, and can include Markdown **skills** that teach the agent how to use them.
-- They run in the app's own extension host, which implements a large part of the Chrome extension API (`tabs`, `scripting`, `storage`, `debugger` and more), so many Chrome extension workers can be ported.
-- Install from a ZIP, or from a plugin repository on GitHub. The app checks repositories for updates in the background.
-- Enable, disable, reload and update plugins without restarting the app.
-- Full SDK, API reference and an example: [extension_docs/](extension_docs/README.md).
+### Code Editor & Source Control
+- Multi-tab file editor supporting syntax highlighting for over 20 programming languages.
+- In-editor terminal access with hardware keyboard modifiers (Ctrl, Alt, Esc, Tab).
+- Integrated Git client: status inspection, unified visual diffs, branch switching, stage/commit, and remote push/pull.
 
-### Linux terminal
-- A full Termux-based Linux environment with `apt`/`pkg`, bash, Python, Node.js, Git, Go and more. No root and no proot.
-- Multiple sessions, themes, font sizes, quick keys and text selection.
-- Background service for long-running builds, servers and scripts.
-- **ADB Connect**: connects the terminal's `adb` to the same phone over Wireless debugging, with pairing from a notification and automatic reconnects.
-
-### Code editor and Git
-- Syntax highlighting for Python, Go, Kotlin, Java, JS/TS, Rust, C/C++, HTML/CSS, JSON, YAML, Markdown and more.
-- Tabs, line numbers, find and replace, undo and redo, auto-indent and a file explorer.
-- Run commands from the editor in a terminal sheet with Ctrl keys.
-- Git: clone, status, diffs, commit, pull and push from a source control view.
-
-### Browser
-- In-app browser for previewing local dev servers and testing web apps.
-- Desktop and mobile modes, a steady browser identity that keeps Google sign-in working, and built-in Eruda DevTools.
-
-### Notes
-- Notes and to-do lists inside the app and in the floating bubble.
-- Agents can read and update them through the Notes MCP.
-
-### Backups and updates
-- Back up and restore the Linux rootfs, projects and chat history to phone storage.
-- Data loss protection: an optional uninstall shield and a guard against **Clear data** in App info.
-- In-app update checks and APK updates.
-- Diagnostics: a network inspector, live stream counts and daemon logs.
+### Built-in Developer Browser
+- Local developer server preview (`localhost:3000`, `localhost:8080`, etc.).
+- Embedded Eruda developer console for DOM inspection, network monitoring, and script debugging.
+- Desktop and mobile viewport toggles with steady identity persistence for OAuth workflows.
 
 ---
 
-## Download
+## Download & Installation
 
-Get the latest APK from [Releases](https://github.com/Rp0708/Gravent/releases). There are two build variants:
+Pre-built signed releases are available on the [GitHub Releases](https://github.com/Rp0708/Gravent/releases) page.
 
-| Variant | Package name | Needs the Termux app? | Notes |
+| Variant | Package Identifier | Architecture | Description |
 | :--- | :--- | :---: | :--- |
-| **`termux`** (recommended) | `com.termux` | No | Self-contained: the app sets up its own Linux environment. This is the one published in releases. |
-| **`standard`** | `com.antigem` | Yes | You run `agy_ide_bridge` inside a separately installed Termux app, and AntiGem connects to it over localhost. Not published; build it yourself from source. |
-
-> [!NOTE]
-> The `standard` variant is not deprecated, but it gets little attention because almost nobody uses it. Some features, such as the Browser MCP, may not work in it right now, and it may be dropped in the future. Use the `termux` variant.
+| **Termux Shared** *(Recommended)* | `com.termux` | arm64-v8a | Self-contained native Linux rootfs. Shares Linux UID with the Termux:API companion app for hardware sensor access. |
+| **Standalone** | `com.termux` | arm64-v8a | Self-contained native Linux rootfs without shared user ID constraints. |
 
 > [!IMPORTANT]
-> The `termux` variant uses the package name `com.termux`, so it cannot be installed on the same phone as the official Termux app. Uninstall Termux first, or use the `standard` variant.
+> Because Gravent's native environment compiles against the standard Termux prefix (`/data/data/com.termux/files/usr`), it utilizes the `com.termux` package identifier to run pre-compiled binaries at full native speed without proot performance degradation. To install Gravent, uninstall any existing official Termux build on the device first, or backup and transfer existing configuration files.
 
-### Why the package name is `com.termux`
+### Termux:API Hardware Integration
 
-Termux packages are compiled for the fixed path `/data/data/com.termux/files/usr`. An app with any other package name cannot run them directly. It would have to use **proot** to fake that path, and proot slows down every program, or rebuild every package for a new path.
+Gravent natively provides core device management commands without external dependencies:
 
-With the package name `com.termux`, AntiGem can install the official Termux bootstrap and use the official Termux package repositories, and everything runs at full native speed. This is the only reason for the name.
+| Utility | Status | Description |
+| :--- | :---: | :--- |
+| `termux-toast` | Native | Display transient Android toast alerts |
+| `termux-clipboard-get` / `-set` | Native | Read and write system clipboard contents |
+| `termux-vibrate` | Native | Control device vibration haptics |
+| `termux-torch` | Native | Toggle rear camera flashlight |
+| `termux-tts-speak` | Native | Text-to-speech voice synthesis |
+| `termux-notification` | Native | Dispatch and clear status bar notifications |
+| `termux-battery-status` | Native | Query power connection, percentage, and temperature |
+| `termux-open` / `termux-open-url` | Native | Launch files and URLs via Android intent dispatch |
+| `termux-wake-lock` / `-unlock` | Native | Prevent CPU sleep during background execution |
 
-### This is not a Termux fork
-
-AntiGem is not a copy or modification of the Termux app. The app was written from scratch. It uses only Termux's open-source **terminal-emulator** and **terminal-view** libraries for drawing the terminal, and the Termux bootstrap and package repositories for the Linux environment. The UI, the agent integrations, the Go bridge, the MCP servers, the plugin system and everything else are AntiGem's own code.
-
-### Termux compatibility
-
-Packages, `apt`/`pkg`, the shell and almost everything else work as in Termux.
-
-AntiGem has essential Termux:API commands built in with zero setup:
-
-| Command | Built in |
-| :--- | :---: |
-| `termux-toast` | ✅ |
-| `termux-vibrate` | ✅ |
-| `termux-clipboard-get` / `termux-clipboard-set` | ✅ |
-| `termux-torch` | ✅ |
-| `termux-tts-speak` | ✅ |
-| `termux-notification` / `termux-notification-remove` | ✅ |
-| `termux-volume` | ✅ |
-| `termux-battery-status` | ✅ |
-| `termux-open` / `termux-open-url` | ✅ |
-| `termux-wake-lock` / `termux-wake-unlock` | ✅ |
-
-For advanced hardware APIs (such as `termux-location`, `termux-camera-photo`, `termux-sensor`, `termux-sms-*`, `termux-wifi-*`), install the matching signed companion app:
-
-👉 **[Download AntiGem Termux:API Companion App](https://github.com/Santoshkurmi/termux-api/releases)**
-
-> [!IMPORTANT]
-> **AntiGem Variant Requirement for Termux:API:**
-> - To use the external Termux:API companion app, you **must install the Shared UID variant** (`antiGem-termux-shared-v...apk`). Both apps share the `com.termux` Linux UID to communicate via UNIX sockets.
-> - **Existing Users:** Android does not allow changing `sharedUserId` via an update (`INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`). If you currently have the Standalone build installed, you must **backup your files, uninstall the app, and install the Shared UID build**.
-> - You can check your current variant in AntiGem under **Settings → About & Info** (shows *Shared UID Build* or *Standalone Build*).
-
-**How to enable:**
-1. Install the companion APK from the [releases page](https://github.com/Santoshkurmi/termux-api/releases).
-2. In AntiGem, go to **Settings → Terminal & Shell → Termux:API Integration** and select **External Termux:API App**.
-3. Tap **Reinstall Package Now** (or run `pkg reinstall termux-api` in the terminal) to restore the official dispatcher binary.
+For advanced hardware sensors (camera, location, telephony, Wi-Fi scanning), install the signed companion app from the [Termux:API Releases](https://github.com/Santoshkurmi/termux-api/releases) alongside the **Termux Shared** build.
 
 ---
 
-## How it works
+## Building from Source
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    AntiGem Android app                   │
-│     Compose UI · terminal · editor · browser · MCPs      │
-└────────────────────────────┬─────────────────────────────┘
-                             │  gRPC / WebSocket (localhost)
-┌────────────────────────────▼─────────────────────────────┐
-│                agy_ide_bridge (Go, local)                │
-│     Git · files · Claude Code relay · plugin manager     │
-└───────────────┬──────────────────────────┬───────────────┘
-                │ gRPC                     │ stream-json
-┌───────────────▼─────────────┐ ┌──────────▼───────────────┐
-│  Antigravity (agy) daemon   │ │  Claude Code CLI         │
-│                             │ │  (one process per chat)  │
-└─────────────────────────────┘ └──────────────────────────┘
-```
+### Prerequisites
+- **JDK:** OpenJDK 21 or newer
+- **Android SDK:** API 35 (Platform Tools & Build Tools 35.0.0)
+- **Go:** Go 1.23 or newer (required for cross-compiling the bridge binary)
 
----
-
-## Building from source
-
-**Requirements:** JDK 17+, Android SDK (API 35, Build Tools 35+) and Go 1.23+ for the bridge.
+### Compilation
 
 ```bash
 git clone https://github.com/Rp0708/Gravent.git
 cd Gravent
 
-# Build the termux variant
-./gradlew assembleTermuxDebug
+# Compile the release APK
+./gradlew assembleTermuxRelease
 
-# Or build every variant
-./scripts/build_all_apks.sh
+# Or compile the debug build
+./gradlew assembleTermuxDebug
 ```
 
-APKs are written to `app/build/outputs/apk/<variant>/<buildType>/` and `build/outputs/apk_all/`.
+Compiled APK artifacts will be placed in `app/build/outputs/apk/termux/`.
 
 ---
 
-## Project structure
+## Repository Structure
 
 ```text
 Gravent/
 ├── app/src/main/
 │   ├── java/com/example/gemini/
-│   │   ├── data/          # Agent backends (agy, claude), terminal, ADB, automation, notes, updater
-│   │   ├── domain/        # Chat models and parsing
-│   │   └── ui/            # Compose screens: chat, IDE, browser, notes, settings
-│   ├── java/com/termux/   # Termux terminal-view widget and com.termux service entry points
-│   └── assets/browser-runtime/  # Extension host and Chrome API for plugins
-├── agy_ide_bridge/        # Go bridge: agy hub, Claude Code relay, Git, plugins
-├── extensions/            # Bundled plugins
-├── extension_docs/        # Plugin SDK documentation and examples
-├── proto_generator/       # Protobuf definitions and generators for the agy API
-├── scripts/               # Build, backup and restore scripts
-└── version.json           # Version and changelog used by the in-app updater
+│   │   ├── data/          # Backends: Antigravity gRPC, Claude Code CLI, Copilot API, ADB
+│   │   ├── domain/        # State models, token budgeting, and protocol definitions
+│   │   └── ui/            # Jetpack Compose UI: Chat, Prompt Bar, IDE, Terminal, Settings
+│   ├── java/com/termux/   # Native terminal emulation widgets and system services
+│   └── assets/            # Browser runtime and extension host environment
+├── agy_ide_bridge/        # Local Go bridge daemon: protocol multiplexer, Git, process relay
+├── extensions/            # Bundled plugins and tools
+├── extension_docs/        # Plugin SDK documentation, API specs, and tutorials
+├── proto_generator/       # Protobuf generator scripts and schema definitions for agy
+├── scripts/               # CI/CD automation, APK packaging, and backup scripts
+└── version.json           # In-app updater version registry and release changelog
 ```
 
 ---
 
-## Contributing
+## Privacy & Security
 
-Issues, ideas and pull requests are welcome. For help, join the [WhatsApp community](https://chat.whatsapp.com/IGQX8q9zSVV0RarG70sclV?s=cl&p=a&mlu=4&ilr=4).
+Gravent is designed with a local-first architecture:
+- All conversations, terminal outputs, source files, and credentials are stored strictly on-device in the app's protected private directory.
+- Model credentials (Google Tokens, Claude OAuth tokens, GitHub Copilot PATs, custom API keys) remain local and are transmitted exclusively to their respective official provider endpoints over TLS.
+- Gravent utilizes [TelemetryDeck](https://telemetrydeck.com) strictly for aggregate anonymous active install counts and OS version breakdown. It does **not** collect prompts, responses, source code, file names, terminal transcripts, emails, or credentials.
 
-## Analytics
-
-AntiGem uses [TelemetryDeck](https://telemetrydeck.com) only to count how many people use the app. It records app opens, an anonymous install ID, session counts, and general device details (phone model, Android version, app version). It does **not** collect chats, prompts, code, files, terminal output, account emails or API keys. Debug builds are marked as test data.
+---
 
 ## License
 
