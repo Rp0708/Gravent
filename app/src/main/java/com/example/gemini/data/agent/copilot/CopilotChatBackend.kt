@@ -293,11 +293,12 @@ class CopilotChatBackend(
                         }
                     }
 
-                    if (!extractedContent.isNullEmpty()) {
-                        accumulated.append(extractedContent)
+                    val contentText = extractedContent.orEmpty()
+                    if (contentText.isNotEmpty()) {
+                        accumulated.append(contentText)
                         withContext(Dispatchers.Main) {
                             _messages.value = _messages.value.map { msg ->
-                                if (msg.id == assistantMsgId) msg.copy(content = extractedContent) else msg
+                                if (msg.id == assistantMsgId) msg.copy(content = contentText) else msg
                             }
                         }
                     }
