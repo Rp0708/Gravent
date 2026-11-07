@@ -144,21 +144,21 @@ fun ClaudeSettingsGroup(deps: ClaudeSettingsDeps, onOpen: (ClaudeSettingsPage) -
         else -> state.label
     }
     val accountColor = state.dotColor
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ClaudeNavCard(
             icon = Icons.Outlined.AccountCircle,
             title = ClaudeSettingsPage.ACCOUNT.title,
             subtitle = listOfNotNull(auth?.email, status?.version).joinToString(" · ").ifBlank { ClaudeSettingsPage.ACCOUNT.subtitle },
             badge = accountBadge,
-            badgeColor = accountColor,
-            tint = if (state == ClaudeStatus.READY) Color(0xFF22C55E) else Color(0xFF60A5FA),
+            badgeColor = if (state == ClaudeStatus.READY) Color(0xFF22C55E) else Color(0xFF818CF8),
+            tint = if (state == ClaudeStatus.READY) Color(0xFF22C55E) else Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.ACCOUNT) }
         )
         ClaudeNavCard(
             icon = Icons.Outlined.Tune,
             title = ClaudeSettingsPage.DEFAULTS.title,
             subtitle = ClaudeSettingsPage.DEFAULTS.subtitle,
-            tint = Color(0xFFF87171),
+            tint = Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.DEFAULTS) }
         )
         val providers by deps.backend.providers.collectAsState()
@@ -167,8 +167,8 @@ fun ClaudeSettingsGroup(deps: ClaudeSettingsDeps, onOpen: (ClaudeSettingsPage) -
             title = ClaudeSettingsPage.PROVIDERS.title,
             subtitle = ClaudeSettingsPage.PROVIDERS.subtitle,
             badge = providers.size.takeIf { it > 0 }?.let { "$it added" },
-            badgeColor = Color(0xFF38BDF8),
-            tint = Color(0xFF38BDF8),
+            badgeColor = Color(0xFF818CF8),
+            tint = Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.PROVIDERS) }
         )
         val allowCount = settings?.let { deps.config.rules("allow").size } ?: 0
@@ -177,31 +177,32 @@ fun ClaudeSettingsGroup(deps: ClaudeSettingsDeps, onOpen: (ClaudeSettingsPage) -
             title = ClaudeSettingsPage.PERMISSIONS.title,
             subtitle = ClaudeSettingsPage.PERMISSIONS.subtitle,
             badge = allowCount.takeIf { it > 0 }?.let { "$it allowed" },
-            badgeColor = Color(0xFFFBBF24),
-            tint = Color(0xFFFBBF24),
+            badgeColor = Color(0xFF818CF8),
+            tint = Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.PERMISSIONS) }
         )
+        val mcpActive = mcp.isNotEmpty()
         ClaudeNavCard(
             icon = Icons.Outlined.Hub,
             title = ClaudeSettingsPage.MCP.title,
             subtitle = ClaudeSettingsPage.MCP.subtitle,
             badge = mcp.size.takeIf { it > 0 }?.let { "$it servers" },
-            badgeColor = Color(0xFF34D399),
-            tint = Color(0xFF34D399),
+            badgeColor = if (mcpActive) Color(0xFF22C55E) else Color(0xFF71717E),
+            tint = if (mcpActive) Color(0xFF22C55E) else Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.MCP) }
         )
         ClaudeNavCard(
             icon = Icons.Outlined.Extension,
             title = ClaudeSettingsPage.PLUGINS.title,
             subtitle = ClaudeSettingsPage.PLUGINS.subtitle,
-            tint = Color(0xFFA78BFA),
+            tint = Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.PLUGINS) }
         )
         ClaudeNavCard(
             icon = Icons.Outlined.Description,
             title = ClaudeSettingsPage.MEMORY.title,
             subtitle = ClaudeSettingsPage.MEMORY.subtitle,
-            tint = Color(0xFF2DD4BF),
+            tint = Color(0xFF818CF8),
             onClick = { onOpen(ClaudeSettingsPage.MEMORY) }
         )
         ClaudeNavCard(

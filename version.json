@@ -1,13 +1,12 @@
 {
-  "version_code": 144,
-  "version_name": "1.0.44",
+  "version_code": 145,
+  "version_name": "1.0.45",
   "min_supported_version_code": 1,
   "changelog": [
-    "Copilot Membership Tier & Model Policy Detection: Queries copilot_internal/user to detect subscription tier (Pro, Free, Business, Enterprise) and inspects model policies/endpoints from api.githubcopilot.com/models, filtering out disabled models (e.g. claude-sonnet-5) and highlighting free/included models without extra charges",
-    "Bulletproof SSE Streaming & R8 Keep Rules: Added ProGuard rules for Copilot serialization classes and implemented robust dual-layer SSE parsing with token fallback regex so streaming tokens are never swallowed or lost in release builds",
-    "Integrated Copilot in Accounts Bar & Switcher: Added GitHub Copilot to the bottom-bar accounts pill alongside AG and Claude, and integrated Copilot account details into the Accounts modal dialog",
-    "Collapsible Subscription Spaces: Added interactive expand/collapse toggles to each agent card in the Accounts dialog, reducing vertical clutter and keeping the switcher compact",
-    "Settings UI Redesign (React Bits-inspired Expandable Accordions): Redesigned the main settings screen into sleek, glassmorphic expandable category sections with quick Expand/Collapse All controls, keeping 100% of settings options cleanly organized"
+    "Stitch-Guided Minimal Dark Settings Panel Redesign: Redesigned the settings panel following Google Stitch guidelines to match Gravent's elite mobile IDE aesthetic with Level 1/2 dark surfaces (#15151A, #181820), hairline borders (#24242C, #262630), crisp typography hierarchy, and restrained indigo (#818CF8) and live status (#22C55E) accents, eliminating rainbow color chaos",
+    "Developer Daemon HUD Status Ribbon: Added a live runtime status strip at the top of the settings panel showing active agents count, MCP server health, Hub connectivity, and a global Expand/Collapse All pill control",
+    "Harmonized Category & Nav Card Styling: Unified all 6 expandable category groups and sub-screens (including Claude Code and Utilities) with squircle icon badges, hairline chevron rotation, and muted status tags",
+    "Ultra-Resilient Copilot Token Streaming: Enhanced streaming parser to extract content and text tokens from both chunk deltas and non-streaming responses, ensuring zero dropped messages"
   ],
   "is_critical": false
 }

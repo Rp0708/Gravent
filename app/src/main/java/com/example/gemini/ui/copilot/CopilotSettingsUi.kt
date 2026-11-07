@@ -48,7 +48,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-val CopilotPurple = Color(0xFF8957E5)
+val CopilotPurple = Color(0xFF818CF8)
 
 @Composable
 fun CopilotSubScreen(

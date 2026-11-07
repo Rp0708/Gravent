@@ -272,13 +272,19 @@ class CopilotChatBackend(
                     val currentLine = reader.readLine() ?: break
                     val raw = currentLine.trim()
                     if (raw.isEmpty()) continue
-                    if (raw.startsWith("data:")) {
-                        val data = raw.removePrefix("data:").removePrefix("data:").trim()
-                        if (data == "[DONE]") break
 
+                    val jsonPayload = if (raw.startsWith("data:")) {
+                        val d = raw.removePrefix("data:").trim()
+                        if (d == "[DONE]") break
+                        d
+                    } else if (raw.startsWith("{") && raw.endsWith("}")) {
+                        raw
+                    } else null
+
+                    if (jsonPayload != null && jsonPayload.isNotBlank()) {
                         var deltaContent: String? = null
                         try {
-                            val chunk = json.decodeFromString<CopilotChatChunk>(data)
+                            val chunk = json.decodeFromString<CopilotChatChunk>(jsonPayload)
                             deltaContent = chunk.choices.firstOrNull()?.delta?.content
                         } catch (_: Exception) {
                             // R8 obfuscation or schema divergence fallback
@@ -286,7 +292,7 @@ class CopilotChatBackend(
 
                         // Robust fallback: if deserialization did not yield content, extract via regex
                         if (deltaContent.isNullEmpty()) {
-                            val match = CONTENT_JSON_REGEX.find(data)
+                            val match = CONTENT_JSON_REGEX.find(jsonPayload) ?: TEXT_JSON_REGEX.find(jsonPayload)
                             if (match != null) {
                                 val unescaped = unescapeJsonString(match.groupValues[1])
                                 if (unescaped.isNotEmpty()) {
@@ -495,6 +501,7 @@ class CopilotChatBackend(
     companion object {
         private const val TAG = "CopilotChatBackend"
         private val CONTENT_JSON_REGEX = Regex("\"content\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"")
+        private val TEXT_JSON_REGEX = Regex("\"text\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"")
 
         private fun unescapeJsonString(input: String): String {
             if (!input.contains('\\')) return input

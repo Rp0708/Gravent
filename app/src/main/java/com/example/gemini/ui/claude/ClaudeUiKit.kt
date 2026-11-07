@@ -75,45 +75,45 @@ fun ClaudeNavCard(
     title: String,
     subtitle: String,
     badge: String? = null,
-    badgeColor: Color = Color(0xFFFAFAFA),
-    tint: Color = Color(0xFFFAFAFA),
+    badgeColor: Color = Color(0xFF818CF8),
+    tint: Color = Color(0xFF818CF8),
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = claudeCardColor()),
-        border = BorderStroke(1.dp, Color(0xFF222226))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF181820)),
+        border = BorderStroke(1.dp, Color(0xFF262630))
     ) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(38.dp).clip(RoundedCornerShape(8.dp)).background(tint.copy(alpha = 0.12f)),
+                Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF1F1F28)).border(1.dp, Color(0xFF2A2A38), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp)) }
-            Spacer(Modifier.width(14.dp))
+            ) { Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp)) }
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFFAFAFA))
-                Spacer(Modifier.height(2.dp))
+                Text(title, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFF1F1F4))
+                Spacer(Modifier.height(1.5.dp))
                 Text(
-                    subtitle, fontSize = 11.5.sp, color = Color(0xFFA1A1AA),
-                    maxLines = 2, overflow = TextOverflow.Ellipsis
+                    subtitle, fontSize = 11.sp, color = Color(0xFF71717E),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
             if (badge != null) {
                 Spacer(Modifier.width(8.dp))
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = badgeColor.copy(alpha = 0.12f),
-                    border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.25f))
+                    shape = RoundedCornerShape(5.dp),
+                    color = badgeColor.copy(alpha = 0.1f),
+                    border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.25f))
                 ) {
                     Text(
                         badge, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp)
                     )
                 }
             }
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF71717A), modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF5A5A66), modifier = Modifier.size(16.dp))
         }
     }
 }
