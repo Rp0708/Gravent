@@ -57,12 +57,68 @@ class CopilotAccountManager(
     private val _isLoadingRepos = MutableStateFlow(false)
     val isLoadingRepos: StateFlow<Boolean> = _isLoadingRepos.asStateFlow()
 
+    private val _availableModels = MutableStateFlow<List<CopilotModelInfo>>(emptyList())
+    val availableModels: StateFlow<List<CopilotModelInfo>> = _availableModels.asStateFlow()
+
     private var pollingJob: Job? = null
 
     init {
+        loadInitialModels()
         if (!prefs.githubToken.value.isNullOrBlank()) {
             refreshStatus()
         }
+    }
+
+    private fun loadInitialModels() {
+        val jsonStr = prefs.availableModelsJson.value
+        if (!jsonStr.isNullOrBlank()) {
+            try {
+                val parsed = json.decodeFromString<CopilotModelsResponse>(jsonStr)
+                if (parsed.data.isNotEmpty()) {
+                    _availableModels.value = parsed.data
+                    return
+                }
+            } catch (_: Exception) {}
+        }
+        _availableModels.value = DEFAULT_COPILOT_FALLBACK_MODELS
+    }
+
+    suspend fun fetchAvailableModels(tokenOverride: String? = null): List<CopilotModelInfo> = withContext(Dispatchers.IO) {
+        val ghToken = prefs.githubToken.value ?: return@withContext _availableModels.value
+        val copilotToken = tokenOverride ?: ensureValidCopilotTokenInternal(ghToken) ?: return@withContext _availableModels.value
+        try {
+            val request = Request.Builder()
+                .url("https://api.githubcopilot.com/models")
+                .header("Authorization", "Bearer $copilotToken")
+                .header("Copilot-Integration-Id", "vscode-chat")
+                .header("Editor-Version", "vscode/1.96.0")
+                .header("Accept", "application/json")
+                .get()
+                .build()
+
+            val response = httpClient.newCall(request).execute()
+            val respBody = response.body?.string().orEmpty()
+            if (response.isSuccessful && respBody.isNotBlank()) {
+                val parsed = json.decodeFromString<CopilotModelsResponse>(respBody)
+                if (parsed.data.isNotEmpty()) {
+                    prefs.setAvailableModelsJson(respBody)
+                    _availableModels.value = parsed.data
+                    Log.d(TAG, "Fetched ${parsed.data.size} models from Copilot plan: ${parsed.data.map { it.id }}")
+                    // If currently selected model is not in available models, auto-switch to first valid model or gpt-4o
+                    val curSel = prefs.selectedModel.value
+                    if (parsed.data.none { it.id == curSel }) {
+                        val fallback = parsed.data.firstOrNull { it.id == "gpt-4o" }?.id ?: parsed.data.first().id
+                        prefs.setSelectedModel(fallback)
+                    }
+                    return@withContext parsed.data
+                }
+            } else {
+                Log.w(TAG, "Fetch Copilot models returned ${response.code}: $respBody")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch Copilot models", e)
+        }
+        _availableModels.value
     }
 
     fun refreshStatus() {
@@ -88,6 +144,7 @@ class CopilotAccountManager(
                 )
                 if (copilotToken != null) {
                     fetchUserRepos()
+                    fetchAvailableModels(copilotToken)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to refresh Copilot status", e)
@@ -206,6 +263,7 @@ class CopilotAccountManager(
                 )
                 if (copilotToken != null) {
                     fetchUserRepos()
+                    fetchAvailableModels(copilotToken)
                 }
                 withContext(Dispatchers.Main) {
                     onComplete(true, if (copilotToken == null) "Signed in, but no Copilot subscription detected." else null)
@@ -328,6 +386,7 @@ class CopilotAccountManager(
         _deviceCodeFlow.value = null
         prefs.clearAuth()
         _userRepos.value = emptyList()
+        _availableModels.value = DEFAULT_COPILOT_FALLBACK_MODELS
         _authState.value = CopilotAuthState(isLoggedIn = false)
     }
 

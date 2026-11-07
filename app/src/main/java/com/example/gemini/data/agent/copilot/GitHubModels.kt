@@ -88,3 +88,37 @@ data class CopilotChatChunk(
     val id: String? = null,
     val choices: List<CopilotChatChoice> = emptyList()
 )
+
+@Serializable
+data class CopilotModelInfo(
+    val id: String,
+    val name: String? = null,
+    val version: String? = null,
+    val vendor: String? = null
+) {
+    fun displayName(): String {
+        if (!name.isNullOrBlank()) return name
+        return when (id) {
+            "gpt-4o" -> "GPT-4o"
+            "gpt-4o-mini" -> "GPT-4o Mini"
+            "claude-3.5-sonnet" -> "Claude 3.5 Sonnet"
+            "o1" -> "o1"
+            "o3-mini" -> "o3-mini"
+            "claude-3.7-sonnet" -> "Claude 3.7 Sonnet"
+            else -> id.split("-").joinToString(" ") { word -> word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
+        }
+    }
+}
+
+@Serializable
+data class CopilotModelsResponse(
+    val data: List<CopilotModelInfo> = emptyList()
+)
+
+val DEFAULT_COPILOT_FALLBACK_MODELS = listOf(
+    CopilotModelInfo(id = "gpt-4o", name = "GPT-4o", vendor = "Azure OpenAI"),
+    CopilotModelInfo(id = "claude-3.5-sonnet", name = "Claude 3.5 Sonnet", vendor = "Anthropic"),
+    CopilotModelInfo(id = "o3-mini", name = "o3-mini", vendor = "OpenAI"),
+    CopilotModelInfo(id = "gpt-4o-mini", name = "GPT-4o Mini", vendor = "Azure OpenAI"),
+    CopilotModelInfo(id = "o1", name = "o1", vendor = "OpenAI")
+)

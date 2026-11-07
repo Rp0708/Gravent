@@ -62,6 +62,10 @@ fun CopilotSubScreen(
     val authState by accountManager.authState.collectAsState()
     val deviceCode by accountManager.deviceCodeFlow.collectAsState()
     val selectedModel by backend.selectedModelId.collectAsState()
+    val availableModels by backend.availableModels.collectAsState()
+    val isRefreshingModels by backend.isRefreshingModels.collectAsState()
+    val availableModels by backend.availableModels.collectAsState()
+    val isRefreshingModels by backend.isRefreshingModels.collectAsState()
     val userRepos by accountManager.userRepos.collectAsState()
     val isLoadingRepos by accountManager.isLoadingRepos.collectAsState()
 
@@ -478,20 +482,29 @@ fun CopilotSubScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
 
                         // Model Selector
-                        Text("Copilot Model", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Copilot Model (${availableModels.size} available)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            TextButton(
+                                onClick = { backend.refreshModels() },
+                                enabled = !isRefreshingModels,
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(if (isRefreshingModels) "Refreshing…" else "Refresh Plan", fontSize = 11.5.sp, color = CopilotPurple)
+                            }
+                        }
+                        LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            listOf(
-                                "claude-3.7-sonnet" to "Claude 3.7",
-                                "gpt-4o" to "GPT-4o",
-                                "o3-mini" to "o3-mini",
-                                "gemini-2.0-flash" to "Gemini 2.0"
-                            ).forEach { (id, label) ->
-                                val isSel = selectedModel == id
+                            items(availableModels) { model ->
+                                val isSel = selectedModel == model.id
+                                val label = model.displayName.removeSuffix(" (Copilot)")
                                 Surface(
-                                    onClick = { backend.selectModel(id) },
+                                    onClick = { backend.selectModel(model.id) },
                                     shape = RoundedCornerShape(10.dp),
                                     color = if (isSel) CopilotPurple.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     border = BorderStroke(1.dp, if (isSel) CopilotPurple else Color.Transparent)
@@ -851,6 +864,8 @@ fun CopilotSettingsSection(
     val authState by accountManager.authState.collectAsState()
     val deviceCode by accountManager.deviceCodeFlow.collectAsState()
     val selectedModel by backend.selectedModelId.collectAsState()
+    val availableModels by backend.availableModels.collectAsState()
+    val isRefreshingModels by backend.isRefreshingModels.collectAsState()
 
     var showTokenDialog by remember { mutableStateOf(false) }
     var isStartingFlow by remember { mutableStateOf(false) }
@@ -927,20 +942,29 @@ fun CopilotSettingsSection(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Copilot Model", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Copilot Model (${availableModels.size} available)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        TextButton(
+                            onClick = { backend.refreshModels() },
+                            enabled = !isRefreshingModels,
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(if (isRefreshingModels) "Refreshing…" else "Refresh Plan", fontSize = 11.5.sp, color = CopilotPurple)
+                        }
+                    }
+                    LazyRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf(
-                            "claude-3.7-sonnet" to "Claude 3.7",
-                            "gpt-4o" to "GPT-4o",
-                            "o3-mini" to "o3-mini",
-                            "gemini-2.0-flash" to "Gemini 2.0"
-                        ).forEach { (id, label) ->
-                            val isSel = selectedModel == id
+                        items(availableModels) { model ->
+                            val isSel = selectedModel == model.id
+                            val label = model.displayName.removeSuffix(" (Copilot)")
                             Surface(
-                                onClick = { backend.selectModel(id) },
+                                onClick = { backend.selectModel(model.id) },
                                 shape = RoundedCornerShape(10.dp),
                                 color = if (isSel) CopilotPurple.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 border = BorderStroke(1.dp, if (isSel) CopilotPurple else Color.Transparent)

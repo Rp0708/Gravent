@@ -77,7 +77,9 @@ class CopilotChatBackend(
     private val _selectedModelId = MutableStateFlow(prefs.selectedModel.value)
     val selectedModelId: StateFlow<String> = _selectedModelId.asStateFlow()
 
-    private val _availableModels = MutableStateFlow(COPILOT_MODELS)
+    private val _availableModels = MutableStateFlow<List<AiModel>>(
+        accountManager.availableModels.value.mapIndexed { idx, m -> m.toAiModel(idx == 0 || m.id == "gpt-4o") }
+    )
     val availableModels: StateFlow<List<AiModel>> = _availableModels.asStateFlow()
 
     val isRefreshingModels = MutableStateFlow(false)
@@ -86,10 +88,40 @@ class CopilotChatBackend(
 
     init {
         loadConversations()
+        backendScope.launch {
+            accountManager.availableModels.collect { models ->
+                if (models.isNotEmpty()) {
+                    val mapped = models.mapIndexed { idx, m ->
+                        m.toAiModel(isDefault = idx == 0 || m.id == "gpt-4o")
+                    }
+                    _availableModels.value = mapped
+                    val cur = _selectedModelId.value
+                    if (models.none { it.id == cur }) {
+                        val fallback = models.firstOrNull { it.id == "gpt-4o" }?.id ?: models.first().id
+                        selectModel(fallback)
+                    }
+                }
+            }
+        }
     }
 
     fun start() {
-        // Startup without forcing an unsaved ghost conversation
+        backendScope.launch {
+            if (!prefs.githubToken.value.isNullOrBlank()) {
+                accountManager.fetchAvailableModels()
+            }
+        }
+    }
+
+    fun refreshModels() {
+        backendScope.launch {
+            isRefreshingModels.value = true
+            try {
+                accountManager.fetchAvailableModels()
+            } finally {
+                isRefreshingModels.value = false
+            }
+        }
     }
 
     override fun startNewChat() {
@@ -188,6 +220,7 @@ class CopilotChatBackend(
                     You know everything about the Gravent application, Termux tools, git, node, pnpm, python, and the local workspace.
                     If the user asks which model you are, who created you, or what environment you are in, you must clearly state that you are running inside Gravent on Android.
                     Provide clean, production-grade code, explanations, and shell commands.
+                    When executing or monitoring long-running processes (such as builds, tests, git clone, or CI workflows), execute them as single-shot blocking or watching commands (e.g. 'gh run watch <run_id> --exit-status') rather than repeated tight polling loops, ensuring optimal token economy and smart performance.
                 """.trimIndent()
 
                 val apiMessages = mutableListOf<CopilotChatMessagePayload>()
@@ -257,9 +290,17 @@ class CopilotChatBackend(
                 }
 
                 // Finalize assistant message
+                val finalText = accumulated.toString().trim()
                 withContext(Dispatchers.Main) {
                     _messages.value = _messages.value.map { msg ->
-                        if (msg.id == assistantMsgId) msg.copy(isStreaming = false) else msg
+                        if (msg.id == assistantMsgId) {
+                            val contentToSet = if (finalText.isBlank()) {
+                                "❌ No response was returned by model ($modelId). The model may not be available on your plan. Try selecting another model (such as GPT-4o)."
+                            } else {
+                                finalText
+                            }
+                            msg.copy(content = contentToSet, isStreaming = false)
+                        } else msg
                     }
                 }
                 saveMessages(conv.id)
@@ -270,15 +311,26 @@ class CopilotChatBackend(
                 } else {
                     Log.e(TAG, "Copilot completion error", e)
                     val errorText = e.message ?: "An unexpected error occurred while communicating with Copilot."
-                    _conversationError.value = errorText
+                    val userFriendlyError = if (errorText.contains("modelnotsupported") || errorText.contains("model is not supported")) {
+                        "❌ Model '$modelId' is not supported by your GitHub Copilot subscription plan. Please select an available model from the picker (e.g. GPT-4o or Claude 3.5 Sonnet)."
+                    } else if (errorText.contains("401") || errorText.contains("token")) {
+                        "❌ Copilot authentication expired. Please re-authenticate via Settings → GitHub Copilot."
+                    } else {
+                        "❌ $errorText"
+                    }
+                    _conversationError.value = userFriendlyError
                     withContext(Dispatchers.Main) {
                         _messages.value = _messages.value.map { msg ->
                             if (msg.id == assistantMsgId) {
                                 val current = msg.content
-                                val withErr = if (current.isBlank()) "❌ $errorText" else "$current\n\n[Generation stopped: $errorText]"
+                                val withErr = if (current.isBlank()) userFriendlyError else "$current\n\n[Generation stopped: $userFriendlyError]"
                                 msg.copy(content = withErr, isStreaming = false)
                             } else msg
                         }
+                    }
+                    saveMessages(conv.id)
+                    if (errorText.contains("modelnotsupported")) {
+                        refreshModels()
                     }
                 }
             } finally {
@@ -425,51 +477,29 @@ class CopilotChatBackend(
     companion object {
         private const val TAG = "CopilotChatBackend"
 
-        val COPILOT_MODELS = listOf(
-            AiModel(
-                id = "claude-3.7-sonnet",
-                displayName = "Claude 3.7 Sonnet (Copilot)",
-                family = ModelFamily.CLAUDE,
-                supportsThinking = true,
-                description = "Anthropic's flagship hybrid reasoning model on GitHub Copilot",
-                isDefault = true
-            ),
-            AiModel(
-                id = "claude-3.5-sonnet",
-                displayName = "Claude 3.5 Sonnet (Copilot)",
-                family = ModelFamily.CLAUDE,
-                supportsThinking = false,
-                description = "High intelligence coding model"
-            ),
-            AiModel(
-                id = "gpt-4o",
-                displayName = "GPT-4o (Copilot)",
-                family = ModelFamily.OTHER,
-                supportsThinking = false,
-                description = "OpenAI's versatile multimodal model"
-            ),
-            AiModel(
-                id = "o3-mini",
-                displayName = "o3-mini (Copilot)",
-                family = ModelFamily.OTHER,
-                supportsThinking = true,
-                description = "OpenAI's high-speed reasoning model for coding and math"
-            ),
-            AiModel(
-                id = "o1",
-                displayName = "o1 (Copilot)",
-                family = ModelFamily.OTHER,
-                supportsThinking = true,
-                description = "OpenAI's advanced deep thinking model"
-            ),
-            AiModel(
-                id = "gemini-2.0-flash",
-                displayName = "Gemini 2.0 Flash (Copilot)",
-                family = ModelFamily.GEMINI,
-                supportsThinking = false,
-                description = "Google's ultra-fast model via Copilot"
+        fun CopilotModelInfo.toAiModel(isDefault: Boolean = false): AiModel {
+            val family = when {
+                id.contains("claude", ignoreCase = true) -> ModelFamily.CLAUDE
+                id.contains("gemini", ignoreCase = true) -> ModelFamily.GEMINI
+                else -> ModelFamily.OTHER
+            }
+            val nameStr = displayName()
+            val desc = when {
+                id.contains("claude", ignoreCase = true) -> "Anthropic coding model on Copilot"
+                id.contains("o1", ignoreCase = true) || id.contains("o3", ignoreCase = true) -> "Reasoning model on Copilot"
+                id.contains("gpt-4o", ignoreCase = true) -> "OpenAI flagship model on Copilot"
+                else -> vendor?.let { "$it model on Copilot" } ?: "GitHub Copilot model"
+            }
+            val supportsThinking = id.contains("o1", ignoreCase = true) || id.contains("o3", ignoreCase = true) || id.contains("thinking", ignoreCase = true)
+            return AiModel(
+                id = id,
+                displayName = "$nameStr (Copilot)",
+                family = family,
+                supportsThinking = supportsThinking,
+                description = desc,
+                isDefault = isDefault
             )
-        )
+        }
     }
 }
 

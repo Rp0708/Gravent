@@ -21,3 +21,8 @@
 - Never ever try to compile or assemble for Standard Build, alwasy for termuxBuild only
 
 - If you are not 100% sure for someting how to do, never try to do, always ask user for direction this case without understanding what user want.
+
+## 4. Smart Command Execution & Optimal Token Usage
+- **Long-Running & Monitoring Tasks**: Never poll in a tight chat loop or repeatedly schedule timers that burn context tokens on repetitive status checks.
+- **Single-Shot Watch Commands**: Use single-shot blocking or watching commands (such as `gh run watch <run_id> --exit-status`, waiting for background task termination, or a silent background monitor) that stay quiet until completion, and return only the final result to preserve context tokens and maintain high response quality.
+- **Provider Performance Standards**: All providers (Antigravity, Claude Code, GitHub Copilot) must follow optimal token economy and smart background execution.

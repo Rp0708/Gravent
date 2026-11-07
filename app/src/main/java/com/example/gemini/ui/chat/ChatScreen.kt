@@ -2270,13 +2270,20 @@ fun ChatScreen(
     if (showModelSelector && isClaudeChat) {
         com.example.gemini.ui.claude.ClaudeModelSheet(claudeBackend, viewModel.claudeAccount) { showModelSelector = false }
     } else if (showModelSelector) {
+        val isCopilotRefreshing by viewModel.copilotBackend.isRefreshingModels.collectAsState()
         ModelSelectorBottomSheet(
             selectedModelId = selectedModelId,
             availableModels = enabledModels,
             quotas = quotas,
             quotaSummary = quotaSummary,
-            isRefreshing = isRefreshingModels,
-            onRefresh = { viewModel.refreshQuotas(force = true, showToastFeedback = true) },
+            isRefreshing = if (isCopilotChat) isCopilotRefreshing else isRefreshingModels,
+            onRefresh = {
+                if (isCopilotChat) {
+                    viewModel.copilotBackend.refreshModels()
+                } else {
+                    viewModel.refreshQuotas(force = true, showToastFeedback = true)
+                }
+            },
             onSelectModel = { modelId -> viewModel.selectModel(modelId) },
             onDismiss = { showModelSelector = false }
         )

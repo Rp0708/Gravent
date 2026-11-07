@@ -1,12 +1,12 @@
 {
-  "version_code": 142,
-  "version_name": "1.0.42",
+  "version_code": 143,
+  "version_name": "1.0.43",
   "min_supported_version_code": 1,
   "changelog": [
-    "In-Chat Copilot Setup & 1-Tap Sign In: When switching to Copilot on an empty chat, a dedicated setup card appears immediately on screen with 1-tap 'Sign in with GitHub', device code dialog popup, clear step-by-step instructions, and PAT option without needing to navigate into Settings",
-    "Clean Agent Switching & Ghost Chat Prevention: Switching agents on an empty screen no longer spawns ghost conversations or unwanted workspace folder branches; chats are only materialized and saved to disk when the first message is sent, and previous empty ghost chats are cleaned up",
-    "React Bits Redesigned Top Bar: Modern futuristic header featuring 'ShinyText' dynamic gradient shimmer across the chat title, an animated breathing pulse dot matching the active agent's signature accent (Cyan, Terracotta, or Purple), an interactive glass breadcrumb capsule ('• Agent › 📁 Workspace ▾'), and frosted glass circular navigation",
-    "Resilient React Bits MCP & GitHub CLI Protection: Added non-interactive flag to React Bits preset and protected GitHub CLI repository credentials during sync"
+    "Dynamic Copilot Plan Model Fetching: Automatically queries GET https://api.githubcopilot.com/models to detect and populate only the models supported by the user's active GitHub Copilot subscription, removing invalid hardcoded models and automatically defaulting to supported models (e.g. GPT-4o)",
+    "Robust Copilot Chat & Error Diagnostics: Added detection and user-friendly error banners for unsupported models (400 modelnotsupported) and empty stream responses, with persistent error message saving so generation errors never vanish from the chat",
+    "Model Refresh & 1-Tap Sync: Added 'Refresh Plan' button in Copilot settings and bottom sheet to re-fetch plan capabilities at any time",
+    "Token-Optimized Smart Long-Running Execution: Enforced single-shot watching and non-blocking background task architecture across providers to eliminate wasteful polling loops and maximize context token efficiency"
   ],
   "is_critical": false
 }

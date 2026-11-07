@@ -26,8 +26,21 @@ class CopilotPreferences(context: Context) {
     private val _userAvatarUrl = MutableStateFlow(prefs.getString(KEY_USER_AVATAR, null))
     val userAvatarUrl: StateFlow<String?> = _userAvatarUrl.asStateFlow()
 
-    private val _selectedModel = MutableStateFlow(prefs.getString(KEY_SELECTED_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL)
+    private val _selectedModel = MutableStateFlow(
+        prefs.getString(KEY_SELECTED_MODEL, DEFAULT_MODEL).let {
+            // Self-heal: if stored model was nonexistent claude-3.7 or unsupported, fallback to DEFAULT_MODEL
+            if (it == "claude-3.7-sonnet" || it.isNullOrBlank()) DEFAULT_MODEL else it
+        }
+    )
     val selectedModel: StateFlow<String> = _selectedModel.asStateFlow()
+
+    private val _availableModelsJson = MutableStateFlow(prefs.getString(KEY_AVAILABLE_MODELS, null))
+    val availableModelsJson: StateFlow<String?> = _availableModelsJson.asStateFlow()
+
+    fun setAvailableModelsJson(jsonStr: String?) {
+        prefs.edit().putString(KEY_AVAILABLE_MODELS, jsonStr).apply()
+        _availableModelsJson.value = jsonStr
+    }
 
     fun setGithubToken(token: String?) {
         prefs.edit().putString(KEY_GITHUB_TOKEN, token).apply()
@@ -67,6 +80,7 @@ class CopilotPreferences(context: Context) {
             .remove(KEY_USER_LOGIN)
             .remove(KEY_USER_NAME)
             .remove(KEY_USER_AVATAR)
+            .remove(KEY_AVAILABLE_MODELS)
             .apply()
         _githubToken.value = null
         _copilotToken.value = null
@@ -74,6 +88,7 @@ class CopilotPreferences(context: Context) {
         _userLogin.value = null
         _userName.value = null
         _userAvatarUrl.value = null
+        _availableModelsJson.value = null
     }
 
     companion object {
@@ -85,7 +100,8 @@ class CopilotPreferences(context: Context) {
         private const val KEY_USER_NAME = "user_name"
         private const val KEY_USER_AVATAR = "user_avatar"
         private const val KEY_SELECTED_MODEL = "selected_model"
+        private const val KEY_AVAILABLE_MODELS = "available_models_json"
 
-        const val DEFAULT_MODEL = "claude-3.7-sonnet"
+        const val DEFAULT_MODEL = "gpt-4o"
     }
 }
