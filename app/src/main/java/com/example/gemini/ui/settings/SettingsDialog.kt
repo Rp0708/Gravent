@@ -385,10 +385,12 @@ fun SettingsDialog(
                     )
 
                     SettingsSection.COPILOT -> if (copilotAccount != null && copilotBackend != null) {
-                        com.example.gemini.ui.copilot.CopilotSettingsSection(
+                        com.example.gemini.ui.copilot.CopilotSubScreen(
+                            cardBg = cardBg,
+                            cardBorder = cardBorder,
+                            onBack = { currentSection = SettingsSection.MAIN },
                             accountManager = copilotAccount,
-                            backend = copilotBackend,
-                            modifier = Modifier.padding(16.dp)
+                            backend = copilotBackend
                         )
                     }
 
@@ -2823,7 +2825,9 @@ private fun McpSubScreen(
                     localSpec(bridge.ANDROID_AUTOMATION_MCP_NAME, "/android")),
                 McpPreset("Notes & To-dos", "Read & edit your notes", Icons.Outlined.EditNote, Color(0xFFF59E0B), localSpec(bridge.NOTES_MCP_NAME, "/notes")),
                 McpPreset("Stitch", "Google Stitch UI design · API key", Icons.Outlined.Palette, Color(0xFFEC4899),
-                    com.example.gemini.domain.model.McpServerSpec(serverName = "stitch", serverUrl = "https://stitch.googleapis.com/mcp", headers = mapOf("X-Goog-Api-Key" to "")))
+                    com.example.gemini.domain.model.McpServerSpec(serverName = "stitch", serverUrl = "https://stitch.googleapis.com/mcp", headers = mapOf("X-Goog-Api-Key" to ""))),
+                McpPreset("React Bits", "UI components & animations · Stdio", Icons.Outlined.AutoAwesome, Color(0xFF8B5CF6),
+                    com.example.gemini.domain.model.McpServerSpec(serverName = "reactbits", command = "npx", args = listOf("shadcn@latest", "mcp")))
             )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 presets.chunked(2).forEach { row ->

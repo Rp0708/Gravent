@@ -602,7 +602,9 @@ private fun McpPage(deps: ClaudeSettingsDeps) {
         ClaudeMcpPreset("Android", "Tap, type & read this phone", Icons.Outlined.PhoneAndroid, Color(0xFF14B8A6), local(bridge.ANDROID_AUTOMATION_MCP_NAME, "/android")),
         ClaudeMcpPreset("Notes & To-dos", "Read & edit your notes", Icons.Outlined.EditNote, Color(0xFFF59E0B), local(bridge.NOTES_MCP_NAME, "/notes")),
         ClaudeMcpPreset("Stitch", "Google Stitch UI design · API key", Icons.Outlined.Palette, Color(0xFFEC4899),
-            ClaudeMcpAddRequest(name = "stitch", transport = "http", url = "https://stitch.googleapis.com/mcp", headers = mapOf("X-Goog-Api-Key" to "")))
+            ClaudeMcpAddRequest(name = "stitch", transport = "http", url = "https://stitch.googleapis.com/mcp", headers = mapOf("X-Goog-Api-Key" to ""))),
+        ClaudeMcpPreset("React Bits", "UI components & animations · Stdio", Icons.Outlined.AutoAwesome, Color(0xFF8B5CF6),
+            ClaudeMcpAddRequest(name = "reactbits", transport = "stdio", command = "npx", args = listOf("shadcn@latest", "mcp")))
     )
     var chooseWebViewExtension by remember { mutableStateOf(false) }
     val extensionManager = remember { com.example.gemini.ui.browser.BrowserExtensionManager.instance }

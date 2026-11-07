@@ -1,14 +1,13 @@
 {
-  "version_code": 139,
-  "version_name": "1.0.39",
+  "version_code": 140,
+  "version_name": "1.0.40",
   "min_supported_version_code": 1,
   "changelog": [
-    "Phase 1: Stuck-Chat Deadlock Fix & Fail-Safe Execution: Injected non-interactive git environment flags (GIT_TERMINAL_PROMPT=0, GIT_ASKPASS=/bin/true, GIT_SSH_COMMAND non-interactive batch mode) across Termux, PRoot, and SSH; added 300s fail-safe process timeouts to live shell executions",
-    "Stuck Turn Recovery & Force Reset: Fixed bug where hung subprocesses left conversations permanently busy; added forceResetRunningState() and quick 'Force Reset' in confirmation dialogs so conversations can never become permanently bricked",
-    "Clean Cloned Repo Workspaces: Git cloning now seamlessly initializes a clean workspace in a fresh conversation (startNewChatInWorkspace) instead of mutating in-flight chats",
-    "Phase 2: GitHub Copilot Agent Integration: Added GitHub Copilot as a first-class agent alongside Antigravity and Claude Code with GitHub Device Code flow (https://github.com/login/device) and Personal Access Token (PAT) authentication",
-    "Copilot Models & Gravent Persona: Access Claude 3.7 Sonnet, Claude 3.5 Sonnet, GPT-4o, o3-mini, o1, and Gemini 2.0 Flash directly with your Copilot subscription; custom Gravent agent persona with full awareness of the Android and Termux environment",
-    "Authenticated GitHub Repo Cloning: Connected GitHub accounts enable 1-tap cloning of both public and private repositories with zero terminal credential prompts"
+    "GitHub Copilot Device Code Auth Fix: Resolved 404 'Not Found' error during device code request by adopting the official GitHub Copilot client ID (Iv1.b507a08c87ecfe98); streamlined 1-tap 'Copy & Open GitHub' browser flow with real-time background token polling",
+    "Copilot Developer Tools & Binary Manager: Dedicated subscreen with status monitoring for git, GitHub CLI (gh), and gh-copilot extension; one-tap installer & updater with live streaming terminal logs",
+    "GitHub CLI Auth Synchronization: 1-tap sync of Copilot token directly into Termux gh CLI via stdin (gh auth login --with-token) for immediate terminal CLI access",
+    "Repositories & 1-Tap Workspace Clone: Browse public and private GitHub repositories directly from settings with instant cloning into workspace projects",
+    "React Bits MCP Server 1-Tap Preset: Added built-in Quick Preset for React Bits UI components MCP (npx shadcn@latest mcp) across Antigravity and Claude Code"
   ],
   "is_critical": false
 }

@@ -112,7 +112,7 @@ class CopilotAccountManager(
             val response = httpClient.newCall(request).execute()
             val respBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Failed to request device code: ${response.code} $respBody"))
+                return@withContext Result.failure(Exception("GitHub returned error ${response.code}: $respBody"))
             }
 
             val deviceCodeResp = json.decodeFromString<DeviceCodeResponse>(respBody)
@@ -303,6 +303,21 @@ class CopilotAccountManager(
         }
     }
 
+    suspend fun syncTokenToGhCli(): Result<String> = withContext(Dispatchers.IO) {
+        val token = prefs.githubToken.value ?: return@withContext Result.failure(IllegalStateException("No GitHub token stored"))
+        try {
+            val cmd = "printf '%s' \"$token\" | gh auth login --with-token"
+            val result = com.example.gemini.data.local.LocalEnvironmentManager.executeCommand(cmd, context = context)
+            if (result.exitCode == 0) {
+                Result.success("Successfully synchronized GitHub CLI (gh) authentication!")
+            } else {
+                Result.failure(Exception(result.output.ifBlank { "Exit code ${result.exitCode}" }))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun logout() {
         pollingJob?.cancel()
         _deviceCodeFlow.value = null
@@ -313,7 +328,7 @@ class CopilotAccountManager(
 
     companion object {
         private const val TAG = "CopilotAccountManager"
-        // Standard GitHub CLI / Copilot Client ID widely used for device flow
-        const val CLIENT_ID = "0170a3f47e3845ac4244"
+        // Official GitHub Copilot Client ID (supported by GitHub Device Code Flow)
+        const val CLIENT_ID = "Iv1.b507a08c87ecfe98"
     }
 }
