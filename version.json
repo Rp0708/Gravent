@@ -1,13 +1,11 @@
 {
-  "version_code": 140,
-  "version_name": "1.0.40",
+  "version_code": 141,
+  "version_name": "1.0.41",
   "min_supported_version_code": 1,
   "changelog": [
-    "GitHub Copilot Device Code Auth Fix: Resolved 404 'Not Found' error during device code request by adopting the official GitHub Copilot client ID (Iv1.b507a08c87ecfe98); streamlined 1-tap 'Copy & Open GitHub' browser flow with real-time background token polling",
-    "Copilot Developer Tools & Binary Manager: Dedicated subscreen with status monitoring for git, GitHub CLI (gh), and gh-copilot extension; one-tap installer & updater with live streaming terminal logs",
-    "GitHub CLI Auth Synchronization: 1-tap sync of Copilot token directly into Termux gh CLI via stdin (gh auth login --with-token) for immediate terminal CLI access",
-    "Repositories & 1-Tap Workspace Clone: Browse public and private GitHub repositories directly from settings with instant cloning into workspace projects",
-    "React Bits MCP Server 1-Tap Preset: Added built-in Quick Preset for React Bits UI components MCP (npx shadcn@latest mcp) across Antigravity and Claude Code"
+    "In-Chat Copilot Setup & 1-Tap Sign In: When switching to Copilot on an empty chat, a dedicated setup card appears immediately on screen with 1-tap 'Sign in with GitHub', device code dialog popup, clear step-by-step instructions, and PAT option without needing to navigate into Settings",
+    "Clean Agent Switching & Ghost Chat Prevention: Switching agents on an empty screen no longer spawns ghost conversations or unwanted workspace folder branches; chats are only materialized and saved to disk when the first message is sent, and previous empty ghost chats are cleaned up",
+    "React Bits Redesigned Top Bar: Modern futuristic header featuring 'ShinyText' dynamic gradient shimmer across the chat title, an animated breathing pulse dot matching the active agent's signature accent (Cyan, Terracotta, or Purple), an interactive glass breadcrumb capsule ('• Agent › 📁 Workspace ▾'), and frosted glass circular navigation"
   ],
   "is_critical": false
 }

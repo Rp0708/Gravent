@@ -31,9 +31,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.agent.copilot.CopilotAccountManager
+import com.example.gemini.data.agent.copilot.CopilotAuthState
 import com.example.gemini.data.agent.copilot.CopilotChatBackend
 import com.example.gemini.data.agent.copilot.DeviceCodeResponse
 import com.example.gemini.data.agent.copilot.GitHubRepo
@@ -1213,4 +1215,184 @@ fun GitHubTokenDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+/** In-chat setup prompt card when Copilot agent is selected but user is not signed in or needs setup. */
+@Composable
+fun CopilotStatusPrompt(
+    authState: CopilotAuthState,
+    onSignIn: () -> Unit,
+    onSetupTools: () -> Unit,
+    onEnterPat: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, CopilotPurple.copy(alpha = 0.35f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(CopilotPurple.copy(alpha = 0.18f))
+                    .border(1.5.dp, CopilotPurple.copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "CP",
+                    color = CopilotPurple,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp,
+                    letterSpacing = (-0.5).sp
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (!authState.isLoggedIn) CopilotPurple.copy(alpha = 0.15f) else Color(0xFFF59E0B).copy(alpha = 0.15f)
+            ) {
+                Text(
+                    text = if (!authState.isLoggedIn) "GitHub Copilot Setup" else "Subscription Inactive",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (!authState.isLoggedIn) CopilotPurple else Color(0xFFF59E0B),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = if (!authState.isLoggedIn) "Connect Your GitHub Account" else "Active Subscription Required",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = if (!authState.isLoggedIn) {
+                    "Sign in with your GitHub account to access Claude 3.7 Sonnet, GPT-4o, and other Copilot models directly inside Gravent."
+                } else {
+                    "Signed in as @${authState.user?.login}, but no active Copilot subscription was detected. Verify your plan or manage CLI tools."
+                },
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center
+            )
+
+            if (!authState.isLoggedIn) {
+                Spacer(Modifier.height(16.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        CopilotStepRow(num = "1", text = "Tap 'Sign in with GitHub' to get a one-time device code.")
+                        CopilotStepRow(num = "2", text = "Open browser and authorize with your GitHub login.")
+                        CopilotStepRow(num = "3", text = "Start coding instantly with Copilot agent models!")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            if (!authState.isLoggedIn) {
+                Button(
+                    onClick = onSignIn,
+                    colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.Login, contentDescription = null, Modifier.size(17.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Sign in with GitHub", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onSetupTools,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Outlined.Build, contentDescription = null, Modifier.size(15.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Tools & Setup", fontSize = 12.5.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = onEnterPat,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Key, contentDescription = "Enter PAT", Modifier.size(16.dp))
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = onSetupTools,
+                        colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Outlined.Settings, contentDescription = null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Manage Account & Tools", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    OutlinedButton(
+                        onClick = onRetry,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Retry", Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CopilotStepRow(num: String, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(CopilotPurple.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(num, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = CopilotPurple)
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+    }
 }

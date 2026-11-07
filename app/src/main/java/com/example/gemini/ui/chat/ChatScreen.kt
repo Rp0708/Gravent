@@ -9,9 +9,12 @@ import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.TextStyle
+import com.example.gemini.ui.copilot.CopilotPurple
+import com.example.gemini.ui.settings.SettingsSection
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -289,6 +292,8 @@ fun ChatScreen(
     var showRawPayloadDialog by remember { mutableStateOf<String?>(null) }
     var showChatTelemetryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var settingsInitialSection by remember { mutableStateOf<SettingsSection?>(null) }
+    var showCopilotPatDialog by remember { mutableStateOf(false) }
     var showAttachmentSelector by remember { mutableStateOf(false) }
     var showProjectPickerDialog by remember { mutableStateOf(false) }
     var showGitCloneDialog by remember { mutableStateOf(false) }
@@ -401,6 +406,7 @@ fun ChatScreen(
         )
     } else null
     val copilotAuthState by viewModel.copilotAccount.authState.collectAsState()
+    val copilotDeviceCode by viewModel.copilotAccount.deviceCodeFlow.collectAsState()
     val copilotEntry = if (com.example.gemini.domain.model.AgentKind.COPILOT in enabledAgents) {
         val copilotColor = if (copilotAuthState.hasCopilotAccess) Color(0xFF22C55E) else if (copilotAuthState.isLoggedIn) Color(0xFFFFA000) else Color.Red
         com.example.gemini.ui.agents.AgentStatusEntry(
@@ -1172,59 +1178,127 @@ fun ChatScreen(
                             listTitle ?: activeTitle ?: currentConv?.title?.takeIf { it.isNotBlank() } ?: "Antigravity Chat"
                         }
 
-                        Column {
+                        val activeAgent = currentConv?.agent ?: newChatAgent
+                        val activeAgentColor = when (activeAgent) {
+                            com.example.gemini.domain.model.AgentKind.COPILOT -> CopilotPurple
+                            com.example.gemini.domain.model.AgentKind.CLAUDE -> ClaudeTerracotta
+                            else -> Color(0xFF38BDF8)
+                        }
+                        val activeAgentName = when (activeAgent) {
+                            com.example.gemini.domain.model.AgentKind.COPILOT -> "Copilot"
+                            com.example.gemini.domain.model.AgentKind.CLAUDE -> "Claude Code"
+                            else -> "Antigravity"
+                        }
+
+                        val infiniteTransition = rememberInfiniteTransition(label = "TopBarShiny")
+                        val shimmerOffset by infiniteTransition.animateFloat(
+                            initialValue = -250f,
+                            targetValue = 900f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(2800, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "ShimmerOffset"
+                        )
+                        val dotPulse by infiniteTransition.animateFloat(
+                            initialValue = 0.45f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1300, easing = FastOutSlowInEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "DotPulse"
+                        )
+
+                        val shinyBrush = Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.onSurface,
+                                activeAgentColor.copy(alpha = 0.85f),
+                                Color.White,
+                                activeAgentColor.copy(alpha = 0.85f),
+                                MaterialTheme.colorScheme.onSurface
+                            ),
+                            start = Offset(shimmerOffset, 0f),
+                            end = Offset(shimmerOffset + 240f, 0f)
+                        )
+
+                        val isChatStarted = messages.isNotEmpty()
+                        val displayedProjectName = remember(currentConv?.workspaceUri, isChatStarted) {
+                            val convUri = currentConv?.workspaceUri
+                            if (!convUri.isNullOrBlank()) {
+                                val clean = convUri.removePrefix("file://").trimEnd('/')
+                                File(clean).name.ifBlank { "Workspace" }
+                            } else {
+                                if (isChatStarted) "Outside" else "Select Project"
+                            }
+                        }
+
+                        Column(modifier = Modifier.padding(vertical = 2.dp)) {
                             Text(
                                 text = displayedChatTitle,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 15.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = TextStyle(brush = shinyBrush),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val isChatStarted = messages.isNotEmpty()
-                                val displayedProjectName = remember(currentConv?.workspaceUri, isChatStarted) {
-                                    val convUri = currentConv?.workspaceUri
-                                    if (!convUri.isNullOrBlank()) {
-                                        val clean = convUri.removePrefix("file://").trimEnd('/')
-                                        File(clean).name.ifBlank { "Workspace" }
-                                    } else {
-                                        if (isChatStarted) "Outside" else "Select Project"
-                                    }
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFF18181B).copy(alpha = 0.6f),
-                                    border = BorderStroke(0.5.dp, Color(0xFF27272A)),
-                                    modifier = if (isChatStarted) Modifier else Modifier.clickable {
-                                        showProjectPickerDialog = true
-                                    }
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color(0xFF141417).copy(alpha = 0.75f),
+                                border = BorderStroke(0.6.dp, Color(0xFF27272A).copy(alpha = 0.8f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(activeAgentColor.copy(alpha = dotPulse))
+                                    )
+                                    Spacer(modifier = Modifier.width(4.5.dp))
+                                    Text(
+                                        text = activeAgentName,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = activeAgentColor
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        text = "›",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF71717A)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable(enabled = !isChatStarted) {
+                                                showProjectPickerDialog = true
+                                            },
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Folder,
+                                            imageVector = Icons.Outlined.Folder,
                                             contentDescription = null,
-                                            modifier = Modifier.size(11.dp),
-                                            tint = if (isChatStarted) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
+                                            modifier = Modifier.size(11.5.dp),
+                                            tint = if (displayedProjectName != "Select Project" && displayedProjectName != "Outside") activeAgentColor else Color(0xFFA1A1AA)
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Spacer(modifier = Modifier.width(3.5.dp))
                                         Text(
                                             text = displayedProjectName,
-                                            style = MaterialTheme.typography.labelSmall,
                                             fontSize = 11.sp,
-                                            color = Color(0xFFA1A1AA)
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (displayedProjectName != "Select Project") Color(0xFFE4E4E7) else Color(0xFFA1A1AA)
                                         )
                                         if (!isChatStarted) {
                                             Spacer(modifier = Modifier.width(2.dp))
                                             Icon(
                                                 imageVector = Icons.Default.ArrowDropDown,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(13.dp),
+                                                modifier = Modifier.size(12.dp),
                                                 tint = Color(0xFFA1A1AA)
                                             )
                                         }
@@ -1234,21 +1308,33 @@ fun ChatScreen(
                         }
                     },
                     navigationIcon = {
-                        if (conversationBackStack.isNotEmpty()) {
-                            IconButton(onClick = navigateBackConversation) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        } else {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "Open Drawer",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 12.dp)
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF18181B).copy(alpha = 0.65f))
+                                .border(0.75.dp, Color(0xFF27272A), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (conversationBackStack.isNotEmpty()) {
+                                IconButton(onClick = navigateBackConversation, modifier = Modifier.size(38.dp)) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else {
+                                IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(38.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = "Open Drawer",
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     },
@@ -1472,7 +1558,25 @@ fun ChatScreen(
                                         onServerLogs = { showLocalServerOutputDialog = true },
                                         serverStarting = serverRestarting
                                     )
-                                } else when (if (isClaudeChat) null else systemConnectionState.status) {
+                                } else if (isCopilotChat && (!copilotAuthState.isLoggedIn || !copilotAuthState.hasCopilotAccess)) {
+                                    com.example.gemini.ui.copilot.CopilotStatusPrompt(
+                                        authState = copilotAuthState,
+                                        onSignIn = {
+                                            scope.launch {
+                                                val res = viewModel.copilotAccount.startDeviceFlow()
+                                                res.onFailure {
+                                                    Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        },
+                                        onSetupTools = {
+                                            settingsInitialSection = SettingsSection.COPILOT
+                                            showSettingsDialog = true
+                                        },
+                                        onEnterPat = { showCopilotPatDialog = true },
+                                        onRetry = { viewModel.copilotAccount.refreshStatus() }
+                                    )
+                                } else when (if (isClaudeChat || isCopilotChat) null else systemConnectionState.status) {
                                     com.example.gemini.data.remote.SystemStatus.CHECKING_AUTH -> {
                                         com.example.gemini.ui.components.NewChatCheckingAuthPromptCard()
                                     }
@@ -2352,15 +2456,44 @@ fun ChatScreen(
             onApplyAgents = { viewModel.applyAgents(it) },
             copilotAccount = viewModel.copilotAccount,
             copilotBackend = viewModel.copilotBackend,
+            initialSection = settingsInitialSection,
             onDismiss = {
                 showSettingsDialog = false
                 claudeSettingsPage = null
+                settingsInitialSection = null
             }
         )
     }
 
     if (showClaudeLogin) {
         com.example.gemini.ui.claude.ClaudeLoginDialog(viewModel.claudeAccount) { showClaudeLogin = false }
+    }
+
+    // Copilot Device Code Dialog right inside ChatScreen
+    copilotDeviceCode?.let { codeResp ->
+        com.example.gemini.ui.copilot.GitHubDeviceFlowDialog(
+            codeResponse = codeResp,
+            onDismiss = { viewModel.copilotAccount.cancelDeviceFlow() },
+            onApproved = { viewModel.copilotAccount.refreshStatus() },
+            accountManager = viewModel.copilotAccount
+        )
+    }
+
+    // Copilot PAT Manual Entry Dialog
+    if (showCopilotPatDialog) {
+        com.example.gemini.ui.copilot.GitHubTokenDialog(
+            onDismiss = { showCopilotPatDialog = false },
+            onLogin = { token ->
+                viewModel.copilotAccount.loginWithDirectToken(token) { success, err ->
+                    if (success) {
+                        showCopilotPatDialog = false
+                        Toast.makeText(context, "GitHub Copilot connected!", Toast.LENGTH_SHORT).show()
+                    } else if (err != null) {
+                        Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        )
     }
 
     // asked once the local environment (rootfs) is installed, before the local server starts

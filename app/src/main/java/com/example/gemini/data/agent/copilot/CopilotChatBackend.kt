@@ -89,27 +89,29 @@ class CopilotChatBackend(
     }
 
     fun start() {
-        if (_conversations.value.isEmpty()) {
-            startNewChat()
-        }
+        // Startup without forcing an unsaved ghost conversation
     }
 
     override fun startNewChat() {
         val id = UUID.randomUUID().toString()
+        val defaultProjPath = com.example.gemini.data.daemon.TermuxDaemonManager.activeProject.value?.path ?: ""
+        val defaultWorkspaceUri = if (defaultProjPath.isNotBlank()) {
+            if (defaultProjPath.startsWith("file://")) defaultProjPath else "file://$defaultProjPath"
+        } else ""
         val conv = Conversation(
             id = id,
             title = "New Chat",
             sessionId = id,
+            workspaceUri = defaultWorkspaceUri,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
             agent = AgentKind.COPILOT
         )
-        val updated = listOf(conv) + _conversations.value.filter { it.id != id }
-        _conversations.value = updated
+        // Keep as draft in currentConversation only. Do NOT save to disk or add to _conversations
+        // until the user actually sends their first message.
         _messages.value = emptyList()
         _conversationError.value = null
         store.currentConversation.value = conv
-        saveConversations()
     }
 
     override fun selectConversation(id: String) {
@@ -137,16 +139,22 @@ class CopilotChatBackend(
         _messages.value = updatedMsgs
 
         // Update conversation title if first message
-        if (_messages.value.size <= 2 && (conv.title == "New Chat" || conv.title == "Conversation")) {
-            val previewTitle = if (trimmed.length > 36) trimmed.take(36) + "…" else trimmed
-            val updatedConv = conv.copy(title = previewTitle, updatedAt = System.currentTimeMillis())
-            store.currentConversation.value = updatedConv
-            _conversations.value = _conversations.value.map { if (it.id == conv.id) updatedConv else it }
-            saveConversations()
-        }
+        val updatedTitle = if (_messages.value.size <= 2 && (conv.title == "New Chat" || conv.title == "Conversation")) {
+            if (trimmed.length > 36) trimmed.take(36) + "…" else trimmed
+        } else conv.title
+        val updatedConv = conv.copy(title = updatedTitle, updatedAt = System.currentTimeMillis())
+        store.currentConversation.value = updatedConv
 
+        // Materialize conversation into saved list upon first user message
+        val exists = _conversations.value.any { it.id == conv.id }
+        if (!exists) {
+            _conversations.value = listOf(updatedConv) + _conversations.value
+        } else {
+            _conversations.value = _conversations.value.map { if (it.id == conv.id) updatedConv else it }
+        }
+        saveConversations()
         saveMessages(conv.id)
-        executeCompletions(conv, updatedMsgs)
+        executeCompletions(updatedConv, updatedMsgs)
     }
 
     private fun executeCompletions(conv: Conversation, history: List<ChatMessage>) {
@@ -357,7 +365,15 @@ class CopilotChatBackend(
         try {
             val text = file.readText()
             val list = json.decodeFromString<List<ConversationRecord>>(text)
-            _conversations.value = list.map { it.toConversation() }
+            // Filter out empty ghost chats that never had messages sent
+            val valid = list.map { it.toConversation() }.filter { conv ->
+                val msgFile = File(storageDir, "messages_${conv.id}.json")
+                msgFile.exists() && msgFile.length() > 5
+            }
+            _conversations.value = valid
+            if (valid.size != list.size) {
+                saveConversations()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load conversations", e)
         }

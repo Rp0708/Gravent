@@ -158,8 +158,11 @@ fun ChatHistoryDrawer(
     val hasBothAgents = remember(conversations) { conversations.map { it.agent }.distinct().size > 1 }
     val filtered = remember(conversations, searchQuery, agentFilter) {
         val byAgent = agentFilter?.let { a -> conversations.filter { it.agent == a } } ?: conversations
-        if (searchQuery.isBlank()) byAgent
-        else byAgent.filter {
+        val nonDrafts = byAgent.filter { conv ->
+            !(conv.title == "New Chat" && conv.updatedAt == conv.createdAt)
+        }
+        if (searchQuery.isBlank()) nonDrafts
+        else nonDrafts.filter {
             it.title.contains(searchQuery, ignoreCase = true) ||
                     (it.subagentRole != null && it.subagentRole.contains(searchQuery, ignoreCase = true))
         }

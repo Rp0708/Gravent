@@ -244,11 +244,14 @@ fun SettingsDialog(
     onApplyAgents: (Set<com.example.gemini.domain.model.AgentKind>) -> Unit = {},
     copilotAccount: com.example.gemini.data.agent.copilot.CopilotAccountManager? = null,
     copilotBackend: com.example.gemini.data.agent.copilot.CopilotChatBackend? = null,
+    initialSection: SettingsSection? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var currentSection by remember { mutableStateOf(if (initialClaudePage != null && claude != null) SettingsSection.CLAUDE else SettingsSection.MAIN) }
+    var currentSection by remember(initialSection) {
+        mutableStateOf(initialSection ?: if (initialClaudePage != null && claude != null) SettingsSection.CLAUDE else SettingsSection.MAIN)
+    }
     var claudePage by remember { mutableStateOf(initialClaudePage ?: com.example.gemini.ui.claude.ClaudeSettingsPage.ACCOUNT) }
     // Hoisted so the main list keeps its position while a sub-section is open
     val mainMenuScrollState = rememberScrollState()
