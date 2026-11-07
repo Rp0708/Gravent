@@ -1,12 +1,12 @@
 {
-  "version_code": 136,
-  "version_name": "1.0.36",
+  "version_code": 137,
+  "version_name": "1.0.37",
   "min_supported_version_code": 1,
   "changelog": [
-    "React Bits Startup Redesign: Completely redesigned the engine warming screen to match the official React Bits editorial layout with an open canvas, bottom dark gradient scrim, live status pill, bold typography ('Intelligence in motion.'), and white pill button",
-    "Quiet Native Chat Input: Removed StarBorder animation from the input bar in favor of a clean, static, low-overhead native surface border",
-    "Instant Conversation Title: Replaced DecryptedText title scrambling with instant native typography for a clean look with zero lag or glitching on low-end devices",
-    "Drawer Ambience Polish: Bottom-anchored engine connection notice with high-contrast typography and subtle gradient scrim"
+    "React Bits Gooey Nav: Implemented zero-overhead vector Metaball GooeyNav for companion tools (Browser, Terminal, IDE) with organic cubic Bézier liquid stretch & snap physics",
+    "Removed Status Dots: Completely removed the green dot chip from the warming screen and the raw status dot from the top bar for a clean, distraction-free flagship look",
+    "Edge-to-Edge Transparent Top Bar: Made the top bar 100% transparent so the fluid line canvas extends seamlessly to the top of the display",
+    "Bespoke Workspace Header: Replaced generic Android project selector with an ultra-sleek translucent pill"
   ],
   "is_critical": false
 }

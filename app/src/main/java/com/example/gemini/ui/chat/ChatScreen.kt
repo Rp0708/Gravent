@@ -96,6 +96,8 @@ import com.example.gemini.ui.components.AssistantMessageFooter
 import com.example.gemini.ui.components.ThinkingAccordion
 import com.example.gemini.ui.components.ModelTypingIndicator
 import com.example.gemini.ui.components.ConnectionStatusBadge
+import com.example.gemini.ui.components.GooeyNav
+import com.example.gemini.ui.components.GooeyNavItem
 import com.example.gemini.ui.components.FileLinkHandler
 import com.example.gemini.ui.components.LocalFileLinkHandler
 import com.example.gemini.ui.components.FileDetailsDialog
@@ -1176,14 +1178,15 @@ fun ChatScreen(
                                 }
 
                                 Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isChatStarted) 0.4f else 0.6f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFF18181B).copy(alpha = 0.6f),
+                                    border = BorderStroke(0.5.dp, Color(0xFF27272A)),
                                     modifier = if (isChatStarted) Modifier else Modifier.clickable {
                                         showProjectPickerDialog = true
                                     }
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
@@ -1197,14 +1200,15 @@ fun ChatScreen(
                                             text = displayedProjectName,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontSize = 11.sp,
-                                            color = if (isChatStarted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = Color(0xFFA1A1AA)
                                         )
                                         if (!isChatStarted) {
+                                            Spacer(modifier = Modifier.width(2.dp))
                                             Icon(
                                                 imageVector = Icons.Default.ArrowDropDown,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(14.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                modifier = Modifier.size(13.dp),
+                                                tint = Color(0xFFA1A1AA)
                                             )
                                         }
                                     }
@@ -1248,43 +1252,47 @@ fun ChatScreen(
                                 )
                             }
                         }
-                        if (isLocalToolsInstalled || com.example.gemini.data.local.LocalEnvironmentManager.isInstalled(context) || systemConnectionState.status != com.example.gemini.data.remote.SystemStatus.OFFLINE) {
-                            // upper half Antigravity, lower half Claude Code (one solid dot when they agree)
-                            com.example.gemini.ui.agents.AgentStatusIndicator(
-                                entries = agentEntries,
-                                onOpenServerLogs = { showLocalServerOutputDialog = true }
+                        val gooeyTools = remember(useSshTerminal, isLocalToolsInstalled, isLocalToolsEnabled) {
+                            listOf(
+                                GooeyNavItem(
+                                    id = "browser",
+                                    icon = Icons.Outlined.Language,
+                                    contentDescription = "Web Browser Preview",
+                                    activeTint = Color.White,
+                                    inactiveTint = Color(0xFFA1A1AA),
+                                    onClick = onNavigateToBrowser
+                                ),
+                                GooeyNavItem(
+                                    id = "terminal",
+                                    icon = Icons.Outlined.Terminal,
+                                    contentDescription = "Terminal",
+                                    activeTint = ClaudeTerracotta,
+                                    inactiveTint = if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) ClaudeTerracotta.copy(alpha = 0.85f) else Color(0xFFA1A1AA),
+                                    onClick = {
+                                        if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) {
+                                            onNavigateToTerminal()
+                                        } else if (isLocalToolsInstalled) {
+                                            viewModel.setLocalToolsEnabled(true)
+                                            onNavigateToTerminal()
+                                        } else {
+                                            showLocalToolsInstallDialog = true
+                                        }
+                                    }
+                                ),
+                                GooeyNavItem(
+                                    id = "ide",
+                                    icon = Icons.Default.Code,
+                                    contentDescription = "Code Editor IDE",
+                                    activeTint = Color(0xFF38BDF8),
+                                    inactiveTint = Color(0xFFA1A1AA),
+                                    onClick = onNavigateToIde
+                                )
                             )
                         }
-                        IconButton(onClick = onNavigateToBrowser) {
-                            Icon(
-                                imageVector = Icons.Outlined.Language,
-                                contentDescription = "Web Browser Preview",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                            )
-                        }
-                        IconButton(onClick = {
-                            if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) {
-                                onNavigateToTerminal()
-                            } else if (isLocalToolsInstalled) {
-                                viewModel.setLocalToolsEnabled(true)
-                                onNavigateToTerminal()
-                            } else {
-                                showLocalToolsInstallDialog = true
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Terminal,
-                                contentDescription = "Terminal",
-                                tint = if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                            )
-                        }
-                        IconButton(onClick = onNavigateToIde) {
-                            Icon(
-                                imageVector = Icons.Default.Code,
-                                contentDescription = "Code Editor IDE",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        GooeyNav(
+                            items = gooeyTools,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
                         if (isDevModeEnabled) {
                             IconButton(onClick = { showChatTelemetryDialog = true }) {
                                 Icon(
@@ -1296,7 +1304,8 @@ fun ChatScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
                     )
                 )
             },

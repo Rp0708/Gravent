@@ -85,35 +85,6 @@ fun EngineWarmingUpView(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Subtle live status pill
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF18181B).copy(alpha = 0.85f),
-                border = BorderStroke(1.dp, Color(0xFF27272A))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .background(Color(0xFF4CAF50), CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Warming engine",
-                        style = TextStyle(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFFD4D4D8)
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
             // Bold confident React Bits headline
             Text(
                 text = "Intelligence in motion.",
