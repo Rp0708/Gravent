@@ -519,7 +519,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /** Messages of the chat on screen, from the agent that owns it. */
     val messages: StateFlow<List<ChatMessage>> = byAgent(_messages, claudeBackend.messages, copilotBackend.messages)
 
-    private val _thinkingPreference = MutableStateFlow(com.example.gemini.domain.model.ThinkingPreference())
+    private val _thinkingPreference = store.thinkingPreference
     val thinkingPreference: StateFlow<com.example.gemini.domain.model.ThinkingPreference> = _thinkingPreference.asStateFlow()
 
     private val _userEmail = store.userEmail

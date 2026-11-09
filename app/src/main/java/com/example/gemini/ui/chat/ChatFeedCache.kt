@@ -56,7 +56,8 @@ object ChatFeedCache {
                     msg.content
                 }
                 if (contentToParse.isNotEmpty() || msg.toolCalls.isNotEmpty()) {
-                    val blocks = parseMarkdownBlocks(contentToParse, msg.toolCalls)
+                    val rawBlocks = parseMarkdownBlocks(contentToParse, msg.toolCalls)
+                    val blocks = groupToolBlocks(rawBlocks, isStreaming = false)
                     for (i in blocks.indices) {
                         msgItems.add(ChatFeedItem.AssistantBlock(
                             messageId = msg.id,
@@ -121,6 +122,56 @@ object ChatFeedCache {
     }
 
     /**
+     * Groups contiguous [MarkdownBlock.AgentTool] blocks into a single [MarkdownBlock.AgentToolGroup] (CommandsAccordion).
+     * Interactive choice questionnaires are kept distinct so users can answer them without impediment.
+     */
+    fun groupToolBlocks(blocks: List<MarkdownBlock>, isStreaming: Boolean): List<MarkdownBlock> {
+        if (blocks.none { it is MarkdownBlock.AgentTool }) return blocks
+        val result = mutableListOf<MarkdownBlock>()
+        val currentToolGroup = mutableListOf<com.example.gemini.domain.model.ToolCall>()
+
+        fun flushGroup() {
+            if (currentToolGroup.isNotEmpty()) {
+                if (currentToolGroup.size == 1 && currentToolGroup[0].toolType == com.example.gemini.domain.model.ToolType.ASK_CHOICE) {
+                    result.add(MarkdownBlock.AgentTool(currentToolGroup[0]))
+                } else {
+                    val bgTasks = currentToolGroup.filter { it.isBackground || (it.status == "RUNNING" && !isStreaming) }
+                    val finishedTasks = currentToolGroup.filterNot { it.isBackground || (it.status == "RUNNING" && !isStreaming) }
+
+                    if (bgTasks.isNotEmpty() && !isStreaming) {
+                        // Separate dropdown for commands actively running in the background
+                        result.add(MarkdownBlock.AgentToolGroup(bgTasks, isStreaming = false, isBackgroundSection = true))
+                        // Separate dropdown for finished commands (if any)
+                        if (finishedTasks.isNotEmpty()) {
+                            result.add(MarkdownBlock.AgentToolGroup(finishedTasks, isStreaming = false, isBackgroundSection = false))
+                        }
+                    } else {
+                        // Standard single dropdown when no background commands or while streaming
+                        result.add(MarkdownBlock.AgentToolGroup(currentToolGroup.toList(), isStreaming = isStreaming, isBackgroundSection = false))
+                    }
+                }
+                currentToolGroup.clear()
+            }
+        }
+
+        for (block in blocks) {
+            if (block is MarkdownBlock.AgentTool) {
+                if (block.toolCall.toolType == com.example.gemini.domain.model.ToolType.ASK_CHOICE) {
+                    flushGroup()
+                    result.add(block)
+                } else {
+                    currentToolGroup.add(block.toolCall)
+                }
+            } else {
+                flushGroup()
+                result.add(block)
+            }
+        }
+        flushGroup()
+        return result
+    }
+
+    /**
      * The chat as list items. With [dividers], a divider goes before the first prompt of each new day ("Sat, Oct 10")
      * and before the prompt of a reply whose model differs from the previous reply's ("Switched to Sonnet 5.5";
      * [modelName] turns a model id into its display name).
@@ -129,7 +180,8 @@ object ChatFeedCache {
         messages: List<ChatMessage>,
         selectedModelId: String,
         dividers: Boolean = false,
-        modelName: (String) -> String = { it }
+        modelName: (String) -> String = { it },
+        isActivelyRunning: Boolean = false
     ): List<ChatFeedItem> {
         val result = ArrayList<ChatFeedItem>(messages.size * 3)
         val seenKeys = HashSet<String>()
@@ -145,6 +197,7 @@ object ChatFeedCache {
         var lastModel: String? = null
         // where the latest prompt's items start: a model divider goes right before that prompt
         var promptStart = -1
+        val lastMessage = messages.lastOrNull()
         for (msg in messages) {
             if (dividers && msg.role == MessageRole.USER) {
                 val day = dayKey(msg.createdAt)
@@ -167,7 +220,9 @@ object ChatFeedCache {
             }
             // only the first reply after a prompt may put a divider before that prompt
             if (msg.role == MessageRole.ASSISTANT) promptStart = -1
-            if (!msg.isStreaming) {
+
+            val isCurrentTurnRunning = msg.isStreaming || (msg == lastMessage && isActivelyRunning)
+            if (!isCurrentTurnRunning) {
                 val parsed = getOrParse(msg)
                 for (item in parsed) {
                     addItem(item)
@@ -187,7 +242,8 @@ object ChatFeedCache {
                     msg.content
                 }
                 if (contentToParse.isNotEmpty() || msg.toolCalls.isNotEmpty()) {
-                    val blocks = parseMarkdownBlocks(contentToParse, msg.toolCalls)
+                    val rawBlocks = parseMarkdownBlocks(contentToParse, msg.toolCalls)
+                    val blocks = groupToolBlocks(rawBlocks, isStreaming = true)
                     for (i in blocks.indices) {
                         addItem(ChatFeedItem.AssistantBlock(
                             messageId = msg.id,
@@ -196,6 +252,11 @@ object ChatFeedCache {
                             isFirst = i == 0,
                             isLast = i == blocks.lastIndex
                         ))
+                    }
+                    if (!hasActiveRunningTool && msg.content.isBlank()) {
+                        // After terminal commands finish in an active turn, show the typing/thinking indicator
+                        // so the user clearly sees the agent is formulating the subsequent response!
+                        addItem(ChatFeedItem.AssistantTyping(msg.id, selectedModelId))
                     }
                 } else if (!hasActiveRunningTool) {
                     // Only show waiting indicator before ANY output or tool call has appeared

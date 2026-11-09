@@ -1,14 +1,14 @@
 {
-  "version_code": 149,
-  "version_name": "1.0.49",
+  "version_code": 150,
+  "version_name": "1.0.50",
   "min_supported_version_code": 1,
   "changelog": [
-    "Phase 1 Universal Agent Persona & Intelligent Context Architecture: Unified design-neutral Gravent core identity across Google Antigravity, Anthropic Claude Code, and GitHub Copilot",
-    "Grounded GitHub Copilot Capability Model: Pure Advisory & Code Generation Consultant with bounded skill preloading, removing false local command and filesystem claims",
-    "Provider-Native Instruction Loading: Clean ingestion via AGENTS.md for Antigravity daemon, CLAUDE.md for Claude Code CLI, and system/developer payload for Copilot API",
-    "Backend-Aware PromptExpansion: Migrated envelope tags to <gravent-expansion> with dual-regex backward compatibility for historical chats",
-    "4-Stage MCP Readiness Lifecycle: Independent tracking of tools, resources, and prompts across Configured -> Connected -> Initialized -> Ready states with disconnect invalidation",
-    "Resolved backend AgentKind mapping for Antigravity in PromptExpansion and ChatViewModel"
+    "Home / New Chat Screen developer redesign: Clean Linear/Cursor developer workspace with top-anchored layout, active workspace context card, segmented agent picker, quick actions, and recent session cards",
+    "Terminal & Streaming Execution Fix: Resolved streaming hang and premature teardown on multi-command tool execution, maintaining persistent gRPC connection across tool cycles",
+    "Collapsible Commands Accordion: Streamlined post-generation chat feed by automatically grouping terminal/bash commands into a clean collapsible dropdown",
+    "Background Commands Separation: Automatically isolated active background tasks into a dedicated real-time running section alongside finished commands",
+    "File Citation & Link UI Overhaul: Clean IDE-styled chip rendering with file icons and removed raw markdown backtick artifacts",
+    "Response Latency & Speed Optimization: Bound thinking token budget directly to composer preference (Low/Med/High/Off) and tuned stream dispatch throttle to 24ms"
   ],
   "is_critical": false
 }

@@ -119,6 +119,12 @@ sealed class MarkdownBlock {
     @androidx.compose.runtime.Immutable
     data class AgentTool(val toolCall: com.example.gemini.domain.model.ToolCall) : MarkdownBlock()
     @androidx.compose.runtime.Immutable
+    data class AgentToolGroup(
+        val toolCalls: List<com.example.gemini.domain.model.ToolCall>,
+        val isStreaming: Boolean = false,
+        val isBackgroundSection: Boolean = false
+    ) : MarkdownBlock()
+    @androidx.compose.runtime.Immutable
     data class AgentError(
         val title: String = "Error",
         val userMessage: String = "",
@@ -190,6 +196,19 @@ fun MarkdownBlockView(
                 onApprove = onApproveTool,
                 onReject = onRejectTool,
                 onTerminate = onTerminateTool,
+                onSubmitChoices = onSubmitChoices,
+                onSkipChoices = onSkipChoices,
+                modifier = modifier
+            )
+        }
+        is MarkdownBlock.AgentToolGroup -> {
+            CommandsAccordion(
+                toolCalls = block.toolCalls,
+                isStreaming = block.isStreaming,
+                isBackgroundSection = block.isBackgroundSection,
+                onApproveTool = onApproveTool,
+                onRejectTool = onRejectTool,
+                onTerminateTool = onTerminateTool,
                 onSubmitChoices = onSubmitChoices,
                 onSkipChoices = onSkipChoices,
                 modifier = modifier
@@ -2658,10 +2677,11 @@ private fun buildRichAnnotatedString(
             } else if (isFile) {
                 val cleanPath = linkUrl.removePrefix("file://").substringBefore("#")
                 val fileName = java.io.File(cleanPath).name.ifBlank { cleanPath }
-                val displayLabel = if (linkTitle.isBlank() || linkTitle.startsWith("file://", ignoreCase = true) || linkTitle.startsWith("/")) {
+                val rawTitle = linkTitle.trim().removeSurrounding("`").removeSurrounding("\"").trim()
+                val displayLabel = if (rawTitle.isBlank() || rawTitle.startsWith("file://", ignoreCase = true) || rawTitle.startsWith("/")) {
                     fileName
                 } else {
-                    linkTitle
+                    rawTitle
                 }
 
                 builder.pushLink(
@@ -2675,13 +2695,14 @@ private fun buildRichAnnotatedString(
                 )
                 builder.pushStyle(
                     SpanStyle(
-                        color = ClaudeTerracotta,
-                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
+                        fontWeight = FontWeight.Medium,
                         fontFamily = FontFamily.Monospace,
-                        background = ClaudeTerracotta.copy(alpha = 0.12f)
+                        fontSize = 12.5.sp,
+                        background = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
                     )
                 )
-                builder.append(" $displayLabel ")
+                builder.append(" 📄 $displayLabel ")
                 builder.pop()
                 builder.pop()
             } else {
@@ -2734,7 +2755,8 @@ private fun buildRichAnnotatedString(
             } else if (isFile) {
                 val cleanPath = linkUrl.removePrefix("file://").substringBefore("#")
                 val fileName = java.io.File(cleanPath).name.ifBlank { cleanPath }
-                val displayLabel = if (linkTitle.isBlank() || linkTitle.startsWith("file://", ignoreCase = true) || linkTitle.startsWith("/")) fileName else linkTitle
+                val rawTitle = linkTitle.trim().removeSurrounding("`").removeSurrounding("\"").trim()
+                val displayLabel = if (rawTitle.isBlank() || rawTitle.startsWith("file://", ignoreCase = true) || rawTitle.startsWith("/")) fileName else rawTitle
                 builder.pushLink(
                     LinkAnnotation.Clickable(
                         tag = linkUrl,
@@ -2746,13 +2768,14 @@ private fun buildRichAnnotatedString(
                 )
                 builder.pushStyle(
                     SpanStyle(
-                        color = ClaudeTerracotta,
-                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
+                        fontWeight = FontWeight.Medium,
                         fontFamily = FontFamily.Monospace,
-                        background = ClaudeTerracotta.copy(alpha = 0.12f)
+                        fontSize = 12.5.sp,
+                        background = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
                     )
                 )
-                builder.append(" $displayLabel ")
+                builder.append(" 📄 $displayLabel ")
                 builder.pop()
                 builder.pop()
             } else {
@@ -2806,13 +2829,14 @@ private fun buildRichAnnotatedString(
             )
             builder.pushStyle(
                 SpanStyle(
-                    color = ClaudeTerracotta,
-                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
+                    fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.Monospace,
-                    background = ClaudeTerracotta.copy(alpha = 0.12f)
+                    fontSize = 12.5.sp,
+                    background = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
                 )
             )
-            builder.append(" $fileName ")
+            builder.append(" 📄 $fileName ")
             builder.pop()
             builder.pop()
         } else if ((fullMatch.startsWith("`") && fullMatch.endsWith("`")) || fullMatch.startsWith("<code", ignoreCase = true)) {

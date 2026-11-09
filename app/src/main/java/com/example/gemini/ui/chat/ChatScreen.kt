@@ -24,6 +24,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -71,7 +72,9 @@ import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.data.daemon.TermuxDaemonManager
 import com.example.gemini.domain.model.AiModel
+import com.example.gemini.domain.model.AgentKind
 import com.example.gemini.domain.model.ChatMessage
+import com.example.gemini.domain.model.Conversation
 import com.example.gemini.domain.model.MessageRole
 import com.example.gemini.domain.model.ToolType
 import com.example.gemini.theme.*
@@ -558,8 +561,14 @@ fun ChatScreen(
             }
         }
     }
-    val feedItems = remember(messages, selectedModelId, chatDividersEnabled, modelNameOf) {
-        ChatFeedCache.buildFeedItems(messages, selectedModelId, dividers = chatDividersEnabled, modelName = modelNameOf)
+    val feedItems = remember(messages, selectedModelId, chatDividersEnabled, modelNameOf, isActivelyRunning) {
+        ChatFeedCache.buildFeedItems(
+            messages = messages,
+            selectedModelId = selectedModelId,
+            dividers = chatDividersEnabled,
+            modelName = modelNameOf,
+            isActivelyRunning = isActivelyRunning
+        )
     }
 
     // Fresh LazyListState per conversation — restores saved position if returning, or initializes directly at bottom
@@ -1490,21 +1499,33 @@ fun ChatScreen(
                         BoxWithConstraints(
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            val minHeight = maxHeight
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .verticalScroll(emptyScrollState)
-                                    .heightIn(min = minHeight)
-                                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                verticalArrangement = Arrangement.Top
                             ) {
+                                // 1. Restrained Home Heading
+                                Text(
+                                    text = "What are we working on?",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = (-0.3).sp,
+                                    color = Color(0xFFFAFAFA),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 6.dp, bottom = 14.dp)
+                                )
+
+                                // 2. Segmented AgentPicker
                                 if (isFreshNewChat) {
                                     com.example.gemini.ui.components.AgentPicker(
                                         selected = currentConv?.agent ?: newChatAgent,
                                         onSelect = { viewModel.setNewChatAgent(it) },
-                                        modifier = Modifier.padding(bottom = 24.dp),
+                                        modifier = Modifier.padding(bottom = 16.dp),
                                         agents = enabledAgents,
                                         statusColors = emptyMap()
                                     )
@@ -1512,7 +1533,7 @@ fun ChatScreen(
 
                                 if (!isNetworkConnected) {
                                     com.example.gemini.ui.components.NewChatOfflinePromptCard(
-                                        modifier = Modifier.padding(bottom = 20.dp)
+                                        modifier = Modifier.padding(bottom = 16.dp)
                                     )
                                 }
 
@@ -1557,77 +1578,172 @@ fun ChatScreen(
                                         }
                                     }
                                     else -> {
+                                        // 3. Prominent Active Workspace Context Card
+                                        val currentConvPath = currentConv?.workspaceUri?.removePrefix("file://")?.trimEnd('/') ?: ""
+                                        val activeProj = if (currentConvPath.isNotBlank()) {
+                                            usedProjects.find { it.path == currentConvPath } ?: com.example.gemini.data.daemon.ProjectItem(File(currentConvPath).name, currentConvPath)
+                                        } else activeChatProject
+
+                                        val hasWorkspace = activeProj != null && activeProj.path.isNotBlank()
+                                        val displayProjectName = if (hasWorkspace) activeProj.name.ifBlank { File(activeProj.path).name } else "General Workspace"
+                                        val displayProjectPath = if (hasWorkspace) activeProj.path else ""
+
+                                        HomeWorkspaceContextCard(
+                                            projectName = displayProjectName,
+                                            projectPath = displayProjectPath,
+                                            hasWorkspace = hasWorkspace,
+                                            onClick = { showProjectPickerDialog = true },
+                                            modifier = Modifier.padding(bottom = 14.dp)
+                                        )
+
+                                        // 4. Agent-Aware Quick Action Chips
                                         val activeHeroAgent = currentConv?.agent ?: newChatAgent
-                                        val heroTitle = when (activeHeroAgent) {
-                                            com.example.gemini.domain.model.AgentKind.CLAUDE -> "Claude Code"
-                                            com.example.gemini.domain.model.AgentKind.COPILOT -> "GitHub Copilot"
-                                            else -> "Google Antigravity"
-                                        }
-                                        val heroSubtitle = when (activeHeroAgent) {
-                                            com.example.gemini.domain.model.AgentKind.CLAUDE -> "Autonomous terminal agent & codebase editing"
-                                            com.example.gemini.domain.model.AgentKind.COPILOT -> "Repository assistant & intelligent completions"
-                                            else -> "Autonomous multi-agent workspace with local tools & MCP"
-                                        }
-
-                                        // Minimalist Hero Brand Mark
-                                        com.example.gemini.ui.agents.AgentMark(
-                                            agent = activeHeroAgent,
-                                            size = 46.dp,
-                                            statusColor = null
-                                        )
-                                        Spacer(modifier = Modifier.height(14.dp))
-                                        Text(
-                                            text = heroTitle,
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFFFAFAFA),
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = heroSubtitle,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Normal,
-                                            color = Color(0xFF71717A),
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(horizontal = 16.dp)
-                                        )
-
-                                        Spacer(modifier = Modifier.height(24.dp))
-
-                                        // Quick Developer Starter Chips (Raycast / Cursor style)
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(horizontal = 8.dp),
+                                                .horizontalScroll(rememberScrollState()),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            HomePromptStarterChip(
-                                                label = "/plan",
-                                                desc = "Architecture",
-                                                onClick = {
-                                                    textFieldValue = TextFieldValue("/plan ", selection = TextRange(6))
-                                                    chatInputFocusRequester.requestFocus()
+                                            when (activeHeroAgent) {
+                                                com.example.gemini.domain.model.AgentKind.CLAUDE -> {
+                                                    HomePromptStarterChip(
+                                                        label = "/compact",
+                                                        desc = "Compact",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("/compact", selection = TextRange(8))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
+                                                    HomePromptStarterChip(
+                                                        label = "@workspace",
+                                                        desc = "Codebase",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("@workspace ", selection = TextRange(11))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
+                                                    HomePromptStarterChip(
+                                                        label = "/plan",
+                                                        desc = "Plan",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("/plan ", selection = TextRange(6))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
                                                 }
-                                            )
-                                            HomePromptStarterChip(
-                                                label = "@workspace",
-                                                desc = "Audit code",
-                                                onClick = {
-                                                    textFieldValue = TextFieldValue("@workspace Find bugs & issues", selection = TextRange(28))
-                                                    chatInputFocusRequester.requestFocus()
+                                                com.example.gemini.domain.model.AgentKind.COPILOT -> {
+                                                    HomePromptStarterChip(
+                                                        label = "@workspace",
+                                                        desc = "Search code",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("@workspace ", selection = TextRange(11))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
+                                                    HomePromptStarterChip(
+                                                        label = "/plan",
+                                                        desc = "Architecture",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("/plan ", selection = TextRange(6))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
+                                                    HomePromptStarterChip(
+                                                        label = "Audit",
+                                                        desc = "Find bugs",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("Audit the current workspace files for potential bugs and issues.", selection = TextRange(68))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
                                                 }
-                                            )
-                                            HomePromptStarterChip(
-                                                label = "/goal",
-                                                desc = "Run task",
-                                                onClick = {
-                                                    textFieldValue = TextFieldValue("/goal ", selection = TextRange(6))
-                                                    chatInputFocusRequester.requestFocus()
+                                                else -> {
+                                                    HomePromptStarterChip(
+                                                        label = "/plan",
+                                                        desc = "Architecture",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("/plan ", selection = TextRange(6))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
+                                                    HomePromptStarterChip(
+                                                        label = "@workspace",
+                                                        desc = "Audit code",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("@workspace Find bugs & issues", selection = TextRange(28))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
+                                                    HomePromptStarterChip(
+                                                        label = "/goal",
+                                                        desc = "Run task",
+                                                        onClick = {
+                                                            textFieldValue = TextFieldValue("/goal ", selection = TextRange(6))
+                                                            chatInputFocusRequester.requestFocus()
+                                                        }
+                                                    )
                                                 }
-                                            )
+                                            }
                                         }
+
+                                        // 5. Recent Conversations (up to 3)
+                                        val recentConversations = remember(conversations, currentConv?.id) {
+                                            conversations
+                                                .filter { conv ->
+                                                    conv.id != currentConv?.id &&
+                                                    conv.title.isNotBlank() &&
+                                                    !(conv.title == "New Chat" && conv.stepCount == 0)
+                                                }
+                                                .sortedByDescending { it.updatedAt.coerceAtLeast(it.createdAt) }
+                                                .take(3)
+                                        }
+
+                                        if (recentConversations.isNotEmpty()) {
+                                            Spacer(modifier = Modifier.height(18.dp))
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 2.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "RECENT CONVERSATIONS",
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color(0xFF71717A),
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                recentConversations.forEach { conv ->
+                                                    key(conv.id) {
+                                                        HomeRecentConversationItem(
+                                                            conversation = conv,
+                                                            onClick = {
+                                                                val currentId = currentConv?.id
+                                                                if (!currentId.isNullOrBlank() && feedItems.isNotEmpty()) {
+                                                                    ConversationScrollCache.save(
+                                                                        currentId,
+                                                                        listState.firstVisibleItemIndex,
+                                                                        listState.firstVisibleItemScrollOffset,
+                                                                        isAtBottom
+                                                                    )
+                                                                }
+                                                                conversationBackStack.clear()
+                                                                viewModel.selectConversation(conv.id)
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
                                     }
                                 }
                             }
@@ -3278,6 +3394,185 @@ private fun HomePromptStarterChip(
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Normal,
                 color = Color(0xFF71717A)
+            )
+        }
+    }
+}
+
+private fun formatAbbreviatedPath(rawPath: String): String {
+    val clean = rawPath.removePrefix("file://").trimEnd('/')
+    if (clean.isBlank()) return "No directory attached"
+    val termuxHome = "/data/user/0/com.termux/files/home"
+    val legacyHome = "/data/data/com.termux/files/home"
+    return when {
+        clean == termuxHome || clean == legacyHome -> "~"
+        clean.startsWith(termuxHome) -> "~" + clean.removePrefix(termuxHome)
+        clean.startsWith(legacyHome) -> "~" + clean.removePrefix(legacyHome)
+        clean.length > 38 -> "..." + clean.takeLast(34)
+        else -> clean
+    }
+}
+
+private fun formatRelativeTime(updatedAt: Long): String {
+    if (updatedAt <= 0L) return ""
+    val now = System.currentTimeMillis()
+    val diff = (now - updatedAt).coerceAtLeast(0L)
+    val seconds = diff / 1000L
+    val minutes = seconds / 60L
+    val hours = minutes / 60L
+    val days = hours / 24L
+    return when {
+        minutes < 1L -> "just now"
+        minutes < 60L -> "${minutes}m ago"
+        hours < 24L -> "${hours}h ago"
+        days == 1L -> "yesterday"
+        days < 7L -> "${days}d ago"
+        days < 30L -> "${days / 7L}w ago"
+        else -> "${days / 30L}mo ago"
+    }
+}
+
+@Composable
+private fun HomeWorkspaceContextCard(
+    projectName: String,
+    projectPath: String,
+    hasWorkspace: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF141417),
+        border = BorderStroke(1.dp, Color(0xFF27272A)),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Folder,
+                    contentDescription = null,
+                    tint = if (hasWorkspace) Color(0xFFE8E5DF) else Color(0xFF71717A),
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (hasWorkspace) "ACTIVE WORKSPACE" else "WORKSPACE CONTEXT",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF71717A),
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF27272A),
+                    border = BorderStroke(1.dp, Color(0xFF3F3F46))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (hasWorkspace) "Change" else "Select",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFFAFAFA)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = Color(0xFFA1A1AA),
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = projectName,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFFAFAFA),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            Text(
+                text = if (hasWorkspace) formatAbbreviatedPath(projectPath) else "No folder attached · Running in Termux home",
+                fontSize = 11.5.sp,
+                fontFamily = FontFamily.Monospace,
+                color = Color(0xFF71717A),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeRecentConversationItem(
+    conversation: Conversation,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val logoRes = when (conversation.agent) {
+        AgentKind.CLAUDE -> R.drawable.ic_claude_logo
+        AgentKind.COPILOT -> R.drawable.ic_copilot_logo
+        else -> R.drawable.ic_antigravity_logo
+    }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(11.dp),
+        color = Color(0xFF141417),
+        border = BorderStroke(1.dp, Color(0xFF27272A)),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = logoRes),
+                contentDescription = conversation.agent.name,
+                tint = Color(0xFFA1A1AA),
+                modifier = Modifier.size(13.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = conversation.title.ifBlank { "Untitled Chat" },
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFFE4E4E7),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            val relTime = formatRelativeTime(conversation.updatedAt.coerceAtLeast(conversation.createdAt))
+            if (relTime.isNotBlank()) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = relTime,
+                    fontSize = 11.sp,
+                    color = Color(0xFF71717A)
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color(0xFF52525B),
+                modifier = Modifier.size(14.dp)
             )
         }
     }

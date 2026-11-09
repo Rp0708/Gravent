@@ -17,4 +17,5 @@ class ChatSessionStore {
     val userEmail = MutableStateFlow<String?>(null)
     val attachments = MutableStateFlow<List<ChatAttachment>>(emptyList())
     val terminatedToolDialog = MutableStateFlow<Pair<ToolCall, String>?>(null)
+    val thinkingPreference = MutableStateFlow(com.example.gemini.domain.model.ThinkingPreference())
 }

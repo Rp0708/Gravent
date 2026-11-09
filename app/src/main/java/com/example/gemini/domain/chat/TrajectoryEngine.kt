@@ -1131,6 +1131,14 @@ class TrajectoryEngine {
         val isExplicitCanceled = step.status == CortexStepStatus.CORTEX_STEP_STATUS_CANCELED
         val turnFinished = (!isRunning && !isWaitingInteraction) || !isStreaming
 
+        val isDaemonArg = argsMap["IsDaemon"]?.equals("true", ignoreCase = true) == true ||
+            argsMap["is_daemon"]?.equals("true", ignoreCase = true) == true
+        val isBackgroundOutput = output.contains("running as a background task", ignoreCase = true) ||
+            output.contains("background task id", ignoreCase = true) ||
+            output.contains("running in the background", ignoreCase = true) ||
+            (output.contains("task-", ignoreCase = true) && output.contains("background", ignoreCase = true))
+        val isBackgroundTask = isDaemonArg || isBackgroundOutput
+
         val status = when {
             isExplicitError || (exitCode != null && exitCode != 0) -> {
                 userRespondedStepIndices.remove(stepIndex)
@@ -1144,6 +1152,9 @@ class TrajectoryEngine {
                     step.requested_interaction != null -> "REJECTED"
                     else -> "TERMINATED"
                 }
+            }
+            isBackgroundTask && exitCode == null && !isExplicitSuccess -> {
+                "RUNNING"
             }
             isExplicitSuccess || (exitCode == 0) || (hasSubsequentStep && !isExplicitCanceled) || (turnFinished && !isExplicitCanceled) -> {
                 userRespondedStepIndices.remove(stepIndex)
@@ -1192,7 +1203,8 @@ class TrajectoryEngine {
             stepIndex = stepIndex,
             trajectoryId = trajectoryId,
             interactionType = "permission",
-            questionnaire = questionnaire
+            questionnaire = questionnaire,
+            isBackground = isBackgroundTask || (status == "RUNNING" && turnFinished)
         )
     }
 

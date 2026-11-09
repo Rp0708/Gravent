@@ -41,7 +41,8 @@ data class ToolCall(
     val stepIndex: Int? = null,
     val trajectoryId: String? = null,
     val interactionType: String? = null,
-    val questionnaire: ChoiceQuestionnaire? = null
+    val questionnaire: ChoiceQuestionnaire? = null,
+    val isBackground: Boolean = false
 )
 
 @Serializable

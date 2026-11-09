@@ -1037,7 +1037,7 @@ class AgyChatBackend(
             val hubUrl = AuthPreferences.currentHubUrl
             var isFirstChunk = true
             var lastUiDispatchTime = 0L
-            val STREAM_THROTTLE_MS = 32L // ~30 fps cadence for rapid, butter-smooth streaming
+            val STREAM_THROTTLE_MS = 24L // ~40 fps cadence for rapid, butter-smooth streaming
             var pendingFlushJob: Job? = null
 
             suspend fun flushUiUpdate(forceTerminal: Boolean = false) {
@@ -1144,16 +1144,19 @@ class AgyChatBackend(
                         }
                         break
                     } else {
-                        // Normal disconnection after receiving data; clean up in-flight states and stop loop so banner stays stable
+                        // Check if conversation is still actively running on the daemon
+                        val isTurnActive = isCurrentChatActivelyRunning.value || isPromptInFlight || trajectoryEngine.isRunning
+                        if (isTurnActive && activeStreamConversationId == conversationId) {
+                            Log.d("CHAT_OPEN_DEBUG", "🔄 [ChatViewModel Stream Loop] Stream channel completed while turn is active on daemon. Reconnecting stream for $conversationId...")
+                            delay(150)
+                            continue
+                        }
+
+                        // Normal disconnection after receiving all data for completed turn; keep server online status stable
                         withContext(Dispatchers.Main) {
-                            _isServerOnline.value = false
+                            _isServerOnline.value = true
                             _isReconnecting.value = false
-                            if (isPromptInFlight || _isStreaming.value) {
-                                isPromptInFlight = false
-                                _isStreaming.value = false
-                                trajectoryEngine.cancelRunning()
-                                markLastAssistantMessageDisconnected()
-                            }
+                            _isStreaming.value = false
                         }
                         break
                     }
@@ -1168,6 +1171,13 @@ class AgyChatBackend(
                         "Cannot connect to Antigravity. Make sure Antigravity is running and tap Retry."
                     } else {
                         "Error loading conversation: $rawErr"
+                    }
+
+                    val isTurnActive = isCurrentChatActivelyRunning.value || isPromptInFlight || trajectoryEngine.isRunning
+                    if (isTurnActive && activeStreamConversationId == conversationId && !rawErr.contains("Cancel", ignoreCase = true)) {
+                        Log.w("CHAT_OPEN_DEBUG", "🔄 [ChatViewModel Stream Loop] Stream error during active turn; retrying connection in 300ms...")
+                        delay(300)
+                        continue
                     }
 
                     withContext(Dispatchers.Main) {
@@ -1611,7 +1621,8 @@ class AgyChatBackend(
         val modelEnum = com.example.gemini.data.remote.AgyHubClient.resolveModelEnum(_selectedModelId.value)
         val selectedModel = _enabledModels.value.find { it.id == modelEnum }
         val supportsThinking = selectedModel?.supportsThinking ?: (modelEnum.contains("thinking", ignoreCase = true) || modelEnum.contains("flash", ignoreCase = true) || modelEnum.contains("pro", ignoreCase = true))
-        val thinkingBudget = if (supportsThinking) 8192 else 0
+        val userPref = store.thinkingPreference.value
+        val thinkingBudget = if (supportsThinking && userPref.isEnabled) userPref.activeTokens else 0
 
         val convWorkspace = conv.workspaceUri
         val workspaceUri = if (convWorkspace.isNotBlank()) {
@@ -1673,7 +1684,6 @@ class AgyChatBackend(
                 // Ensure persistent stream is active for this conversation
                 if (activeStreamConversationId != conv.id || persistentStreamJob?.isActive != true) {
                     startPersistentStream(conv.id)
-                    delay(50)
                 }
 
                 // Reset turn boundary and state for this active turn
