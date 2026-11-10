@@ -250,6 +250,7 @@ fun ChatScreen(
     val floatingSwitcherOrientation by viewModel.floatingSwitcherOrientation.collectAsState()
     val floatingSwitcherItems by viewModel.floatingSwitcherItems.collectAsState()
     val floatingSwitcherAutoCollapseSec by viewModel.floatingSwitcherAutoCollapseSec.collectAsState()
+    val floatingSwitcherPosX by viewModel.floatingSwitcherPosX.collectAsState()
     val isFloatingDiagnosticsEnabled by viewModel.isFloatingDiagnosticsEnabled.collectAsState()
     val isNetworkInspectorEnabled by viewModel.isNetworkInspectorEnabled.collectAsState()
     val isFloatingNetworkInspectorEnabled by viewModel.isFloatingNetworkInspectorEnabled.collectAsState()
@@ -264,6 +265,10 @@ fun ChatScreen(
     val agyLoginIssue by viewModel.agyLoginIssue.collectAsState()
     val hubStatus by viewModel.hubStatus.collectAsState()
     val systemConnectionState by viewModel.systemConnectionState.collectAsState()
+    val homeGitStatus by viewModel.homeGitStatus.collectAsState()
+    val isHomeGitLoading by viewModel.isHomeGitLoading.collectAsState()
+    val perMessageDiffs by viewModel.perMessageDiffs.collectAsState()
+    val perConversationDiffs by viewModel.perConversationDiffs.collectAsState()
     val isNetworkConnected by viewModel.isNetworkConnectedState.collectAsState()
     val isAnyGenerationOrTaskActive by viewModel.isAnyGenerationOrTaskActive.collectAsState()
 
@@ -298,6 +303,7 @@ fun ChatScreen(
     val isLocalError = serverStatus is com.example.gemini.data.local.LocalServerStatus.Error
     var showRawPayloadDialog by remember { mutableStateOf<String?>(null) }
     var showChatTelemetryDialog by remember { mutableStateOf(false) }
+    var focusedTelemetryMessage by remember { mutableStateOf<ChatMessage?>(null) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var settingsInitialSection by remember { mutableStateOf<SettingsSection?>(null) }
     var showCopilotPatDialog by remember { mutableStateOf(false) }
@@ -813,7 +819,40 @@ fun ChatScreen(
             family = com.example.gemini.domain.model.ModelFamily.CLAUDE
         )
     } else AiModel.findInList(enabledModels, selectedModelId, preferredModelName)
-    val currentQuota = quotas.find { it.modelId == selectedModelId }
+    val currentQuota = remember(quotas, quotaSummary, currentModel, selectedModelId, isClaudeChat, isCopilotChat) {
+        quotas.find {
+            it.modelId == currentModel.id ||
+                (currentModel.key.isNotBlank() && it.modelId == currentModel.key) ||
+                it.modelId == selectedModelId
+        } ?: if (!isClaudeChat && !isCopilotChat) {
+            val useClaudeGroup = currentModel.family == com.example.gemini.domain.model.ModelFamily.CLAUDE ||
+                currentModel.id.contains("claude", ignoreCase = true) ||
+                currentModel.displayName.contains("claude", ignoreCase = true) ||
+                currentModel.id.contains("gpt", ignoreCase = true) ||
+                currentModel.displayName.contains("gpt", ignoreCase = true)
+            val grp = quotaSummary?.groups?.find {
+                if (useClaudeGroup) {
+                    it.groupId == "claude_gpt" || it.groupName.contains("claude", ignoreCase = true) || it.groupName.contains("gpt", ignoreCase = true)
+                } else {
+                    it.groupId == "gemini" || it.groupName.contains("gemini", ignoreCase = true)
+                }
+            } ?: quotaSummary?.groups?.find {
+                it.groupId == "default" || it.groupName.equals("All Models", ignoreCase = true)
+            }
+            if (grp?.fiveHour != null || grp?.weekly != null) {
+                com.example.gemini.domain.model.ModelQuota(
+                    modelId = currentModel.id,
+                    remainingFraction = grp.fiveHour?.remainingFraction,
+                    resetTime = grp.fiveHour?.resetTime,
+                    usedPercentage = grp.fiveHour?.usedPct,
+                    resetCountdown = grp.fiveHour?.countdown,
+                    weeklyRemainingFraction = grp.weekly?.remainingFraction,
+                    weeklyUsedPercentage = grp.weekly?.usedPct,
+                    weeklyResetCountdown = grp.weekly?.countdown
+                )
+            } else null
+        } else null
+    }
 
     val activeChatProject by TermuxDaemonManager.activeProject.collectAsState()
     val usedProjects by TermuxDaemonManager.projects.collectAsState()
@@ -1375,7 +1414,12 @@ fun ChatScreen(
                             cornerRadius = 10.dp
                         )
                         if (isDevModeEnabled) {
-                            IconButton(onClick = { showChatTelemetryDialog = true }) {
+                            IconButton(
+                                onClick = {
+                                    focusedTelemetryMessage = null
+                                    showChatTelemetryDialog = true
+                                }
+                            ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Analytics,
                                     contentDescription = "Chat Telemetry & Tokens",
@@ -1588,11 +1632,41 @@ fun ChatScreen(
                                         val displayProjectName = if (hasWorkspace) activeProj.name.ifBlank { File(activeProj.path).name } else "General Workspace"
                                         val displayProjectPath = if (hasWorkspace) activeProj.path else ""
 
-                                        HomeWorkspaceContextCard(
+                                        LaunchedEffect(displayProjectPath, systemConnectionState.isBridgeOnline) {
+                                            if (hasWorkspace && systemConnectionState.isBridgeOnline) {
+                                                viewModel.refreshHomeGitStatus(displayProjectPath)
+                                            }
+                                        }
+
+                                        HomeCodexWorkspaceCard(
                                             projectName = displayProjectName,
                                             projectPath = displayProjectPath,
                                             hasWorkspace = hasWorkspace,
-                                            onClick = { showProjectPickerDialog = true },
+                                            isBridgeOnline = systemConnectionState.isBridgeOnline,
+                                            gitStatus = if (hasWorkspace) homeGitStatus else null,
+                                            isGitLoading = isHomeGitLoading,
+                                            onChangeWorkspace = { showProjectPickerDialog = true },
+                                            onRefreshGit = { viewModel.refreshHomeGitStatus(displayProjectPath) },
+                                            onOpenInIde = { onNavigateToIde() },
+                                            onAskReview = { reviewPrompt ->
+                                                textFieldValue = TextFieldValue(reviewPrompt, TextRange(reviewPrompt.length))
+                                                chatInputFocusRequester.requestFocus()
+                                            },
+                                            onCommit = { msg, alsoPush, onRes ->
+                                                viewModel.commitFromHome(displayProjectPath, msg, alsoPush, onRes)
+                                            },
+                                            onPush = { onRes ->
+                                                viewModel.pushFromHome(displayProjectPath, onRes)
+                                            },
+                                            onPull = { onRes ->
+                                                viewModel.pullFromHome(displayProjectPath, onRes)
+                                            },
+                                            onCheckoutBranch = { branch, create, onRes ->
+                                                viewModel.checkoutBranchFromHome(displayProjectPath, branch, create, onRes)
+                                            },
+                                            onDiscardAll = { paths, onRes ->
+                                                viewModel.discardFilesFromHome(displayProjectPath, paths, onRes)
+                                            },
                                             modifier = Modifier.padding(bottom = 14.dp)
                                         )
 
@@ -1724,6 +1798,7 @@ fun ChatScreen(
                                                     key(conv.id) {
                                                         HomeRecentConversationItem(
                                                             conversation = conv,
+                                                            diffStats = perConversationDiffs[conv.id],
                                                             onClick = {
                                                                 val currentId = currentConv?.id
                                                                 if (!currentId.isNullOrBlank() && feedItems.isNotEmpty()) {
@@ -1882,7 +1957,12 @@ fun ChatScreen(
                                                     showRawPayloadDialog = payloadJson
                                                 },
                                                 onShowArtifacts = { showArtifactsDrawer = true },
-                                                artifactsCount = artifacts.size
+                                                artifactsCount = artifacts.size,
+                                                turnDiffStats = perMessageDiffs[feedItem.message.id] ?: feedItem.message.diffStats,
+                                                onInspectTelemetry = { clickedMsg ->
+                                                    focusedTelemetryMessage = clickedMsg
+                                                    showChatTelemetryDialog = true
+                                                }
                                             )
                                         }
                                         is ChatFeedItem.StreamingMessage -> {
@@ -1935,6 +2015,34 @@ fun ChatScreen(
                                     }
                                 }
                         }
+                    }
+
+                    // Codex-style Prompt Navigation Dot Slider (glides across user prompts)
+                    val promptAnchors = remember(feedItems) { extractPromptAnchors(feedItems) }
+                    if (messages.isNotEmpty() && promptAnchors.size >= 2) {
+                        val sliderOnLeft = !(isFloatingSwitcherEnabled && floatingSwitcherPosX < 0.35f)
+                        ChatPromptSlider(
+                            anchors = promptAnchors,
+                            listState = listState,
+                            isLeftSide = sliderOnLeft,
+                            onJumpToFeedIndex = { targetFeedIndex, animate ->
+                                shouldAutoScroll = false
+                                showScrollButton = false
+                                scope.launch {
+                                    if (animate) {
+                                        listState.animateScrollToItem(index = targetFeedIndex, scrollOffset = 0)
+                                    } else {
+                                        listState.scrollToItem(index = targetFeedIndex, scrollOffset = 0)
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .align(if (sliderOnLeft) Alignment.CenterStart else Alignment.CenterEnd)
+                                .padding(
+                                    start = if (sliderOnLeft) 4.dp else 0.dp,
+                                    end = if (sliderOnLeft) 0.dp else 4.dp
+                                )
+                        )
                     }
 
                     // Floating Scroll Up / Scroll Down Button (Instant Movement)
@@ -2425,6 +2533,13 @@ fun ChatScreen(
                     viewModel.copilotBackend.refreshModels()
                 } else {
                     viewModel.refreshQuotas(force = true, showToastFeedback = true)
+                }
+            },
+            onAutoRefresh = {
+                if (isCopilotChat) {
+                    viewModel.copilotBackend.refreshModels()
+                } else {
+                    viewModel.refreshQuotas(force = true, showToastFeedback = false)
                 }
             },
             onSelectModel = { modelId -> viewModel.selectModel(modelId) },
@@ -3012,12 +3127,22 @@ fun ChatScreen(
         )
     }
 
-    // Chat Telemetry & Tokens Dialog (Developer Mode)
+    // Chat Telemetry & Tokens Dialog
     if (showChatTelemetryDialog) {
+        val focusedMsg = focusedTelemetryMessage
         ChatTelemetryDialog(
             conversation = currentConv,
             messages = messages,
-            onDismiss = { showChatTelemetryDialog = false }
+            focusedMessage = focusedMsg,
+            focusedTurnDiffStats = focusedMsg?.let { perMessageDiffs[it.id] ?: it.diffStats },
+            conversationDiffStats = currentConv?.id?.let { perConversationDiffs[it] },
+            onViewRawPayload = { payloadJson ->
+                showRawPayloadDialog = payloadJson
+            },
+            onDismiss = {
+                showChatTelemetryDialog = false
+                focusedTelemetryMessage = null
+            }
         )
     }
 
@@ -3399,20 +3524,6 @@ private fun HomePromptStarterChip(
     }
 }
 
-private fun formatAbbreviatedPath(rawPath: String): String {
-    val clean = rawPath.removePrefix("file://").trimEnd('/')
-    if (clean.isBlank()) return "No directory attached"
-    val termuxHome = "/data/user/0/com.termux/files/home"
-    val legacyHome = "/data/data/com.termux/files/home"
-    return when {
-        clean == termuxHome || clean == legacyHome -> "~"
-        clean.startsWith(termuxHome) -> "~" + clean.removePrefix(termuxHome)
-        clean.startsWith(legacyHome) -> "~" + clean.removePrefix(legacyHome)
-        clean.length > 38 -> "..." + clean.takeLast(34)
-        else -> clean
-    }
-}
-
 private fun formatRelativeTime(updatedAt: Long): String {
     if (updatedAt <= 0L) return ""
     val now = System.currentTimeMillis()
@@ -3433,96 +3544,9 @@ private fun formatRelativeTime(updatedAt: Long): String {
 }
 
 @Composable
-private fun HomeWorkspaceContextCard(
-    projectName: String,
-    projectPath: String,
-    hasWorkspace: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF141417),
-        border = BorderStroke(1.dp, Color(0xFF27272A)),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Folder,
-                    contentDescription = null,
-                    tint = if (hasWorkspace) Color(0xFFE8E5DF) else Color(0xFF71717A),
-                    modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (hasWorkspace) "ACTIVE WORKSPACE" else "WORKSPACE CONTEXT",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF71717A),
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF27272A),
-                    border = BorderStroke(1.dp, Color(0xFF3F3F46))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (hasWorkspace) "Change" else "Select",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFFFAFAFA)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            tint = Color(0xFFA1A1AA),
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = projectName,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFFAFAFA),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(3.dp))
-
-            Text(
-                text = if (hasWorkspace) formatAbbreviatedPath(projectPath) else "No folder attached · Running in Termux home",
-                fontSize = 11.5.sp,
-                fontFamily = FontFamily.Monospace,
-                color = Color(0xFF71717A),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
 private fun HomeRecentConversationItem(
     conversation: Conversation,
+    diffStats: com.example.gemini.domain.model.TurnDiffStats? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -3558,6 +3582,10 @@ private fun HomeRecentConversationItem(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
+            if (diffStats != null && (diffStats.additions > 0 || diffStats.deletions > 0)) {
+                Spacer(modifier = Modifier.width(8.dp))
+                HomeRecentDiffBadge(diffStats = diffStats)
+            }
             val relTime = formatRelativeTime(conversation.updatedAt.coerceAtLeast(conversation.createdAt))
             if (relTime.isNotBlank()) {
                 Spacer(modifier = Modifier.width(8.dp))

@@ -98,6 +98,7 @@ enum class SettingsSection(val title: String, val subtitle: String) {
     MCP("MCP Servers", "Model Context Protocol tools & integrations"),
     SKILLS_PLUGINS("Skills & Plugins", "Agent capabilities, Google plugins, and extensions"),
     TERMINAL("Terminal & Shell", "SSH configuration, local tools, and styling"),
+    STORAGE("Storage & Cache", "Exact app footprint, tool breakdown & cache optimizer"),
     BACKUPS("Backups & Restore", "Backup rootfs environment and AGY chat histories"),
     DATA_PROTECTION("Data Loss Protection", "Uninstall shield & App Info clear data protection"),
     COMMANDS("Commands & Permissions", "Auto-run policy, sandbox mode, and tool approvals"),
@@ -518,6 +519,11 @@ fun SettingsDialog(
                         onResetLocalTools = onResetLocalTools,
                         onSaveTerminalPreferences = onSaveTerminalPreferences,
                         onOpenLocalTerminal = onOpenLocalTerminal
+                    )
+
+                    SettingsSection.STORAGE -> StorageManagementPanel(
+                        cardBg = cardBg,
+                        cardBorder = cardBorder
                     )
 
                     SettingsSection.BACKUPS -> BackupsSubScreen(
@@ -945,6 +951,13 @@ private fun MainSettingsMenu(
         // ==========================================
         // 5. App Preferences
         // ==========================================
+        val menuContext = LocalContext.current
+        val latestStorageReport by com.example.gemini.data.local.AppStorageManager.latestReport.collectAsState()
+        LaunchedEffect(expApp) {
+            if (expApp && latestStorageReport == null) {
+                runCatching { com.example.gemini.data.local.AppStorageManager.analyzeStorage(menuContext) }
+            }
+        }
         val themeLabel = when (themeMode) {
             "DARK" -> "DARK"
             "LIGHT" -> "LIGHT"
@@ -952,7 +965,7 @@ private fun MainSettingsMenu(
         }
         ExpandableSettingsGroup(
             title = "App Preferences",
-            subtitle = "Theme, terminal environment, backups & data protection",
+            subtitle = "Theme, storage, terminal, backups & data protection",
             badgeText = themeLabel,
             isExpanded = expApp,
             onToggle = { expApp = !expApp },
@@ -983,6 +996,23 @@ private fun MainSettingsMenu(
                 cardBg = cardBg,
                 cardBorder = cardBorder,
                 onClick = { onNavigate(SettingsSection.TERMINAL) }
+            )
+
+            val storageBadge = latestStorageReport?.let {
+                android.text.format.Formatter.formatFileSize(menuContext, it.totalBytes)
+            } ?: "ANALYZE"
+            val storageSubtitle = latestStorageReport?.let { rep ->
+                val cacheStr = android.text.format.Formatter.formatFileSize(menuContext, rep.totalAllCachesBytes)
+                "$cacheStr caches • Tools, packages & workspace breakdown"
+            } ?: "Exact app storage, tool breakdown, extra caches & optimization"
+            SettingsCategoryCard(
+                icon = Icons.Outlined.Storage,
+                title = "Storage & Cache",
+                subtitle = storageSubtitle,
+                badgeText = storageBadge,
+                cardBg = cardBg,
+                cardBorder = cardBorder,
+                onClick = { onNavigate(SettingsSection.STORAGE) }
             )
 
             if (isLocalToolsInstalled) {

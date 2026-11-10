@@ -728,10 +728,44 @@ object LocalEnvironmentManager {
 
 
     fun calculateDirectorySize(dir: File): Long {
-        var size = 0L
-        val files = dir.listFiles() ?: return 0L
-        for (f in files) {
-            size += if (f.isDirectory) calculateDirectorySize(f) else f.length()
+        if (!dir.exists()) return 0L
+        val rootStat = try { Os.lstat(dir.absolutePath) } catch (_: Exception) { return 0L }
+        if (android.system.OsConstants.S_ISLNK(rootStat.st_mode)) return rootStat.st_blocks * 512L
+        if (!android.system.OsConstants.S_ISDIR(rootStat.st_mode)) return rootStat.st_blocks * 512L
+
+        val rootDev = rootStat.st_dev
+        val seenInodes = HashSet<Pair<Long, Long>>(256)
+        val stack = ArrayDeque<File>(64)
+        stack.addLast(dir)
+        var size = rootStat.st_blocks * 512L
+
+        while (stack.isNotEmpty()) {
+            val current = stack.removeLast()
+            val children = current.listFiles() ?: continue
+            for (child in children) {
+                val st = try { Os.lstat(child.absolutePath) } catch (_: Exception) { continue }
+                val mode = st.st_mode
+                when {
+                    android.system.OsConstants.S_ISLNK(mode) -> {
+                        size += st.st_blocks * 512L
+                    }
+                    android.system.OsConstants.S_ISDIR(mode) -> {
+                        if (st.st_dev == rootDev) {
+                            size += st.st_blocks * 512L
+                            stack.addLast(child)
+                        }
+                    }
+                    else -> {
+                        if (st.st_nlink > 1) {
+                            if (seenInodes.add(st.st_dev to st.st_ino)) {
+                                size += st.st_blocks * 512L
+                            }
+                        } else {
+                            size += st.st_blocks * 512L
+                        }
+                    }
+                }
+            }
         }
         return size
     }

@@ -310,7 +310,7 @@ class AgyChatBackend(
                     if (userInitiated) {
                         _authFeedbackMessage.tryEmit("Signed in as ${info.displayName.ifBlank { info.email }}")
                     }
-                    refreshQuotas(force = false)
+                    refreshQuotas(force = (_quotaSummary.value == null || hasExpiredQuotaWindow()))
                 } else if (userInitiated) {
                     _authFeedbackMessage.tryEmit("Not signed in.")
                 }
@@ -1919,6 +1919,23 @@ class AgyChatBackend(
         }
     }
 
+    private fun hasExpiredQuotaWindow(): Boolean {
+        val summary = _quotaSummary.value ?: return false
+        val now = System.currentTimeMillis()
+        val iso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+        fun isPast(resetTime: String?): Boolean {
+            if (resetTime.isNullOrBlank()) return false
+            val clean = resetTime.substringBefore('.').substringBefore('Z')
+            val t = runCatching { iso.parse(clean)?.time }.getOrNull() ?: return false
+            return t <= now
+        }
+        return summary.groups.any { g ->
+            isPast(g.fiveHour?.resetTime) || isPast(g.weekly?.resetTime)
+        }
+    }
+
     fun applyQuotaSummary(summary: com.example.gemini.domain.model.QuotaSummaryResponse) {
         _quotaSummary.value = summary
         val geminiGroup = summary.groups.find {
@@ -1927,22 +1944,54 @@ class AgyChatBackend(
         val claudeGroup = summary.groups.find {
             it.groupId == "claude_gpt" || it.groupName.contains("claude", ignoreCase = true) || it.groupName.contains("gpt", ignoreCase = true)
         }
+        val defaultGroup = summary.groups.find {
+            it.groupId == "default" || it.groupName.equals("All Models", ignoreCase = true)
+        }
 
-        val updatedQuotas = _availableModels.value.map { model ->
-            val isClaude = model.family == com.example.gemini.domain.model.ModelFamily.CLAUDE
-            val group = if (isClaude) claudeGroup else geminiGroup
-            com.example.gemini.domain.model.ModelQuota(
-                modelId = model.id,
-                remainingFraction = group?.fiveHour?.remainingFraction,
-                resetTime = group?.fiveHour?.resetTime,
-                usedPercentage = group?.fiveHour?.usedPct,
-                resetCountdown = group?.fiveHour?.countdown,
-                weeklyRemainingFraction = group?.weekly?.remainingFraction,
-                weeklyUsedPercentage = group?.weekly?.usedPct,
-                weeklyResetCountdown = group?.weekly?.countdown
-            )
+        val updatedQuotas = _availableModels.value.mapNotNull { model ->
+            val isClaudeOrGpt = model.family == com.example.gemini.domain.model.ModelFamily.CLAUDE ||
+                model.id.contains("claude", ignoreCase = true) ||
+                model.displayName.contains("claude", ignoreCase = true) ||
+                model.id.contains("gpt", ignoreCase = true) ||
+                model.displayName.contains("gpt", ignoreCase = true)
+            val group = (if (isClaudeOrGpt) claudeGroup else geminiGroup) ?: defaultGroup
+            val apiQuota = com.example.gemini.data.remote.services.AgyModelService.getCachedPerModelQuota(model.id, model.key)
+            val group5h = group?.fiveHour?.remainingFraction
+            val merged5h = listOfNotNull(group5h, apiQuota?.remainingFraction).minOrNull()
+            val weeklyFrac = group?.weekly?.remainingFraction
+            if (merged5h == null && weeklyFrac == null) {
+                null
+            } else {
+                com.example.gemini.domain.model.ModelQuota(
+                    modelId = model.id,
+                    remainingFraction = merged5h,
+                    resetTime = group?.fiveHour?.resetTime ?: apiQuota?.resetTime,
+                    usedPercentage = group?.fiveHour?.usedPct,
+                    resetCountdown = group?.fiveHour?.countdown,
+                    weeklyRemainingFraction = weeklyFrac,
+                    weeklyUsedPercentage = group?.weekly?.usedPct,
+                    weeklyResetCountdown = group?.weekly?.countdown
+                )
+            }
         }
         _quotas.value = updatedQuotas
+    }
+
+    private fun applyPerModelApiQuotasOnly() {
+        val fallbackQuotas = _availableModels.value.mapNotNull { model ->
+            val apiQuota = com.example.gemini.data.remote.services.AgyModelService.getCachedPerModelQuota(model.id, model.key)
+                ?: return@mapNotNull null
+            com.example.gemini.domain.model.ModelQuota(
+                modelId = model.id,
+                remainingFraction = apiQuota.remainingFraction,
+                resetTime = apiQuota.resetTime,
+                usedPercentage = String.format(java.util.Locale.US, "%.1f%%", (1f - apiQuota.remainingFraction) * 100f),
+                resetCountdown = com.example.gemini.data.remote.AgyHubClient.formatQuotaResetCountdown(apiQuota.resetTime)
+            )
+        }
+        if (fallbackQuotas.isNotEmpty()) {
+            _quotas.value = fallbackQuotas
+        }
     }
 
     fun refreshQuotas(force: Boolean = true, showToastFeedback: Boolean = false) {
@@ -1994,15 +2043,26 @@ class AgyChatBackend(
                         }
 
                         recomputeEnabledModels()
+                        // Re-apply latest summary or per-model API quotas so model reload never wipes quotas
+                        _quotaSummary.value?.let { applyQuotaSummary(it) } ?: applyPerModelApiQuotasOnly()
                     }
                 } else {
                     failureError = modelsRes.exceptionOrNull()?.message
                 }
 
                 if (quotasRes.isSuccess) {
-                    applyQuotaSummary(quotasRes.getOrThrow())
-                } else if (failureError == null) {
-                    failureError = quotasRes.exceptionOrNull()?.message
+                    val summary = quotasRes.getOrThrow()
+                    if (summary.groups.isNotEmpty()) {
+                        applyQuotaSummary(summary)
+                    } else {
+                        _quotaSummary.value = summary
+                        applyPerModelApiQuotasOnly()
+                    }
+                } else {
+                    applyPerModelApiQuotasOnly()
+                    if (failureError == null) {
+                        failureError = quotasRes.exceptionOrNull()?.message
+                    }
                 }
 
                 val userRes = agyHubClient.getLocalUserInfo(hubUrl)

@@ -17,16 +17,21 @@ data class GitFileStatus(
     val path: String,
     val oldPath: String? = null,
     val status: String, // "M", "A", "D", "U", "R"
-    val staged: Boolean
+    val staged: Boolean,
+    val additions: Int = 0,
+    val deletions: Int = 0
 )
 
 data class GitStatusResponse(
     val isGitRepo: Boolean = true,
     val branch: String = "HEAD",
     val tracking: String? = null,
+    val remoteUrl: String? = null,
     val ahead: Int = 0,
     val behind: Int = 0,
     val unpushedCount: Int = 0,
+    val totalAdditions: Int = 0,
+    val totalDeletions: Int = 0,
     val stagedFiles: List<GitFileStatus> = emptyList(),
     val unstagedFiles: List<GitFileStatus> = emptyList(),
     val untrackedFiles: List<GitFileStatus> = emptyList(),
@@ -38,6 +43,24 @@ data class GitStatusResponse(
 
     val hasChanges: Boolean
         get() = totalChangesCount > 0
+
+    val repoSlug: String?
+        get() = parseRepoSlug(remoteUrl)
+}
+
+private fun parseRepoSlug(remoteUrl: String?): String? {
+    val raw = remoteUrl?.trim()?.removeSuffix(".git")?.trimEnd('/') ?: return null
+    if (raw.isEmpty()) return null
+    // git@github.com:owner/repo or https://github.com/owner/repo
+    val pathPart = when {
+        raw.contains("github.com:", ignoreCase = true) -> raw.substringAfter("github.com:")
+        raw.contains("github.com/", ignoreCase = true) -> raw.substringAfter("github.com/")
+        else -> {
+            val segments = raw.substringAfter("://", raw).split('/').filter { it.isNotBlank() }
+            if (segments.size >= 2) "${segments[segments.size - 2]}/${segments.last()}" else null
+        }
+    }?.trim('/')
+    return pathPart?.takeIf { it.contains('/') }
 }
 
 data class GitBranchInfo(
@@ -126,9 +149,12 @@ object GitApiClient {
                     isGitRepo = isGitRepo,
                     branch = json.optString("branch", "HEAD"),
                     tracking = json.optString("tracking").takeIf { it.isNotBlank() },
+                    remoteUrl = json.optString("remoteUrl").takeIf { it.isNotBlank() },
                     ahead = ahead,
                     behind = json.optInt("behind", 0),
                     unpushedCount = unpushed,
+                    totalAdditions = json.optInt("totalAdditions", staged.sumOf { it.additions } + unstaged.sumOf { it.additions } + untracked.sumOf { it.additions }),
+                    totalDeletions = json.optInt("totalDeletions", staged.sumOf { it.deletions } + unstaged.sumOf { it.deletions } + untracked.sumOf { it.deletions }),
                     stagedFiles = staged,
                     unstagedFiles = unstaged,
                     untrackedFiles = untracked,
@@ -241,7 +267,9 @@ object GitApiClient {
                     path = obj.getString("path"),
                     oldPath = obj.optString("oldPath").takeIf { it.isNotBlank() },
                     status = obj.getString("status"),
-                    staged = staged
+                    staged = staged,
+                    additions = obj.optInt("additions", 0),
+                    deletions = obj.optInt("deletions", 0)
                 )
             )
         }

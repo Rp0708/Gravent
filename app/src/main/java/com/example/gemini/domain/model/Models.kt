@@ -2,6 +2,7 @@ package com.example.gemini.domain.model
 
 import kotlinx.serialization.Serializable
 import java.util.UUID
+import kotlin.math.roundToInt
 
 enum class MessageRole {
     USER,
@@ -70,6 +71,14 @@ data class ArtifactSnapshot(
 )
 
 @Serializable
+data class TurnDiffStats(
+    val additions: Int = 0,
+    val deletions: Int = 0,
+    val filesChanged: Int = 0,
+    val files: List<String> = emptyList()
+)
+
+@Serializable
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val conversationId: String,
@@ -87,7 +96,8 @@ data class ChatMessage(
     val attachments: List<ChatAttachment> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     /** The model that wrote this reply, as the agent reports it (null when unknown). */
-    val modelId: String? = null
+    val modelId: String? = null,
+    val diffStats: TurnDiffStats? = null
 )
 
 @Serializable
@@ -272,8 +282,16 @@ data class ModelQuota(
     val weeklyUsedPercentage: String? = null,
     val weeklyResetCountdown: String? = null
 ) {
-    val percentage: Int
-        get() = remainingFraction?.let { (it * 100).toInt() } ?: 0
+    /** Tightest active remaining quota fraction across 5h and 7d windows (null when no reading exists). */
+    val effectiveFraction: Float?
+        get() = listOfNotNull(
+            remainingFraction?.coerceIn(0f, 1f),
+            weeklyRemainingFraction?.coerceIn(0f, 1f)
+        ).minOrNull()
+
+    /** Rounded percentage (0..100) for compact prompt bar / selector display, or null when unavailable. */
+    val percentage: Int?
+        get() = effectiveFraction?.let { (it * 100f).roundToInt().coerceIn(0, 100) }
 }
 
 @Serializable

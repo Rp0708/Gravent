@@ -2248,16 +2248,18 @@ fun MarkdownTableView(
         }
     }
 
+    val fileLinkHandler = LocalFileLinkHandler.current
+
     // Memoize cell AnnotatedStrings so table layout & scrolling takes 0.00ms
-    val cachedHeaders = remember(normalizedHeaders, isDark, density) {
+    val cachedHeaders = remember(normalizedHeaders, isDark, density, fileLinkHandler) {
         normalizedHeaders.map { header ->
-            buildRichAnnotatedString(header, false, isDark, density)
+            buildRichAnnotatedString(header, false, isDark, density, fileLinkHandler)
         }
     }
-    val cachedRows = remember(normalizedRows, isDark, density) {
+    val cachedRows = remember(normalizedRows, isDark, density, fileLinkHandler) {
         normalizedRows.map { row ->
             row.map { cell ->
-                buildRichAnnotatedString(cell, false, isDark, density)
+                buildRichAnnotatedString(cell, false, isDark, density, fileLinkHandler)
             }
         }
     }
@@ -2358,8 +2360,8 @@ fun MarkdownTableView(
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             contentAlignment = Alignment.TopStart
                         ) {
-                            Text(
-                                text = headerResult.annotatedString,
+                            RichMarkdownText(
+                                annotatedString = headerResult.annotatedString,
                                 inlineContent = headerResult.inlineContent,
                                 modifier = Modifier.fillMaxWidth(),
                                 style = TextStyle(
@@ -2411,8 +2413,8 @@ fun MarkdownTableView(
                                     .padding(horizontal = 12.dp, vertical = 7.dp),
                                 contentAlignment = Alignment.TopStart
                             ) {
-                                Text(
-                                    text = cellResult.annotatedString,
+                                RichMarkdownText(
+                                    annotatedString = cellResult.annotatedString,
                                     inlineContent = cellResult.inlineContent,
                                     modifier = Modifier.fillMaxWidth(),
                                     style = TextStyle(
@@ -2528,7 +2530,9 @@ object MarkdownTextCache {
         // Fast path for plain text without markdown tokens
         if (!text.contains('*') && !text.contains('_') && !text.contains('`') &&
             !text.contains('[') && !text.contains('<') && !text.contains('$') &&
-            !text.contains('\\') && !text.contains('~')
+            !text.contains('\\') && !text.contains('~') &&
+            !text.contains("file://", ignoreCase = true) &&
+            !text.contains("conversation://", ignoreCase = true)
         ) {
             val clean = if (text.contains("<br", ignoreCase = true)) text.replace(BR_REGEX, "\n") else text
             val str = if (isStrikethrough) {
@@ -2572,8 +2576,8 @@ fun FormattedInlineText(
         MarkdownTextCache.getOrCompute(text, isStrikethrough, isDark, density, fileLinkHandler)
     }
 
-    Text(
-        text = result.annotatedString,
+    RichMarkdownText(
+        annotatedString = result.annotatedString,
         inlineContent = result.inlineContent,
         style = style,
         modifier = modifier
@@ -2675,36 +2679,14 @@ private fun buildRichAnnotatedString(
                 builder.pop()
                 builder.pop()
             } else if (isFile) {
-                val cleanPath = linkUrl.removePrefix("file://").substringBefore("#")
-                val fileName = java.io.File(cleanPath).name.ifBlank { cleanPath }
-                val rawTitle = linkTitle.trim().removeSurrounding("`").removeSurrounding("\"").trim()
-                val displayLabel = if (rawTitle.isBlank() || rawTitle.startsWith("file://", ignoreCase = true) || rawTitle.startsWith("/")) {
-                    fileName
-                } else {
-                    rawTitle
-                }
-
-                builder.pushLink(
-                    LinkAnnotation.Clickable(
-                        tag = linkUrl,
-                        linkInteractionListener = {
-                            val handler = fileLinkHandler ?: ActiveFileLinkHandlerHolder.current
-                            handler?.onOpenFile?.invoke(linkUrl)
-                        }
-                    )
+                appendFileCitationChip(
+                    builder = builder,
+                    linkUrl = linkUrl,
+                    linkTitle = linkTitle,
+                    isDark = isDark,
+                    fileLinkHandler = fileLinkHandler,
+                    inlineContentMap = inlineContentMap
                 )
-                builder.pushStyle(
-                    SpanStyle(
-                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.5.sp,
-                        background = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
-                    )
-                )
-                builder.append(" 📄 $displayLabel ")
-                builder.pop()
-                builder.pop()
             } else {
                 builder.pushLink(LinkAnnotation.Url(url = linkUrl))
                 builder.pushStyle(
@@ -2753,31 +2735,14 @@ private fun buildRichAnnotatedString(
                 builder.pop()
                 builder.pop()
             } else if (isFile) {
-                val cleanPath = linkUrl.removePrefix("file://").substringBefore("#")
-                val fileName = java.io.File(cleanPath).name.ifBlank { cleanPath }
-                val rawTitle = linkTitle.trim().removeSurrounding("`").removeSurrounding("\"").trim()
-                val displayLabel = if (rawTitle.isBlank() || rawTitle.startsWith("file://", ignoreCase = true) || rawTitle.startsWith("/")) fileName else rawTitle
-                builder.pushLink(
-                    LinkAnnotation.Clickable(
-                        tag = linkUrl,
-                        linkInteractionListener = {
-                            val handler = fileLinkHandler ?: ActiveFileLinkHandlerHolder.current
-                            handler?.onOpenFile?.invoke(linkUrl)
-                        }
-                    )
+                appendFileCitationChip(
+                    builder = builder,
+                    linkUrl = linkUrl,
+                    linkTitle = linkTitle,
+                    isDark = isDark,
+                    fileLinkHandler = fileLinkHandler,
+                    inlineContentMap = inlineContentMap
                 )
-                builder.pushStyle(
-                    SpanStyle(
-                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.5.sp,
-                        background = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
-                    )
-                )
-                builder.append(" 📄 $displayLabel ")
-                builder.pop()
-                builder.pop()
             } else {
                 builder.pushLink(LinkAnnotation.Url(url = linkUrl))
                 builder.pushStyle(
@@ -2815,30 +2780,14 @@ private fun buildRichAnnotatedString(
             builder.pop()
             builder.pop()
         } else if (fullMatch.startsWith("file:///", ignoreCase = true)) {
-            // Bare file link
-            val cleanPath = fullMatch.removePrefix("file://").substringBefore("#")
-            val fileName = java.io.File(cleanPath).name.ifBlank { cleanPath }
-            builder.pushLink(
-                LinkAnnotation.Clickable(
-                    tag = fullMatch,
-                    linkInteractionListener = {
-                        val handler = fileLinkHandler ?: ActiveFileLinkHandlerHolder.current
-                        handler?.onOpenFile?.invoke(fullMatch)
-                    }
-                )
+            appendFileCitationChip(
+                builder = builder,
+                linkUrl = fullMatch,
+                linkTitle = null,
+                isDark = isDark,
+                fileLinkHandler = fileLinkHandler,
+                inlineContentMap = inlineContentMap
             )
-            builder.pushStyle(
-                SpanStyle(
-                    color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.5.sp,
-                    background = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
-                )
-            )
-            builder.append(" 📄 $fileName ")
-            builder.pop()
-            builder.pop()
         } else if ((fullMatch.startsWith("`") && fullMatch.endsWith("`")) || fullMatch.startsWith("<code", ignoreCase = true)) {
             // Inline code `...` or <code>...</code> with Color Swatch preview support
             val codeContent = if (fullMatch.startsWith("`")) fullMatch.removeSurrounding("`") else fullMatch.replace(Regex("<[^>]+>"), "")

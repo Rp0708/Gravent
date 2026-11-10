@@ -266,16 +266,26 @@ fun MessageBubble(
                             .fillMaxWidth()
                             .padding(top = 6.dp)
                     ) {
-                        // Token & Cache Telemetry Badge (Displayed just above action icons)
-                        if (message.tokenUsage != null) {
-                            val payloadToShow = message.rawContent ?: message.rawPayload
-                            TokenUsageTelemetryPill(
-                                usage = message.tokenUsage,
-                                onViewPayload = if (!payloadToShow.isNullOrBlank()) {
-                                    { onViewRawPayload?.invoke(payloadToShow) }
-                                } else null
+                        // Token, Diff & Timestamp Telemetry Pill (Displayed just above action icons)
+                        var showBubbleTelemetryDialog by remember(message.id) { mutableStateOf(false) }
+                        if (showBubbleTelemetryDialog) {
+                            ChatTelemetryDialog(
+                                conversation = null,
+                                messages = listOf(message),
+                                focusedMessage = message,
+                                focusedTurnDiffStats = message.diffStats,
+                                onViewRawPayload = onViewRawPayload,
+                                onDismiss = { showBubbleTelemetryDialog = false }
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        if (message.tokenUsage != null || message.diffStats != null || message.createdAt > 0L) {
+                            ResponseTelemetryPill(
+                                usage = message.tokenUsage,
+                                createdAtMs = message.createdAt,
+                                diffStats = message.diffStats,
+                                onInspectDetails = { showBubbleTelemetryDialog = true }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
                         }
 
                         Row(
@@ -576,24 +586,45 @@ fun AssistantMessageFooter(
     onViewRawPayload: ((String) -> Unit)? = null,
     onShowArtifacts: (() -> Unit)? = null,
     artifactsCount: Int = 0,
+    turnDiffStats: com.example.gemini.domain.model.TurnDiffStats? = message.diffStats,
+    onInspectTelemetry: ((ChatMessage) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showLocalTelemetryDialog by remember(message.id) { mutableStateOf(false) }
+
+    if (showLocalTelemetryDialog) {
+        ChatTelemetryDialog(
+            conversation = null,
+            messages = listOf(message),
+            focusedMessage = message,
+            focusedTurnDiffStats = turnDiffStats ?: message.diffStats,
+            onViewRawPayload = onViewRawPayload,
+            onDismiss = { showLocalTelemetryDialog = false }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp)
     ) {
-        // Token & Cache Telemetry Badge (Displayed just above action icons)
-        if (message.tokenUsage != null) {
-            val payloadToShow = message.rawContent ?: message.rawPayload
-            TokenUsageTelemetryPill(
+        // Token, Diff & Timestamp Telemetry Pill (Displayed just above action icons)
+        val effectiveDiff = turnDiffStats ?: message.diffStats
+        if (message.tokenUsage != null || effectiveDiff != null || message.createdAt > 0L) {
+            ResponseTelemetryPill(
                 usage = message.tokenUsage,
-                onViewPayload = if (!payloadToShow.isNullOrBlank()) {
-                    { onViewRawPayload?.invoke(payloadToShow) }
-                } else null
+                createdAtMs = message.createdAt,
+                diffStats = effectiveDiff,
+                onInspectDetails = {
+                    if (onInspectTelemetry != null) {
+                        onInspectTelemetry(message)
+                    } else {
+                        showLocalTelemetryDialog = true
+                    }
+                }
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
         Row(

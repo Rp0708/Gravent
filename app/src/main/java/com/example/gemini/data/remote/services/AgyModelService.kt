@@ -19,7 +19,13 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 import exa.language_server_pb.GetAvailableModelsRequest
 import exa.language_server_pb.Model
+import exa.language_server_pb.QuotaSummaryBucket
 import exa.language_server_pb.RetrieveUserQuotaSummaryRequest
+
+data class PerModelApiQuota(
+    val remainingFraction: Float,
+    val resetTime: String? = null
+)
 
 /**
  * Dedicated RPC service for AI models and user quota telemetry.
@@ -36,6 +42,13 @@ class AgyModelService {
         private val keyToModelEnum = ConcurrentHashMap<String, String>()
         private val nameToModelEnum = ConcurrentHashMap<String, String>()
         private val allValidEnums = CopyOnWriteArraySet<String>()
+        private val perModelApiQuotas = ConcurrentHashMap<String, PerModelApiQuota>()
+
+        fun getCachedPerModelQuota(modelId: String, modelKey: String = ""): PerModelApiQuota? {
+            perModelApiQuotas[modelId]?.let { return it }
+            if (modelKey.isNotBlank()) perModelApiQuotas[modelKey]?.let { return it }
+            return null
+        }
 
         @Volatile
         private var defaultModelEnum: String = ""
@@ -140,6 +153,8 @@ class AgyModelService {
             }
 
             val resultList = mutableListOf<AiModel>()
+            val nextApiQuotas = HashMap<String, PerModelApiQuota>()
+            val nowMs = System.currentTimeMillis()
             for (key in keysToProcess) {
                 val details = modelsMap[key] ?: continue
                 if (details.disabled) continue
@@ -173,6 +188,20 @@ class AgyModelService {
                     else -> ModelFamily.GEMINI
                 }
 
+                // Extract per-model QuotaInfo when populated by the language server
+                details.quota_info?.let { qi ->
+                    val resetEpochMs = qi.reset_time?.let { ts -> ts.seconds * 1000L + (ts.nanos / 1_000_000L) }
+                    val hasResetTime = qi.reset_time != null && resetEpochMs != null && resetEpochMs > 0L
+                    if (qi.remaining_fraction > 0f || hasResetTime) {
+                        val isDefinitelyExpired = hasResetTime && resetEpochMs!! + 60_000L < nowMs
+                        val frac = if (isDefinitelyExpired) 1.0f else qi.remaining_fraction.coerceIn(0f, 1f)
+                        val resetIso = if (hasResetTime && !isDefinitelyExpired) ISO_FORMAT.format(Date(resetEpochMs!!)) else null
+                        val entry = PerModelApiQuota(remainingFraction = frac, resetTime = resetIso)
+                        nextApiQuotas[modelEnumName] = entry
+                        if (key.isNotBlank()) nextApiQuotas[key] = entry
+                    }
+                }
+
                 resultList.add(
                     AiModel(
                         id = modelEnumName,
@@ -187,12 +216,107 @@ class AgyModelService {
                 )
             }
 
+            if (nextApiQuotas.isNotEmpty()) {
+                perModelApiQuotas.clear()
+                perModelApiQuotas.putAll(nextApiQuotas)
+            }
             updateModelRegistry(resultList)
             Result.success(resultList)
         } catch (e: Exception) {
             Log.e(TAG, "getAvailableModels failed: ${e.message}")
             Result.failure(e)
         }
+    }
+
+    private fun buildGroupFromBuckets(
+        buckets: List<QuotaSummaryBucket>,
+        dispName: String,
+        desc: String,
+        nowMs: Long
+    ): ModelQuotaGroup? {
+        var fiveHourInfo: QuotaWindowInfo? = null
+        var weeklyInfo: QuotaWindowInfo? = null
+        val fallbackWindows = mutableListOf<QuotaWindowInfo>()
+
+        for (b in buckets) {
+            if (b.disabled) continue
+            val resetEpochMs = b.reset_time?.let { ts -> ts.seconds * 1000L + (ts.nanos / 1_000_000L) }
+            val hasResetTime = b.reset_time != null && resetEpochMs != null && resetEpochMs > 0L
+            // Proto3 default 0f without resetTime when remaining_amount > 0 means fraction wasn't populated
+            if (b.remaining_fraction <= 0f && !hasResetTime && b.remaining_amount > 0L) continue
+
+            val isDefinitelyExpired = hasResetTime && resetEpochMs!! + 60_000L < nowMs
+            val remFraction = if (isDefinitelyExpired) 1.0f else b.remaining_fraction.coerceIn(0f, 1f)
+            val remPct = String.format(Locale.US, "%.1f%%", remFraction * 100f)
+            val usedPct = String.format(Locale.US, "%.1f%%", (1.0f - remFraction) * 100f)
+            val resetTime = if (hasResetTime && !isDefinitelyExpired) ISO_FORMAT.format(Date(resetEpochMs!!)) else null
+            val countdown = when {
+                isDefinitelyExpired -> "Ready"
+                else -> formatQuotaResetCountdown(resetTime)
+            }
+
+            val windowInfo = QuotaWindowInfo(
+                window = b.window,
+                displayName = b.display_name.ifBlank { b.window },
+                remainingFraction = remFraction,
+                remainingPct = remPct,
+                usedPct = usedPct,
+                resetTime = resetTime,
+                countdown = countdown,
+                description = b.description
+            )
+
+            val hint = "${b.window} ${b.display_name} ${b.bucket_id}".lowercase(Locale.US)
+            val isFiveHour = hint.contains("5h") ||
+                hint.contains("5-h") ||
+                hint.contains("5 h") ||
+                hint.contains("five") ||
+                hint.contains("session") ||
+                hint.contains("hourly") ||
+                hint.contains("short")
+            val isWeekly = hint.contains("week") ||
+                hint.contains("7d") ||
+                hint.contains("7-d") ||
+                hint.contains("7 d") ||
+                hint.contains("seven")
+
+            when {
+                isFiveHour -> {
+                    if (fiveHourInfo == null || remFraction < fiveHourInfo.remainingFraction) {
+                        fiveHourInfo = windowInfo
+                    }
+                }
+                isWeekly -> {
+                    if (weeklyInfo == null || remFraction < weeklyInfo.remainingFraction) {
+                        weeklyInfo = windowInfo
+                    }
+                }
+                else -> fallbackWindows.add(windowInfo)
+            }
+        }
+
+        if (fiveHourInfo == null && fallbackWindows.isNotEmpty()) {
+            fiveHourInfo = fallbackWindows.removeAt(0)
+        }
+        if (weeklyInfo == null && fallbackWindows.isNotEmpty()) {
+            weeklyInfo = fallbackWindows.removeAt(0)
+        }
+        if (fiveHourInfo == null && weeklyInfo == null) return null
+
+        val nameAndBucketsHint = "$dispName ${buckets.joinToString(" ") { "${it.display_name} ${it.bucket_id}" }}".lowercase(Locale.US)
+        val gId = when {
+            nameAndBucketsHint.contains("gemini") -> "gemini"
+            nameAndBucketsHint.contains("claude") || nameAndBucketsHint.contains("gpt") -> "claude_gpt"
+            else -> dispName.lowercase(Locale.US).replace(" ", "_")
+        }
+
+        return ModelQuotaGroup(
+            groupId = gId,
+            groupName = dispName,
+            description = desc,
+            fiveHour = fiveHourInfo,
+            weekly = weeklyInfo
+        )
     }
 
     /**
@@ -214,69 +338,41 @@ class AgyModelService {
             Log.d(TAG, "retrieveUserQuotaSummary response: $rawResponse")
             val quotaResp = rawResponse.response
             val groupsList = mutableListOf<ModelQuotaGroup>()
+            val nowMs = System.currentTimeMillis()
 
             if (quotaResp != null) {
                 for (grp in quotaResp.groups) {
-                    val dispName = grp.display_name
-                    val desc = grp.description
-                    val buckets = grp.buckets
+                    buildGroupFromBuckets(
+                        buckets = grp.buckets,
+                        dispName = grp.display_name,
+                        desc = grp.description,
+                        nowMs = nowMs
+                    )?.let { groupsList.add(it) }
+                }
 
-                    var fiveHourInfo: QuotaWindowInfo? = null
-                    var weeklyInfo: QuotaWindowInfo? = null
-
-                    for (b in buckets) {
-                        val window = b.window
-                        val remFraction = b.remaining_fraction
-                        val remPct = String.format(Locale.US, "%.1f%%", remFraction * 100f)
-                        val usedPct = String.format(Locale.US, "%.1f%%", (1.0f - remFraction) * 100f)
-                        val resetTime = b.reset_time?.let { ts ->
-                            val epochMs = ts.seconds * 1000L + (ts.nanos / 1_000_000L)
-                            ISO_FORMAT.format(Date(epochMs))
-                        }
-                        val bDesc = b.description
-                        val countdown = formatQuotaResetCountdown(resetTime)
-
-                        val windowInfo = QuotaWindowInfo(
-                            window = window,
-                            displayName = b.display_name.ifBlank { window },
-                            remainingFraction = remFraction,
-                            remainingPct = remPct,
-                            usedPct = usedPct,
-                            resetTime = resetTime,
-                            countdown = countdown,
-                            description = bDesc
-                        )
-
-                        if (window.contains("5h", ignoreCase = true)) {
-                            fiveHourInfo = windowInfo
-                        } else if (window.contains("week", ignoreCase = true) || window.contains(
-                                "7d",
-                                ignoreCase = true
-                            )
-                        ) {
-                            weeklyInfo = windowInfo
+                // Fallback to top-level buckets when groups are empty or produced no windows
+                if (groupsList.isEmpty() && quotaResp.buckets.isNotEmpty()) {
+                    val byGroupKey = quotaResp.buckets.groupBy { b ->
+                        val h = "${b.display_name} ${b.bucket_id}".lowercase(Locale.US)
+                        when {
+                            h.contains("claude") || h.contains("gpt") -> "claude_gpt"
+                            h.contains("gemini") -> "gemini"
+                            else -> "default"
                         }
                     }
-
-                    val gId = when {
-                        dispName.contains("gemini", ignoreCase = true) -> "gemini"
-                        dispName.contains("claude", ignoreCase = true) || dispName.contains(
-                            "gpt",
-                            ignoreCase = true
-                        ) -> "claude_gpt"
-
-                        else -> dispName.lowercase().replace(" ", "_")
+                    byGroupKey.forEach { (key, bList) ->
+                        val disp = when (key) {
+                            "claude_gpt" -> "Claude / GPT"
+                            "gemini" -> "Google Gemini"
+                            else -> "All Models"
+                        }
+                        buildGroupFromBuckets(
+                            buckets = bList,
+                            dispName = disp,
+                            desc = quotaResp.description,
+                            nowMs = nowMs
+                        )?.let { groupsList.add(it) }
                     }
-
-                    groupsList.add(
-                        ModelQuotaGroup(
-                            groupId = gId,
-                            groupName = dispName,
-                            description = desc,
-                            fiveHour = fiveHourInfo,
-                            weekly = weeklyInfo
-                        )
-                    )
                 }
             }
 

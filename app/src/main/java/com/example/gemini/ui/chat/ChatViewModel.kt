@@ -157,10 +157,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
 
-    private fun isoUtc(epochSeconds: Long): String =
-        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+    private fun isoUtc(epochSeconds: Long): String {
+        val ms = if (epochSeconds > 1_000_000_000_000L) epochSeconds else epochSeconds * 1000L
+        return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
             .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
-            .format(java.util.Date(epochSeconds * 1000))
+            .format(java.util.Date(ms))
+    }
 
     private fun agentOf(conversationId: String): AgentKind =
         conversations.value.find { it.id == conversationId }?.agent
@@ -195,27 +197,65 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isRefreshingModels = byAgent(agyBackend.isRefreshingModels, claudeBackend.isRefreshingModels, copilotBackend.isRefreshingModels)
     val selectedModelId = byAgent(agyBackend.selectedModelId, claudeBackend.selectedModelId, copilotBackend.selectedModelId)
     val preferredModelName = agyBackend.preferredModelName
+    private fun parseClaudeResetMs(resetsAtIso: String?): Long? {
+        if (resetsAtIso.isNullOrBlank()) return null
+        val clean = resetsAtIso.substringBefore('.').substringBefore('Z').substringBefore('+')
+        return runCatching {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                .parse(clean)?.time
+        }.getOrNull()
+    }
+
+    private fun remainingFromClaudeUsed(usedFrac: Double, resetMs: Long?, nowMs: Long): Float {
+        if (resetMs != null && resetMs + 60_000L < nowMs) return 1.0f
+        return (1.0 - usedFrac.coerceIn(0.0, 1.0)).toFloat().coerceIn(0f, 1f)
+    }
+
     /** Claude's plan windows as the model pill's quota (remaining share of the 5-hour and weekly limits). */
     private val claudeQuotas: StateFlow<List<ModelQuota>> =
         combine(claudeBackend.selectedModelId, claudeBackend.rateLimits, claudeAccount.usage) { modelId, live, usage ->
             // plan limits belong to Claude's own models; a custom provider's model has none
             if (com.example.gemini.data.agent.claude.ClaudeChatBackend.providerOf(modelId).isNotEmpty()) return@combine emptyList()
-            // live windows from the chat stream are fresher than the cached usage call (percent there)
-            val five = live["five_hour"]?.let { it.utilization to it.resetsAt?.let(::isoUtc) }
-                ?: usage?.rate_limits?.five_hour?.let { (it.utilization ?: 0.0) / 100.0 to it.resets_at }
-            val week = live["seven_day"]?.let { it.utilization to it.resetsAt?.let(::isoUtc) }
-                ?: usage?.rate_limits?.seven_day?.let { (it.utilization ?: 0.0) / 100.0 to it.resets_at }
-            if (five == null && week == null) emptyList()
+            val nowMs = System.currentTimeMillis()
+            // live windows from the chat stream (0..1) are fresher than cached /api/oauth/usage (0..100)
+            val liveFive = live["five_hour"] ?: live["5h"] ?: live["session"]
+            val liveWeek = live["seven_day"] ?: live["7d"] ?: live["weekly"]
+
+            val fiveRem: Pair<Float, String?>? = liveFive?.let {
+                val u = if (it.utilization > 1.0) it.utilization / 100.0 else it.utilization
+                val rMs = it.resetsAt?.let { sec -> if (sec > 1_000_000_000_000L) sec else sec * 1000L }
+                remainingFromClaudeUsed(u, rMs, nowMs) to it.resetsAt?.let(::isoUtc)
+            } ?: usage?.rate_limits?.five_hour?.let {
+                val u = (it.utilization ?: 0.0) / 100.0
+                val rMs = parseClaudeResetMs(it.resets_at)
+                remainingFromClaudeUsed(u, rMs, nowMs) to it.resets_at
+            }
+
+            val weekRem: Pair<Float, String?>? = liveWeek?.let {
+                val u = if (it.utilization > 1.0) it.utilization / 100.0 else it.utilization
+                val rMs = it.resetsAt?.let { sec -> if (sec > 1_000_000_000_000L) sec else sec * 1000L }
+                remainingFromClaudeUsed(u, rMs, nowMs) to it.resetsAt?.let(::isoUtc)
+            } ?: usage?.rate_limits?.seven_day?.let {
+                val u = (it.utilization ?: 0.0) / 100.0
+                val rMs = parseClaudeResetMs(it.resets_at)
+                remainingFromClaudeUsed(u, rMs, nowMs) to it.resets_at
+            }
+
+            if (fiveRem == null && weekRem == null) emptyList()
             else listOf(
                 ModelQuota(
                     modelId = modelId,
-                    remainingFraction = five?.let { (1.0 - it.first).toFloat().coerceIn(0f, 1f) },
-                    resetTime = five?.second,
-                    weeklyRemainingFraction = week?.let { (1.0 - it.first).toFloat().coerceIn(0f, 1f) }
+                    remainingFraction = fiveRem?.first,
+                    resetTime = fiveRem?.second,
+                    resetCountdown = fiveRem?.second?.let { com.example.gemini.data.remote.AgyHubClient.formatQuotaResetCountdown(it) },
+                    weeklyRemainingFraction = weekRem?.first,
+                    weeklyResetCountdown = weekRem?.second?.let { com.example.gemini.data.remote.AgyHubClient.formatQuotaResetCountdown(it) }
                 )
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    val quotas = byAgent(agyBackend.quotas, claudeQuotas)
+    private val emptyQuotasFlow = MutableStateFlow<List<ModelQuota>>(emptyList())
+    val quotas = byAgent(agyBackend.quotas, claudeQuotas, emptyQuotasFlow)
     val quotaSummary = agyBackend.quotaSummary
     val isLoadingConversation = byAgent(agyBackend.isLoadingConversation, claudeBackend.isLoadingConversation, copilotBackend.isLoadingConversation)
     fun setModelEnabled(modelId: String, isEnabled: Boolean) = agyBackend.setModelEnabled(modelId, isEnabled)
@@ -350,6 +390,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
     /** `/plu:` plugin skills and custom slash commands are expanded here, tailored to the active backend. */
     fun sendMessage(content: String) {
+        capturePreTurnBaseline()
         val kind = when {
             isClaudeActive -> com.example.gemini.domain.model.AgentKind.CLAUDE
             isCopilotActive -> com.example.gemini.domain.model.AgentKind.COPILOT
@@ -364,7 +405,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
     val isTranscribingAudio = agyBackend.isTranscribingAudio
     fun transcribeAudioFile(file: java.io.File, onDone: (String) -> Unit, onError: (String) -> Unit) = agyBackend.transcribeAudioFile(file, onDone, onError)
-    fun retryMessage(messageId: String) = if (isClaudeActive) claudeBackend.regenerate(messageId) else agyBackend.retryMessage(messageId)
+    fun retryMessage(messageId: String) {
+        capturePreTurnBaseline()
+        if (isClaudeActive) claudeBackend.regenerate(messageId) else agyBackend.retryMessage(messageId)
+    }
     fun prepareEditMessage(messageId: String): String? {
         if (isClaudeActive) {
             claudeNotSupported("Editing a sent message")
@@ -521,6 +565,200 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _thinkingPreference = store.thinkingPreference
     val thinkingPreference: StateFlow<com.example.gemini.domain.model.ThinkingPreference> = _thinkingPreference.asStateFlow()
+
+    // ── Home Git Integration & Turn Diff Tracking (Codex Core) ─────────────────
+    private val _homeGitStatus = MutableStateFlow<com.example.gemini.data.daemon.GitStatusResponse?>(null)
+    val homeGitStatus: StateFlow<com.example.gemini.data.daemon.GitStatusResponse?> = _homeGitStatus.asStateFlow()
+
+    private val _isHomeGitLoading = MutableStateFlow(false)
+    val isHomeGitLoading: StateFlow<Boolean> = _isHomeGitLoading.asStateFlow()
+
+    val perMessageDiffs: StateFlow<Map<String, com.example.gemini.domain.model.TurnDiffStats>> =
+        com.example.gemini.data.agent.TurnDiffStore.perMessage
+    val perConversationDiffs: StateFlow<Map<String, com.example.gemini.domain.model.TurnDiffStats>> =
+        com.example.gemini.data.agent.TurnDiffStore.perConversation
+
+    private var homeGitStatusJob: kotlinx.coroutines.Job? = null
+    private var homeGitLoadedPath: String? = null
+
+    @Volatile private var turnBaselineStatus: com.example.gemini.data.daemon.GitStatusResponse? = null
+    @Volatile private var turnBaselineProjectPath: String? = null
+    @Volatile private var turnBaselineConvId: String? = null
+    private var turnBaselineJob: kotlinx.coroutines.Job? = null
+
+    private fun resolveGitProjectPath(explicitPath: String? = null): String? {
+        val explicit = explicitPath?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
+        if (explicit != null) return explicit
+        val convPath = _currentConversation.value?.workspaceUri
+            ?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
+        if (convPath != null) return convPath
+        return com.example.gemini.data.daemon.TermuxDaemonManager.activeProject.value?.path
+            ?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
+    }
+
+    private fun capturePreTurnBaseline() {
+        val convId = _currentConversation.value?.id
+        val projectPath = resolveGitProjectPath(null) ?: return
+        if (homeGitLoadedPath == projectPath && _homeGitStatus.value != null) {
+            turnBaselineStatus = _homeGitStatus.value
+            turnBaselineProjectPath = projectPath
+            turnBaselineConvId = convId
+        }
+        turnBaselineJob?.cancel()
+        turnBaselineJob = viewModelScope.launch(Dispatchers.IO) {
+            val fresh = com.example.gemini.data.daemon.GitApiClient.getStatus(projectPath)
+            if (fresh != null) {
+                turnBaselineStatus = fresh
+                turnBaselineProjectPath = projectPath
+                turnBaselineConvId = _currentConversation.value?.id ?: convId
+            }
+        }
+    }
+
+    fun refreshHomeGitStatus(projectPath: String? = null) {
+        val resolved = resolveGitProjectPath(projectPath)
+        if (resolved.isNullOrBlank()) {
+            homeGitStatusJob?.cancel()
+            _homeGitStatus.value = null
+            homeGitLoadedPath = null
+            _isHomeGitLoading.value = false
+            return
+        }
+        if (homeGitLoadedPath != resolved) {
+            _homeGitStatus.value = null
+        }
+        homeGitStatusJob?.cancel()
+        homeGitStatusJob = viewModelScope.launch {
+            _isHomeGitLoading.value = true
+            try {
+                val status = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    com.example.gemini.data.daemon.GitApiClient.getStatus(resolved)
+                }
+                val latestResolved = resolveGitProjectPath(null)
+                if (resolved == projectPath?.removePrefix("file://")?.trimEnd('/') || resolved == latestResolved) {
+                    _homeGitStatus.value = status
+                    homeGitLoadedPath = resolved
+                }
+            } finally {
+                _isHomeGitLoading.value = false
+            }
+        }
+    }
+
+    fun commitFromHome(
+        projectPath: String,
+        message: String,
+        alsoPush: Boolean = false,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        val trimmedMsg = message.trim()
+        if (trimmedMsg.isBlank()) {
+            onResult(false, "Commit message cannot be empty.")
+            return
+        }
+        viewModelScope.launch {
+            _isHomeGitLoading.value = true
+            try {
+                val (ok, err) = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    val staged = com.example.gemini.data.daemon.GitApiClient.stage(projectPath)
+                    if (!staged) {
+                        return@withContext false to "Failed to stage modified files."
+                    }
+                    val commitRes = com.example.gemini.data.daemon.GitApiClient.commitDetailed(projectPath, trimmedMsg)
+                    if (!commitRes.success) {
+                        return@withContext false to (commitRes.error.ifBlank { "Commit failed." })
+                    }
+                    if (alsoPush) {
+                        val pushRes = com.example.gemini.data.daemon.GitApiClient.pushDetailed(projectPath)
+                        if (!pushRes.success) {
+                            return@withContext false to ("Committed locally, but push failed: " + pushRes.error.ifBlank { "Unknown error" })
+                        }
+                    }
+                    true to null
+                }
+                refreshHomeGitStatus(projectPath)
+                onResult(ok, err)
+            } finally {
+                _isHomeGitLoading.value = false
+            }
+        }
+    }
+
+    fun pushFromHome(
+        projectPath: String,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            _isHomeGitLoading.value = true
+            try {
+                val pushRes = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    com.example.gemini.data.daemon.GitApiClient.pushDetailed(projectPath)
+                }
+                refreshHomeGitStatus(projectPath)
+                onResult(pushRes.success, if (pushRes.success) null else pushRes.error.ifBlank { "Push failed." })
+            } finally {
+                _isHomeGitLoading.value = false
+            }
+        }
+    }
+
+    fun pullFromHome(
+        projectPath: String,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            _isHomeGitLoading.value = true
+            try {
+                val pullRes = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    com.example.gemini.data.daemon.GitApiClient.pullDetailed(projectPath)
+                }
+                refreshHomeGitStatus(projectPath)
+                onResult(pullRes.success, if (pullRes.success) null else pullRes.error.ifBlank { "Pull failed." })
+            } finally {
+                _isHomeGitLoading.value = false
+            }
+        }
+    }
+
+    fun checkoutBranchFromHome(
+        projectPath: String,
+        branch: String,
+        create: Boolean = false,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            _isHomeGitLoading.value = true
+            try {
+                val ok = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    com.example.gemini.data.daemon.GitApiClient.checkoutBranch(projectPath, branch, create)
+                }
+                refreshHomeGitStatus(projectPath)
+                onResult(ok, if (ok) null else "Could not switch to branch '$branch'.")
+            } finally {
+                _isHomeGitLoading.value = false
+            }
+        }
+    }
+
+    fun discardFilesFromHome(
+        projectPath: String,
+        paths: List<String>,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        if (paths.isEmpty()) return
+        viewModelScope.launch {
+            _isHomeGitLoading.value = true
+            try {
+                val ok = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    com.example.gemini.data.daemon.GitApiClient.discard(projectPath, paths)
+                }
+                refreshHomeGitStatus(projectPath)
+                onResult(ok, if (ok) null else "Failed to discard changes.")
+            } finally {
+                _isHomeGitLoading.value = false
+            }
+        }
+    }
 
     private val _userEmail = store.userEmail
     val userEmail: StateFlow<String?> = _userEmail.asStateFlow()
@@ -1103,6 +1341,132 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             authPrefs.isDevModeEnabled.collect { _isDevModeEnabled.value = it }
+        }
+
+        com.example.gemini.data.agent.TurnDiffStore.init(getApplication())
+
+        // Refresh Home Git status whenever bridge connectivity transitions online
+        viewModelScope.launch {
+            systemConnectionState
+                .map { it.isBridgeOnline }
+                .distinctUntilChanged()
+                .collect { online ->
+                    if (online) {
+                        refreshHomeGitStatus()
+                    }
+                }
+        }
+
+        // Refresh Home Git status whenever conversation workspace changes
+        viewModelScope.launch {
+            currentConversation
+                .map { it?.workspaceUri?.removePrefix("file://")?.trimEnd('/') }
+                .distinctUntilChanged()
+                .collect { workspacePath ->
+                    refreshHomeGitStatus(workspacePath)
+                }
+        }
+
+        // Keep Claude plan usage loaded when switching onto a Claude chat so prompt bar badge populates immediately
+        viewModelScope.launch {
+            activeAgent.collect { agent ->
+                if (agent == AgentKind.CLAUDE && claudeAccount.usage.value == null) {
+                    claudeAccount.refreshUsage(force = false)
+                }
+            }
+        }
+
+        // Snapshot git diff deltas when an agent turn completes (running true -> false)
+        viewModelScope.launch {
+            var wasRunning = false
+            var activeConvIdAtTurnStart: String? = null
+            var lastAutoQuotaRefreshMs = 0L
+            isCurrentChatActivelyRunning.collect { running ->
+                if (!wasRunning && running) {
+                    activeConvIdAtTurnStart = _currentConversation.value?.id
+                    val proj = resolveGitProjectPath(null)
+                    if (proj != null && (turnBaselineProjectPath != proj || turnBaselineStatus == null)) {
+                        capturePreTurnBaseline()
+                    }
+                } else if (wasRunning && !running) {
+                    val nowMs = System.currentTimeMillis()
+                    if (nowMs - lastAutoQuotaRefreshMs >= 4_000L) {
+                        lastAutoQuotaRefreshMs = nowMs
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(350)
+                            when {
+                                isClaudeActive -> claudeAccount.refreshUsage(force = true)
+                                !isCopilotActive -> agyBackend.refreshQuotas(force = true, showToastFeedback = false)
+                            }
+                        }
+                    }
+                    val baselineJob = turnBaselineJob
+                    val startConvId = activeConvIdAtTurnStart
+                    val convIdSnapshot = _currentConversation.value?.id ?: startConvId
+                    val projectPath = turnBaselineProjectPath ?: resolveGitProjectPath(null)
+                    val preStatusSnapshot = if (turnBaselineProjectPath == projectPath) turnBaselineStatus else null
+                    val preConvSnapshot = turnBaselineConvId
+                    if (!projectPath.isNullOrBlank()) {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            baselineJob?.join()
+                            val pre = if (turnBaselineProjectPath == projectPath) {
+                                turnBaselineStatus ?: preStatusSnapshot
+                            } else preStatusSnapshot
+                            val post = com.example.gemini.data.daemon.GitApiClient.getStatus(projectPath)
+                            if (post != null) {
+                                if (resolveGitProjectPath(null) == projectPath || homeGitLoadedPath == projectPath) {
+                                    _homeGitStatus.value = post
+                                    homeGitLoadedPath = projectPath
+                                }
+                                var curConvId = _currentConversation.value?.id
+                                val switchedAway = !startConvId.isNullOrBlank() &&
+                                    !curConvId.isNullOrBlank() &&
+                                    curConvId != startConvId
+
+                                var resolvedConvId = if (switchedAway) startConvId else (curConvId ?: convIdSnapshot ?: preConvSnapshot)
+                                var targetMsgId = if (!switchedAway) {
+                                    messages.value.lastOrNull {
+                                        it.role == com.example.gemini.domain.model.MessageRole.ASSISTANT &&
+                                            (it.content.isNotBlank() || it.toolCalls.isNotEmpty() || !it.thoughtText.isNullOrBlank())
+                                    }?.id ?: messages.value.lastOrNull {
+                                        it.role == com.example.gemini.domain.model.MessageRole.ASSISTANT
+                                    }?.id
+                                } else null
+
+                                // Allow brief settle if final ASSISTANT message is committed just after streaming flag drops
+                                if (!switchedAway && (targetMsgId == null || resolvedConvId.isNullOrBlank())) {
+                                    kotlinx.coroutines.delay(180)
+                                    curConvId = _currentConversation.value?.id
+                                    resolvedConvId = resolvedConvId ?: curConvId
+                                    targetMsgId = targetMsgId ?: messages.value.lastOrNull {
+                                        it.role == com.example.gemini.domain.model.MessageRole.ASSISTANT
+                                    }?.id
+                                }
+
+                                if (pre != null && !resolvedConvId.isNullOrBlank()) {
+                                    val delta = com.example.gemini.data.agent.TurnDiffStore.computeTurnDelta(pre, post)
+                                    if (delta != null) {
+                                        com.example.gemini.data.agent.TurnDiffStore.recordTurnDiff(
+                                            conversationId = resolvedConvId,
+                                            messageId = targetMsgId,
+                                            stats = delta
+                                        )
+                                    }
+                                }
+                                if (turnBaselineProjectPath == null || turnBaselineProjectPath == projectPath) {
+                                    turnBaselineStatus = post
+                                    turnBaselineProjectPath = projectPath
+                                }
+                            }
+                        }
+                    }
+                    if (turnBaselineJob === baselineJob) {
+                        turnBaselineJob = null
+                    }
+                    activeConvIdAtTurnStart = null
+                }
+                wasRunning = running
+            }
         }
 
     }

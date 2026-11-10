@@ -303,10 +303,45 @@ fun ClaudeModelSheet(
             }
 
             // plan limits, shown like Antigravity's quota chips (remaining share · time to reset)
-            val five = liveLimits["five_hour"]?.let { it.utilization to it.resetsAt?.let(::isoUtcSeconds) }
-                ?: usage?.rate_limits?.five_hour?.let { (it.utilization ?: 0.0) / 100.0 to it.resets_at }
-            val week = liveLimits["seven_day"]?.let { it.utilization to it.resetsAt?.let(::isoUtcSeconds) }
-                ?: usage?.rate_limits?.seven_day?.let { (it.utilization ?: 0.0) / 100.0 to it.resets_at }
+            val nowMs = System.currentTimeMillis()
+            val liveFive = liveLimits["five_hour"] ?: liveLimits["5h"] ?: liveLimits["session"]
+            val liveWeek = liveLimits["seven_day"] ?: liveLimits["7d"] ?: liveLimits["weekly"]
+            val five = liveFive?.let {
+                val u = if (it.utilization > 1.0) it.utilization / 100.0 else it.utilization
+                val rMs = it.resetsAt?.let { sec -> if (sec > 1_000_000_000_000L) sec else sec * 1000L }
+                val effectiveUsed = if (rMs != null && rMs + 60_000L < nowMs) 0.0 else u
+                effectiveUsed to it.resetsAt?.let(::isoUtcSeconds)
+            } ?: usage?.rate_limits?.five_hour?.let {
+                val u = (it.utilization ?: 0.0) / 100.0
+                val clean = it.resets_at?.substringBefore('.')?.substringBefore('Z')?.substringBefore('+')
+                val rMs = clean?.let { s ->
+                    runCatching {
+                        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                            .parse(s)?.time
+                    }.getOrNull()
+                }
+                val effectiveUsed = if (rMs != null && rMs + 60_000L < nowMs) 0.0 else u
+                effectiveUsed to it.resets_at
+            }
+            val week = liveWeek?.let {
+                val u = if (it.utilization > 1.0) it.utilization / 100.0 else it.utilization
+                val rMs = it.resetsAt?.let { sec -> if (sec > 1_000_000_000_000L) sec else sec * 1000L }
+                val effectiveUsed = if (rMs != null && rMs + 60_000L < nowMs) 0.0 else u
+                effectiveUsed to it.resetsAt?.let(::isoUtcSeconds)
+            } ?: usage?.rate_limits?.seven_day?.let {
+                val u = (it.utilization ?: 0.0) / 100.0
+                val clean = it.resets_at?.substringBefore('.')?.substringBefore('Z')?.substringBefore('+')
+                val rMs = clean?.let { s ->
+                    runCatching {
+                        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                            .parse(s)?.time
+                    }.getOrNull()
+                }
+                val effectiveUsed = if (rMs != null && rMs + 60_000L < nowMs) 0.0 else u
+                effectiveUsed to it.resets_at
+            }
             if ((five != null || week != null) && ClaudeChatBackend.providerOf(selected).isEmpty()) {
                 Spacer(Modifier.height(10.dp))
                 FlowRow(
@@ -541,10 +576,14 @@ fun ClaudeUsageDialog(account: ClaudeAccountManager, backend: ClaudeChatBackend,
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val rl = usage?.rate_limits
                 // live windows from the chat stream are fresher than the cached call
-                val five = live["five_hour"]?.let { it.utilization to formatReset(null, it.resetsAt) }
-                    ?: rl?.five_hour?.let { (it.utilization ?: 0.0) / 100.0 to formatReset(it.resets_at) }
-                val week = live["seven_day"]?.let { it.utilization to formatReset(null, it.resetsAt) }
-                    ?: rl?.seven_day?.let { (it.utilization ?: 0.0) / 100.0 to formatReset(it.resets_at) }
+                val five = (live["five_hour"] ?: live["5h"] ?: live["session"])?.let {
+                    val u = if (it.utilization > 1.0) it.utilization / 100.0 else it.utilization
+                    u to formatReset(null, it.resetsAt)
+                } ?: rl?.five_hour?.let { (it.utilization ?: 0.0) / 100.0 to formatReset(it.resets_at) }
+                val week = (live["seven_day"] ?: live["7d"] ?: live["weekly"])?.let {
+                    val u = if (it.utilization > 1.0) it.utilization / 100.0 else it.utilization
+                    u to formatReset(null, it.resetsAt)
+                } ?: rl?.seven_day?.let { (it.utilization ?: 0.0) / 100.0 to formatReset(it.resets_at) }
                 when {
                     five != null || week != null -> {
                         five?.let { UsageBar("Current session (5-hour)", it.first, it.second) }

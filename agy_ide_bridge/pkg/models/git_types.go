@@ -2,10 +2,12 @@ package models
 
 // GitFileStatus represents a changed file in Git.
 type GitFileStatus struct {
-	Path    string `json:"path"`
-	OldPath string `json:"oldPath,omitempty"`
-	Status  string `json:"status"` // "M", "A", "D", "U", "R"
-	Staged  bool   `json:"staged"`
+	Path      string `json:"path"`
+	OldPath   string `json:"oldPath,omitempty"`
+	Status    string `json:"status"` // "M", "A", "D", "U", "R"
+	Staged    bool   `json:"staged"`
+	Additions int    `json:"additions,omitempty"`
+	Deletions int    `json:"deletions,omitempty"`
 }
 
 // GitStatusResponse represents git status output.
@@ -13,9 +15,12 @@ type GitStatusResponse struct {
 	IsGitRepo      bool            `json:"isGitRepo"`
 	Branch         string          `json:"branch"`
 	Tracking       string          `json:"tracking,omitempty"`
+	RemoteURL      string          `json:"remoteUrl,omitempty"`
 	Ahead          int             `json:"ahead"`
 	Behind         int             `json:"behind"`
 	UnpushedCount  int             `json:"unpushedCount"`
+	TotalAdditions int             `json:"totalAdditions"`
+	TotalDeletions int             `json:"totalDeletions"`
 	StagedFiles    []GitFileStatus `json:"stagedFiles"`
 	UnstagedFiles  []GitFileStatus `json:"unstagedFiles"`
 	UntrackedFiles []GitFileStatus `json:"untrackedFiles"`

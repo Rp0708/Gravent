@@ -283,6 +283,10 @@ func GetStatus(projectDir string) (res *models.GitStatusResponse, err error) {
 	stashOut, _ := runGitCmd(projectDir, "stash", "list")
 	res.HasStash = strings.TrimSpace(stashOut) != ""
 
+	// Fetch origin remote URL for repo badge display
+	remoteOut, _ := runGitCmd(projectDir, "config", "--get", "remote.origin.url")
+	res.RemoteURL = strings.TrimSpace(remoteOut)
+
 	// Calculate unpushed commits
 	unpushedMap := GetUnpushedCommitHashes(projectDir)
 	res.UnpushedCount = len(unpushedMap)
@@ -290,7 +294,112 @@ func GetStatus(projectDir string) (res *models.GitStatusResponse, err error) {
 		res.Ahead = res.UnpushedCount
 	}
 
+	// Populate per-file and repo-wide line additions / deletions cleanly via numstat
+	populateStatusDiffStats(projectDir, res)
+
 	return res, nil
+}
+
+type numstatPair struct {
+	add int
+	del int
+}
+
+func parseNumstatMap(out string) map[string]numstatPair {
+	m := make(map[string]numstatPair)
+	for _, line := range strings.Split(out, "\n") {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 3)
+		if len(parts) < 3 {
+			continue
+		}
+		add := 0
+		del := 0
+		if parts[0] != "-" {
+			add, _ = strconv.Atoi(strings.TrimSpace(parts[0]))
+		}
+		if parts[1] != "-" {
+			del, _ = strconv.Atoi(strings.TrimSpace(parts[1]))
+		}
+		p := unquotePath(parts[2])
+		m[p] = numstatPair{add: add, del: del}
+	}
+	return m
+}
+
+func countTextFileLinesBounded(fullPath string) int {
+	fi, err := os.Stat(fullPath)
+	if err != nil || !fi.Mode().IsRegular() || fi.Size() <= 0 || fi.Size() > 512*1024 {
+		return 0
+	}
+	data, err := os.ReadFile(fullPath)
+	if err != nil || len(data) == 0 {
+		return 0
+	}
+	sampleLen := len(data)
+	if sampleLen > 4096 {
+		sampleLen = 4096
+	}
+	if bytes.IndexByte(data[:sampleLen], 0) != -1 {
+		return 0 // binary file
+	}
+	lines := bytes.Count(data, []byte{'\n'})
+	if data[len(data)-1] != '\n' {
+		lines++
+	}
+	return lines
+}
+
+func populateStatusDiffStats(projectDir string, res *models.GitStatusResponse) {
+	resolvedDir, err := cleanDir(projectDir)
+	if err != nil {
+		return
+	}
+
+	totalAdd := 0
+	totalDel := 0
+
+	if len(res.StagedFiles) > 0 {
+		stagedOut, sErr := runGitDiffCmd(resolvedDir, "diff", "--cached", "--numstat", "--no-renames")
+		if sErr != nil && strings.Contains(strings.ToLower(sErr.Error()), "unknown revision") {
+			stagedOut, _ = runGitDiffCmd(resolvedDir, "diff", "--cached", "--numstat", "--no-renames", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+		}
+		stagedMap := parseNumstatMap(stagedOut)
+		for i := range res.StagedFiles {
+			if st, ok := stagedMap[res.StagedFiles[i].Path]; ok {
+				res.StagedFiles[i].Additions = st.add
+				res.StagedFiles[i].Deletions = st.del
+				totalAdd += st.add
+				totalDel += st.del
+			}
+		}
+	}
+
+	if len(res.UnstagedFiles) > 0 {
+		unstagedOut, _ := runGitDiffCmd(resolvedDir, "diff", "--numstat", "--no-renames")
+		unstagedMap := parseNumstatMap(unstagedOut)
+		for i := range res.UnstagedFiles {
+			if st, ok := unstagedMap[res.UnstagedFiles[i].Path]; ok {
+				res.UnstagedFiles[i].Additions = st.add
+				res.UnstagedFiles[i].Deletions = st.del
+				totalAdd += st.add
+				totalDel += st.del
+			}
+		}
+	}
+
+	for i := range res.UntrackedFiles {
+		lines := countTextFileLinesBounded(filepath.Join(resolvedDir, res.UntrackedFiles[i].Path))
+		if lines > 0 {
+			res.UntrackedFiles[i].Additions = lines
+			totalAdd += lines
+		}
+	}
+
+	res.TotalAdditions = totalAdd
+	res.TotalDeletions = totalDel
 }
 
 // GetUnpushedCommitHashes returns a set of commit hashes on the current HEAD that are not present in remote.

@@ -54,9 +54,22 @@ fun ModelSelectorBottomSheet(
     quotaSummary: com.example.gemini.domain.model.QuotaSummaryResponse? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
+    onAutoRefresh: (() -> Unit)? = null,
     onSelectModel: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        val needsRefresh = quotas.isEmpty() ||
+            quotaSummary == null ||
+            quotaSummary.groups.isEmpty() ||
+            quotaSummary.groups.any { g ->
+                formatCleanCountdown(g.fiveHour?.resetTime, g.fiveHour?.countdown) == "Ready" ||
+                    formatCleanCountdown(g.weekly?.resetTime, g.weekly?.countdown) == "Ready"
+            }
+        if (needsRefresh) {
+            onAutoRefresh?.invoke()
+        }
+    }
     // Group models into two groups: Claude and Gemini (with GPT-OSS and others under Gemini)
     val claudeModels = availableModels.filter {
         (it.family == ModelFamily.CLAUDE || it.id.contains("claude", ignoreCase = true) || it.displayName.contains("claude", ignoreCase = true)) &&
@@ -138,6 +151,7 @@ fun ModelSelectorBottomSheet(
                         title = categoryTitle,
                         brandColor = brandColor,
                         models = categoryModels,
+                        quotas = quotas,
                         selectedModelId = selectedModelId,
                         onBack = {
                             activeCategory = null
@@ -201,8 +215,8 @@ fun buildQuotaSummaryLine(
     rawCountdown: String?
 ): String? {
     if (fraction == null) return null
-    val pct = (fraction * 100f).roundToInt().coerceIn(0, 100)
     val time = formatCleanCountdown(resetTime, rawCountdown)
+    val pct = if (time == "Ready") 100 else (fraction * 100f).roundToInt().coerceIn(0, 100)
     return if (time.isNotBlank()) {
         "$windowLabel · $pct% · $time"
     } else {
@@ -216,7 +230,11 @@ fun QuotaBadgeChip(
     fraction: Float?,
     modifier: Modifier = Modifier
 ) {
-    val pct = fraction?.let { (it * 100f).roundToInt().coerceIn(0, 100) } ?: 100
+    val pct = if (text.endsWith("Ready")) {
+        100
+    } else {
+        fraction?.let { (it * 100f).roundToInt().coerceIn(0, 100) } ?: 100
+    }
     val dotColor = when {
         pct > 50 -> QuotaGreen
         pct > 20 -> QuotaAmber
@@ -464,6 +482,7 @@ private fun CategoryModelsSubView(
     title: String,
     brandColor: Color,
     models: List<AiModel>,
+    quotas: List<ModelQuota>,
     selectedModelId: String,
     onBack: () -> Unit,
     onSelectModel: (String) -> Unit,
@@ -526,13 +545,16 @@ private fun CategoryModelsSubView(
                 if (group.variants.size > 1) {
                     TieredModelGroupCard(
                         group = group,
+                        quotas = quotas,
                         selectedModelId = selectedModelId,
                         onSelectModel = onSelectModel
                     )
                 } else {
                     val model = group.variants.first().model
+                    val modelQuotaPct = quotas.find { it.modelId == model.id || (model.key.isNotBlank() && it.modelId == model.key) }?.percentage
                     ModelRowItem(
                         model = model,
+                        quotaPct = modelQuotaPct,
                         isSelected = model.id == selectedModelId,
                         onSelect = { onSelectModel(model.id) }
                     )
@@ -548,10 +570,18 @@ private fun CategoryModelsSubView(
 @Composable
 private fun TieredModelGroupCard(
     group: SubGroupedModel,
+    quotas: List<ModelQuota>,
     selectedModelId: String,
     onSelectModel: (String) -> Unit
 ) {
     val isAnyVariantSelected = group.variants.any { it.model.id == selectedModelId }
+    val groupQuotaPct = remember(group.variants, quotas, selectedModelId) {
+        val activeMatch = group.variants.find { it.model.id == selectedModelId }?.model
+        val targetModels = if (activeMatch != null) listOf(activeMatch) + group.variants.map { it.model } else group.variants.map { it.model }
+        targetModels.firstNotNullOfOrNull { m ->
+            quotas.find { it.modelId == m.id || (m.key.isNotBlank() && it.modelId == m.key) }?.percentage
+        }
+    }
     val brandColor = when (group.family) {
         ModelFamily.CLAUDE -> ClaudeTerracotta
         ModelFamily.GEMINI -> GeminiBlue
@@ -586,6 +616,11 @@ private fun TieredModelGroupCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
+
+                if (groupQuotaPct != null) {
+                    ModelRemainingPctPill(pct = groupQuotaPct)
+                    if (isAnyVariantSelected) Spacer(modifier = Modifier.width(6.dp))
+                }
 
                 if (isAnyVariantSelected) {
                     Box(
@@ -768,6 +803,7 @@ private fun CategoryNavigationTile(
 @Composable
 private fun ModelRowItem(
     model: AiModel,
+    quotaPct: Int? = null,
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
@@ -802,6 +838,11 @@ private fun ModelRowItem(
                 modifier = Modifier.weight(1f)
             )
 
+            if (quotaPct != null) {
+                ModelRemainingPctPill(pct = quotaPct)
+                if (isSelected) Spacer(modifier = Modifier.width(6.dp))
+            }
+
             if (isSelected) {
                 Box(
                     modifier = Modifier
@@ -827,5 +868,23 @@ private fun ModelRowItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ModelRemainingPctPill(pct: Int) {
+    val badgeColor = if (pct > 50) QuotaGreen else if (pct > 20) QuotaAmber else QuotaRed
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(badgeColor.copy(alpha = 0.14f))
+            .padding(horizontal = 6.dp, vertical = 2.5.dp)
+    ) {
+        Text(
+            text = "$pct%",
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = badgeColor
+        )
     }
 }

@@ -688,6 +688,24 @@ class BrowserSessionManager private constructor() {
     }
 
     /**
+     * Clears only WebView HTTP/disk cache without clearing cookies, logins, local storage, or open tabs.
+     */
+    suspend fun clearHttpCacheOnly(context: Context) {
+        val done = CompletableDeferred<Unit>()
+        mainHandler.post {
+            runCatching {
+                val ctx = context.applicationContext
+                val tabView = tabs.firstNotNullOfOrNull { it.webView }
+                val cacheView = tabView ?: WebView(ctx)
+                cacheView.clearCache(true)
+                if (tabView == null) runCatching { cacheView.destroy() }
+            }
+            done.complete(Unit)
+        }
+        withTimeoutOrNull(3000L) { done.await() }
+    }
+
+    /**
      * Opens a URL in an existing tab or creates a new tab.
      */
     fun openUrl(url: String, tabId: String? = null, newTab: Boolean = false, desktopMode: Boolean? = null): BrowserTabSession {
