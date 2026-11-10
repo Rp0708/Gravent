@@ -1,14 +1,14 @@
 {
-  "version_code": 150,
-  "version_name": "1.0.50",
+  "version_code": 151,
+  "version_name": "1.0.51",
   "min_supported_version_code": 1,
   "changelog": [
-    "Home / New Chat Screen developer redesign: Clean Linear/Cursor developer workspace with top-anchored layout, active workspace context card, segmented agent picker, quick actions, and recent session cards",
-    "Terminal & Streaming Execution Fix: Resolved streaming hang and premature teardown on multi-command tool execution, maintaining persistent gRPC connection across tool cycles",
-    "Collapsible Commands Accordion: Streamlined post-generation chat feed by automatically grouping terminal/bash commands into a clean collapsible dropdown",
-    "Background Commands Separation: Automatically isolated active background tasks into a dedicated real-time running section alongside finished commands",
-    "File Citation & Link UI Overhaul: Clean IDE-styled chip rendering with file icons and removed raw markdown backtick artifacts",
-    "Response Latency & Speed Optimization: Bound thinking token budget directly to composer preference (Low/Med/High/Off) and tuned stream dispatch throttle to 24ms"
+    "Codex Home Git Hub: Integrated branch switcher, owner/repo slug, uncommitted file counts with +lines/-lines stats, inline diff viewer, commit/push/pull/discard actions, and agent diff review into the Home workspace card",
+    "Turn & Session Code Impact Tracking: Persistent +additions/-deletions counters per assistant response and on Home recent conversation cards",
+    "Codex Prompt Dot-Slider: Edge vertical prompt navigation rail with tactile thumb gliding, tap-to-scroll, and live preview tooltips across multi-turn chats",
+    "Response Telemetry Pill & Full-Chat Dialog: Added response timestamps, turn code deltas, interactive breakdown modal for per-response & cumulative chat usage, and summary copy",
+    "Usage Credit & Quota Accuracy Fixes: Corrected Antigravity and Claude credit remaining calculations, fixed float truncation and null 0% badges, merged per-model quota limits with 5h/7d buckets, and enabled automatic post-turn refreshes",
+    "IDE File Citation Pills & Storage Manager: Clean vector filetype citation pills without emoji artifacts, plus per-category app storage breakdown and cache cleanup panel"
   ],
   "is_critical": false
 }
