@@ -216,10 +216,10 @@ fun AccountsButton(
         }
 
         // Quick Switcher Dropdown Menu anchored to AccountsButton
+        val menuTokens = com.example.gemini.theme.graventTokens()
         DropdownMenu(
             expanded = showQuickSwitchMenu,
             onDismissRequest = { showQuickSwitchMenu = false },
-            val menuTokens = com.example.gemini.theme.graventTokens()
             modifier = Modifier
                 .background(menuTokens.cardBg)
                 .border(1.dp, menuTokens.border, RoundedCornerShape(12.dp))
@@ -280,7 +280,7 @@ fun AccountsButton(
                 )
             }
 
-            HorizontalDivider(color = Color(0xFF282832))
+            HorizontalDivider(color = menuTokens.border)
 
             DropdownMenuItem(
                 text = {

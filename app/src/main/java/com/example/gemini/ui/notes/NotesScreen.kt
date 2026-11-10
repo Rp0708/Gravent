@@ -42,6 +42,8 @@ import com.example.gemini.data.notes.NoteKind
 import com.example.gemini.data.notes.NotesRepository
 import com.example.gemini.data.notes.TodoItem
 import com.example.gemini.theme.graventCheckboxColors
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.launch
 
 private enum class NotesFilter(val label: String) { ALL("All"), NOTES("Notes"), TODOS("To-dos") }
@@ -236,8 +238,13 @@ private fun NotesList(
             }
 
             Box(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(20.dp)) {
-                FloatingActionButton(onClick = { showNewMenu = true }, containerColor = ClaudeTerracotta, contentColor = Color.Black) {
-                    Icon(Icons.Outlined.Add, contentDescription = "New", tint = Color.Black)
+                val fabColors = graventPrimaryButtonColors()
+                FloatingActionButton(
+                    onClick = { showNewMenu = true },
+                    containerColor = fabColors.containerColor,
+                    contentColor = fabColors.contentColor
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = "New", tint = fabColors.contentColor)
                 }
                 DropdownMenu(expanded = showNewMenu, onDismissRequest = { showNewMenu = false }) {
                     DropdownMenuItem(
@@ -290,6 +297,7 @@ private fun EmptyState(message: String) {
 @Composable
 private fun NoteCard(note: Note, onClick: () -> Unit) {
     val muted = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val accent = graventTokens().accent
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -311,7 +319,7 @@ private fun NoteCard(note: Note, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                if (note.pinned) Icon(Icons.Outlined.PushPin, "Pinned", tint = ClaudeTerracotta, modifier = Modifier.size(16.dp))
+                if (note.pinned) Icon(Icons.Outlined.PushPin, "Pinned", tint = accent, modifier = Modifier.size(16.dp))
             }
             if (note.kind == NoteKind.TODO) {
                 note.items.filter { it.text.isNotBlank() }.take(4).forEach { item ->
@@ -319,7 +327,7 @@ private fun NoteCard(note: Note, onClick: () -> Unit) {
                         Icon(
                             if (item.done) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
                             null,
-                            tint = if (item.done) ClaudeTerracotta else muted,
+                            tint = if (item.done) accent else muted,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -344,7 +352,7 @@ private fun NoteCard(note: Note, onClick: () -> Unit) {
                     Text(
                         "${note.doneCount}/${note.items.size} done",
                         fontSize = 11.sp,
-                        color = if (note.doneCount == note.items.size) ClaudeTerracotta else muted.copy(alpha = 0.5f)
+                        color = if (note.doneCount == note.items.size) accent else muted.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -379,7 +387,7 @@ private fun NoteEditor(note: Note, onBack: () -> Unit, onDelete: () -> Unit) {
                     Icon(
                         Icons.Outlined.PushPin,
                         contentDescription = if (note.pinned) "Unpin" else "Pin",
-                        tint = if (note.pinned) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        tint = if (note.pinned) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
                 Box {
@@ -604,7 +612,7 @@ private fun PlainField(
         value = value,
         onValueChange = onValueChange,
         textStyle = textStyle.copy(color = onSurface.copy(alpha = textAlpha)),
-        cursorBrush = SolidColor(ClaudeTerracotta),
+        cursorBrush = SolidColor(graventTokens().accent),
         singleLine = singleLine,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = imeAction),
         keyboardActions = KeyboardActions(onNext = { onImeAction?.invoke() ?: defaultKeyboardAction(ImeAction.Next) }),

@@ -1878,6 +1878,7 @@ private fun ChatHistoryItemRow(
         else -> null
     }
     val totalChildren = files.size + subagents.size
+    val rowAccent = graventTokens().accent
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1904,7 +1905,6 @@ private fun ChatHistoryItemRow(
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val rowAccent = graventTokens().accent
         if (isSubagent) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(

@@ -458,9 +458,9 @@ fun UserMessageBubble(
                 var isTextOverflowing by remember(message.id, displayContent) { mutableStateOf(false) }
 
                 // Slash commands that expanded (plugins, custom commands) stand out from the typed text
-                val styledContent = remember(displayContent) {
+                val highlightAccent = graventTokens().accent
+                val styledContent = remember(displayContent, highlightAccent) {
                     val ranges = com.example.gemini.data.remote.PromptExpansion.commandRanges(displayContent)
-                    val highlightAccent = graventTokens().accent
                     androidx.compose.ui.text.buildAnnotatedString {
                         append(displayContent)
                         ranges.forEach {

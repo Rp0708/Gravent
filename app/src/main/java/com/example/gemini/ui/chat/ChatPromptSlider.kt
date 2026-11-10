@@ -125,7 +125,6 @@ fun ChatPromptSlider(
 
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     val activeViewportIdx by remember(listState, anchors) {
         derivedStateOf {

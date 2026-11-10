@@ -47,16 +47,12 @@ import com.example.gemini.theme.graventTokens
 
 private data class SlashGroup(val title: String, val icon: ImageVector, val color: Color)
 
-@Composable
-private fun groupOf(type: String): SlashGroup {
-    val accent = graventTokens().accent
-    return when (type) {
-        "app" -> SlashGroup("Opens in the app", Icons.AutoMirrored.Outlined.OpenInNew, AgyAccent)
-        "command" -> SlashGroup("Commands", Icons.Outlined.Terminal, accent)
-        "custom" -> SlashGroup("Custom commands", Icons.Outlined.AutoAwesome, accent)
-        "plugin" -> SlashGroup("Custom Gravent plugins", Icons.Outlined.Extension, AgyAccent)
-        else -> SlashGroup("Skills & plugins", Icons.Outlined.Extension, QuotaGreen)
-    }
+private fun groupOf(type: String, accent: Color, agyAccent: Color): SlashGroup = when (type) {
+    "app" -> SlashGroup("Opens in the app", Icons.AutoMirrored.Outlined.OpenInNew, agyAccent)
+    "command" -> SlashGroup("Commands", Icons.Outlined.Terminal, accent)
+    "custom" -> SlashGroup("Custom commands", Icons.Outlined.AutoAwesome, accent)
+    "plugin" -> SlashGroup("Custom Gravent plugins", Icons.Outlined.Extension, agyAccent)
+    else -> SlashGroup("Skills & plugins", Icons.Outlined.Extension, QuotaGreen)
 }
 
 /**
@@ -75,6 +71,8 @@ fun SlashCommandOverlay(
     val grouped = items.groupBy { if (it.type in order) it.type else "skill" }
         .toList()
         .sortedBy { (type, _) -> order.indexOf(type).let { if (it < 0) order.size else it } }
+    val accent = graventTokens().accent
+    val agyAccent = AgyAccent
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -89,7 +87,7 @@ fun SlashCommandOverlay(
             contentPadding = PaddingValues(vertical = 6.dp)
         ) {
             grouped.forEach { (type, list) ->
-                val group = groupOf(type)
+                val group = groupOf(type, accent, agyAccent)
                 item(key = "h_$type") {
                     Row(
                         Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 4.dp),
