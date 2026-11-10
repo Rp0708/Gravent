@@ -35,9 +35,11 @@ import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +100,7 @@ private enum class FileVisualKind(
 
 private val SHARED_END_PAD_CONTENT = InlineTextContent(
     placeholder = Placeholder(
-        width = 4.5.sp,
+        width = 4.sp,
         height = 14.sp,
         placeholderVerticalAlign = PlaceholderVerticalAlign.Center
     )
@@ -113,7 +115,7 @@ private val FILE_ICON_INLINE_CONTENT_MAP: Map<String, InlineTextContent> = build
             "file_icon_${kind.id}",
             InlineTextContent(
                 placeholder = Placeholder(
-                    width = 17.sp,
+                    width = 15.5.sp,
                     height = 14.sp,
                     placeholderVerticalAlign = PlaceholderVerticalAlign.Center
                 )
@@ -121,7 +123,7 @@ private val FILE_ICON_INLINE_CONTENT_MAP: Map<String, InlineTextContent> = build
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 2.5.dp, end = 2.5.dp),
+                        .padding(start = 2.dp, end = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     val iconTint = kind.accentFor(isAppInDarkTheme())
@@ -129,7 +131,7 @@ private val FILE_ICON_INLINE_CONTENT_MAP: Map<String, InlineTextContent> = build
                         imageVector = kind.icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(11.5.dp)
                     )
                 }
             }
@@ -212,6 +214,9 @@ internal fun appendFileCitationChip(
     builder.pushLink(
         LinkAnnotation.Clickable(
             tag = linkUrl,
+            styles = TextLinkStyles(
+                style = SpanStyle(textDecoration = TextDecoration.None)
+            ),
             linkInteractionListener = {
                 val handler = fileLinkHandler ?: ActiveFileLinkHandlerHolder.current
                 handler?.onOpenFile?.invoke(linkUrl)
@@ -219,33 +224,38 @@ internal fun appendFileCitationChip(
         )
     )
 
-    builder.appendInlineContent(iconKey, alternateText = " ")
+    builder.appendInlineContent(iconKey, alternateText = "\uFFFD")
+    builder.append("\u2060")
     builder.pushStyle(
         SpanStyle(
             color = if (isDark) Color(0xFFF4F4F5) else Color(0xFF18181B),
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
             fontSize = 12.5.sp,
-            letterSpacing = (-0.1).sp
+            letterSpacing = (-0.1).sp,
+            textDecoration = TextDecoration.None
         )
     )
     builder.append(citation.displayLabel)
     builder.pop()
 
     if (citation.lineSuffix != null) {
+        builder.append("\u2060")
         builder.pushStyle(
             SpanStyle(
                 color = if (isDark) Color(0xFFA1A1AA) else Color(0xFF6B7280),
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Normal,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp
+                fontSize = 11.sp,
+                textDecoration = TextDecoration.None
             )
         )
         builder.append(":${citation.lineSuffix}")
         builder.pop()
     }
 
-    builder.appendInlineContent(FILE_CHIP_END_PAD_ID, alternateText = " ")
+    builder.append("\u2060")
+    builder.appendInlineContent(FILE_CHIP_END_PAD_ID, alternateText = "\uFFFD")
     builder.pop() // LinkAnnotation
     builder.pop() // FILE_CHIP_TAG
 }
@@ -346,17 +356,17 @@ internal fun RichMarkdownText(
     val t = graventTokens()
     val isDark = t.isDark
     val density = LocalDensity.current
-    val verticalInsetPx = with(density) { 1.5.dp.toPx() }
-    val minHeightPx = with(density) { 17.dp.toPx() }
+    val verticalInsetPx = with(density) { 1.dp.toPx() }
+    val minHeightPx = with(density) { 18.dp.toPx() }
     val cornerRadius = remember(density) {
         val r = with(density) { 5.5.dp.toPx() }
         CornerRadius(r, r)
     }
     val strokeStyle = remember(density) {
-        Stroke(width = with(density) { 0.85.dp.toPx() })
+        Stroke(width = with(density) { 0.75.dp.toPx() })
     }
-    val pillBaseFill = t.cardBg
-    val pillBorderColor = t.border
+    val pillBaseFill = if (isDark) Color(0xFF181920) else Color(0xFFEEEEF3)
+    val pillBorderColor = if (isDark) Color(0xFF2B2D38) else Color(0xFFD4D7E0)
 
     var chipRects by remember(annotatedString, isDark) { mutableStateOf<List<FileChipDrawRect>>(emptyList()) }
 

@@ -1982,6 +1982,8 @@ fun ChatScreen(
                         val messageIndexById = remember(messages) {
                             messages.withIndex().associate { it.value.id to it.index }
                         }
+                        val hasRightPromptRail = messages.isNotEmpty() && promptAnchors.size >= 2
+                        val feedEndPadding = if (hasRightPromptRail) 28.dp else 16.dp
                         CompositionLocalProvider(
                             androidx.compose.ui.platform.LocalDensity provides customDensity,
                             com.example.gemini.ui.components.LocalQuestionPanelActive provides true
@@ -2025,6 +2027,7 @@ fun ChatScreen(
                                                 message = feedItem.message,
                                                 isLastUserMessage = true,
                                                 isDevModeEnabled = isDevModeEnabled,
+                                                modifier = Modifier.padding(end = if (hasRightPromptRail) 12.dp else 0.dp),
                                                 onEdit = { targetMsg ->
                                                     if (willDeleteOutput) {
                                                         pendingMessageAction = PendingMessageAction(MessageActionType.EDIT, targetMsg)
@@ -2045,7 +2048,7 @@ fun ChatScreen(
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(horizontal = 16.dp, vertical = 2.dp)
+                                                    .padding(start = 16.dp, end = feedEndPadding, top = 2.dp, bottom = 2.dp)
                                             ) {
                                                 ThinkingAccordion(
                                                     thoughtText = feedItem.thoughtText,
@@ -2058,7 +2061,7 @@ fun ChatScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(horizontal = 16.dp, vertical = 2.dp)
+                                                    .padding(start = 16.dp, end = feedEndPadding, top = 2.dp, bottom = 2.dp)
                                             ) {
                                                 val isTool = feedItem.block is MarkdownBlock.AgentTool
                                                 val blockView: @Composable () -> Unit = {
@@ -2088,7 +2091,7 @@ fun ChatScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                                    .padding(start = 16.dp, end = feedEndPadding, top = 4.dp, bottom = 4.dp)
                                             ) {
                                                 ModelTypingIndicator(modelId = feedItem.modelId)
                                             }
@@ -2097,7 +2100,9 @@ fun ChatScreen(
                                             AssistantMessageFooter(
                                                 message = feedItem.message,
                                                 // fades in where the working row fades out (no pop-in at the end of a turn)
-                                                modifier = Modifier.animateItem(fadeInSpec = tween(220), placementSpec = null, fadeOutSpec = null),
+                                                modifier = Modifier
+                                                    .padding(end = if (hasRightPromptRail) 12.dp else 0.dp)
+                                                    .animateItem(fadeInSpec = tween(220), placementSpec = null, fadeOutSpec = null),
                                                 isDevModeEnabled = isDevModeEnabled,
                                                 onRetry = { targetMsg ->
                                                     viewModel.retryMessage(targetMsg.id)
@@ -2123,6 +2128,7 @@ fun ChatScreen(
                                                 message = feedItem.message,
                                                 modelId = selectedModelId,
                                                 isDevModeEnabled = isDevModeEnabled,
+                                                modifier = Modifier.padding(end = if (hasRightPromptRail) 12.dp else 0.dp),
                                                 onApproveTool = { toolCall, msgId ->
                                                     viewModel.approveAndExecuteTerminalTool(toolCall, msgId)
                                                 },

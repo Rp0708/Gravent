@@ -115,16 +115,16 @@ object ChatFeedCache {
                                 MarkdownTextCache.prewarm(block.text, isDark)
                             }
                             is MarkdownBlock.Bullet -> {
-                                MarkdownTextCache.prewarm(block.text, isDark)
+                                MarkdownTextCache.prewarm(block.text, isDark, emphasizeLeadKey = true)
                             }
                             is MarkdownBlock.Numbered -> {
-                                MarkdownTextCache.prewarm(block.text, isDark)
+                                MarkdownTextCache.prewarm(block.text, isDark, emphasizeLeadKey = true)
                             }
                             is MarkdownBlock.Blockquote -> {
                                 MarkdownTextCache.prewarm(block.text, isDark)
                             }
                             is MarkdownBlock.Task -> {
-                                MarkdownTextCache.prewarm(block.text, isDark)
+                                MarkdownTextCache.prewarm(block.text, isDark, emphasizeLeadKey = true)
                             }
                             else -> {}
                         }
