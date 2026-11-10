@@ -1,7 +1,10 @@
 package com.example.gemini.ui.chat
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -31,12 +35,14 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -48,6 +54,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.remote.PromptExpansion
@@ -103,8 +110,8 @@ private const val MAX_VISIBLE_DOTS = 18
 
 /**
  * Codex-inspired vertical prompt navigation dot-slider.
- * Sits unobtrusively along the viewport edge; tap any dot or drag vertically along the track
- * to glide through every user prompt with tactile feedback and a live prompt preview tooltip.
+ * Blends whisper-quiet into the chat margin while reading, wakes gently on scroll,
+ * and reveals a frosted pill + thumb-tracking prompt preview tooltip when tapped or dragged.
  */
 @Composable
 fun ChatPromptSlider(
@@ -143,8 +150,21 @@ fun ChatPromptSlider(
     var showPreviewTooltip by remember { mutableStateOf(false) }
     var scrubIndex by remember { mutableIntStateOf(activeViewportIdx) }
     var trackHeightPx by remember { mutableIntStateOf(1) }
+    var thumbRelativeOffsetY by remember { mutableFloatStateOf(0f) }
+    var isRecentlyActive by remember { mutableStateOf(false) }
 
-    // Dismiss preview tooltip shortly after tap/drag ends
+    val isScrolling = listState.isScrollInProgress
+    val isEngaged = isDragging || showPreviewTooltip
+
+    LaunchedEffect(isScrolling, activeViewportIdx, isEngaged) {
+        if (isScrolling || isEngaged) {
+            isRecentlyActive = true
+        } else {
+            delay(1350)
+            isRecentlyActive = false
+        }
+    }
+
     LaunchedEffect(showPreviewTooltip, isDragging, scrubIndex) {
         if (showPreviewTooltip && !isDragging) {
             delay(750)
@@ -152,13 +172,12 @@ fun ChatPromptSlider(
         }
     }
 
-    val displayedActiveIdx = if (isDragging || showPreviewTooltip) {
+    val displayedActiveIdx = if (isEngaged) {
         scrubIndex.coerceIn(0, anchors.lastIndex)
     } else {
         activeViewportIdx.coerceIn(0, anchors.lastIndex)
     }
 
-    // Evenly sample visual dots when very long chats exceed MAX_VISIBLE_DOTS
     val visibleSlots = remember(anchors.size) {
         if (anchors.size <= MAX_VISIBLE_DOTS) {
             anchors.indices.toList()
@@ -180,26 +199,58 @@ fun ChatPromptSlider(
         return (fraction * anchors.lastIndex).roundToInt().coerceIn(0, anchors.lastIndex)
     }
 
-    val capsuleBg = when {
-        isDragging || showPreviewTooltip -> if (isDark) Color(0xFF18181F).copy(alpha = 0.94f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-        else -> if (isDark) Color(0xFF121216).copy(alpha = 0.58f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
-    }
-    val capsuleBorder = when {
-        isDragging || showPreviewTooltip -> ClaudeTerracotta.copy(alpha = 0.45f)
-        else -> if (isDark) Color(0xFF282830).copy(alpha = 0.65f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+    fun updateThumbY(yPx: Float) {
+        val half = (trackHeightPx.toFloat() / 2f).coerceAtLeast(1f)
+        val maxOffset = (half - topBottomPadPx).coerceAtLeast(0f)
+        thumbRelativeOffsetY = (yPx - half).coerceIn(-maxOffset, maxOffset)
     }
 
+    val railAlpha by animateFloatAsState(
+        targetValue = when {
+            isEngaged -> 1.0f
+            isRecentlyActive -> 0.88f
+            else -> 0.48f
+        },
+        animationSpec = tween(260),
+        label = "rail_fade"
+    )
+    val capsuleBackdropAlpha by animateFloatAsState(
+        targetValue = if (isEngaged) 1f else 0f,
+        animationSpec = tween(180),
+        label = "capsule_fade"
+    )
+    val capsuleWidth by animateDpAsState(
+        targetValue = if (isEngaged) 15.dp else 10.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "rail_width"
+    )
+    val smoothTooltipOffsetY by animateFloatAsState(
+        targetValue = thumbRelativeOffsetY,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "tooltip_y"
+    )
+
+    val capsuleBg = if (isDark) {
+        Color(0xFF14141A).copy(alpha = 0.92f * capsuleBackdropAlpha)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f * capsuleBackdropAlpha)
+    }
+    val capsuleBorder = if (capsuleBackdropAlpha > 0.05f) {
+        BorderStroke(0.7.dp, ClaudeTerracotta.copy(alpha = 0.42f * capsuleBackdropAlpha))
+    } else null
+
     val dotSpacing = if (visibleSlots.size <= 4) 8.dp else 5.dp
-    val isEngaged = isDragging || showPreviewTooltip
 
     val railComposable: @Composable () -> Unit = {
         Box(
             modifier = Modifier
-                .width(28.dp)
+                .width(26.dp)
+                .alpha(railAlpha)
                 .onSizeChanged { trackHeightPx = it.height }
                 .pointerInput(anchors) {
                     detectTapGestures { offset ->
                         val targetIdx = yToAnchorIndex(offset.y)
+                        updateThumbY(offset.y)
                         scrubIndex = targetIdx
                         showPreviewTooltip = true
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -212,6 +263,7 @@ fun ChatPromptSlider(
                         onDragStart = { startOffset ->
                             isDragging = true
                             showPreviewTooltip = true
+                            updateThumbY(startOffset.y)
                             val targetIdx = yToAnchorIndex(startOffset.y)
                             lastEmittedIdx = targetIdx
                             scrubIndex = targetIdx
@@ -220,6 +272,7 @@ fun ChatPromptSlider(
                         },
                         onVerticalDrag = { change, _ ->
                             change.consume()
+                            updateThumbY(change.position.y)
                             val targetIdx = yToAnchorIndex(change.position.y)
                             if (targetIdx != lastEmittedIdx) {
                                 lastEmittedIdx = targetIdx
@@ -230,6 +283,8 @@ fun ChatPromptSlider(
                         },
                         onDragEnd = {
                             isDragging = false
+                            val settleIdx = scrubIndex.coerceIn(0, anchors.lastIndex)
+                            onJumpToFeedIndex(anchors[settleIdx].feedIndex, true)
                         },
                         onDragCancel = {
                             isDragging = false
@@ -238,16 +293,11 @@ fun ChatPromptSlider(
                 },
             contentAlignment = Alignment.Center
         ) {
-            val capsuleWidth by animateDpAsState(
-                targetValue = if (isEngaged) 14.dp else 10.dp,
-                animationSpec = tween(140),
-                label = "rail_width"
-            )
             Surface(
                 modifier = Modifier.width(capsuleWidth),
                 shape = CircleShape,
                 color = capsuleBg,
-                border = BorderStroke(0.7.dp, capsuleBorder)
+                border = capsuleBorder
             ) {
                 Column(
                     modifier = Modifier.padding(vertical = 8.dp),
@@ -257,16 +307,20 @@ fun ChatPromptSlider(
                     visibleSlots.forEachIndexed { slotIdx, _ ->
                         val isActive = slotIdx == activeSlotIdx
                         val dotHeight by animateDpAsState(
-                            targetValue = if (isActive) 13.dp else 4.dp,
-                            animationSpec = tween(130),
+                            targetValue = when {
+                                isActive && isEngaged -> 14.dp
+                                isActive -> 10.dp
+                                else -> 3.5.dp
+                            },
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                             label = "dot_h_$slotIdx"
                         )
-                        val dotWidth = if (isActive && isEngaged) 5.dp else 4.dp
+                        val dotWidth = if (isActive && isEngaged) 4.5.dp else 3.2.dp
                         val dotColor = when {
                             isActive && isEngaged -> ClaudeTerracotta
                             isActive -> if (isDark) Color(0xFFE8E5DF) else MaterialTheme.colorScheme.primary
-                            isEngaged -> if (isDark) Color(0xFF6B6B76) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                            else -> if (isDark) Color(0xFF45454F) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
+                            isEngaged -> if (isDark) Color(0xFF71717D) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            else -> if (isDark) Color(0xFF52525C) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                         }
                         Box(
                             modifier = Modifier
@@ -285,17 +339,18 @@ fun ChatPromptSlider(
         val currentAnchor = anchors[displayedActiveIdx]
         AnimatedVisibility(
             visible = isEngaged,
-            enter = fadeIn(tween(120)) + scaleIn(initialScale = 0.92f, animationSpec = tween(120)),
-            exit = fadeOut(tween(150)) + scaleOut(targetScale = 0.94f, animationSpec = tween(150))
+            enter = fadeIn(tween(110)) + scaleIn(initialScale = 0.93f, animationSpec = tween(120)),
+            exit = fadeOut(tween(160)) + scaleOut(targetScale = 0.95f, animationSpec = tween(160)),
+            modifier = Modifier.offset { IntOffset(0, smoothTooltipOffsetY.roundToInt()) }
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (isDark) Color(0xFF15151B) else MaterialTheme.colorScheme.surface,
-                border = BorderStroke(0.9.dp, if (isDark) Color(0xFF2D2D37) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
-                shadowElevation = 8.dp,
-                modifier = Modifier.widthIn(min = 148.dp, max = 236.dp)
+                color = if (isDark) Color(0xFF141419) else MaterialTheme.colorScheme.surface,
+                border = BorderStroke(0.8.dp, if (isDark) Color(0xFF282832) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+                shadowElevation = 6.dp,
+                modifier = Modifier.widthIn(min = 148.dp, max = 232.dp)
             ) {
-                Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -304,7 +359,7 @@ fun ChatPromptSlider(
                             text = "Prompt ${currentAnchor.ordinal}/${anchors.size}",
                             fontSize = 10.5.sp,
                             fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = ClaudeTerracotta
                         )
                         val timeText = formatTelemetryShortTime(currentAnchor.timestampMs)
@@ -316,7 +371,7 @@ fun ChatPromptSlider(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(2.5.dp))
                     Text(
                         text = currentAnchor.preview,
                         fontSize = 12.sp,
@@ -334,7 +389,7 @@ fun ChatPromptSlider(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (isLeftSide) {
             railComposable()

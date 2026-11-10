@@ -128,6 +128,7 @@ fun ChatHistoryDrawer(
     onShowFileDetails: ((String) -> Unit)? = null,
     onNewChatForWorkspace: ((String) -> Unit)? = null,
     activeFilePath: String? = null,
+    conversationDiffs: Map<String, com.example.gemini.domain.model.TurnDiffStats> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -1373,7 +1374,8 @@ fun ChatHistoryDrawer(
                                         activeFilePath = activeFilePath,
                                         onOpenFile = onOpenFile,
                                         onShowFileDetails = onShowFileDetails,
-                                        onAddFile = { fileToCreateConv = it }
+                                        onAddFile = { fileToCreateConv = it },
+                                        diffStats = conversationDiffs[conv.id]
                                     )
                                 }
                             } else {
@@ -1510,7 +1512,8 @@ fun ChatHistoryDrawer(
                                             activeFilePath = activeFilePath,
                                             onOpenFile = onOpenFile,
                                             onShowFileDetails = onShowFileDetails,
-                                            onAddFile = { fileToCreateConv = it }
+                                            onAddFile = { fileToCreateConv = it },
+                                            diffStats = conversationDiffs[conv.id]
                                         )
                                     }
 
@@ -1856,7 +1859,8 @@ private fun ChatHistoryItemRow(
     activeFilePath: String? = null,
     onOpenFile: (String) -> Unit = {},
     onShowFileDetails: ((String) -> Unit)? = null,
-    onAddFile: (Conversation) -> Unit = {}
+    onAddFile: (Conversation) -> Unit = {},
+    diffStats: com.example.gemini.domain.model.TurnDiffStats? = null
 ) {
     val isSubagent = depth > 0
     val startPadding = if (isSubagent) (12 + (depth * 14)).dp else 0.dp
@@ -1994,6 +1998,8 @@ private fun ChatHistoryItemRow(
                         )
                     }
                 }
+
+                com.example.gemini.ui.chat.HomeRecentDiffBadge(diffStats = diffStats)
 
                 val timeStr = formatRelativeTime(conv.updatedAt)
                 if (timeStr.isNotBlank()) {

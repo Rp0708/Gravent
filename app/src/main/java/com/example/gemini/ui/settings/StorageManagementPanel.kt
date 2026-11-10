@@ -51,12 +51,12 @@ private fun buildStoragePalette(cardBg: Color, cardBorder: BorderStroke): Storag
     return StorageUiPalette(
         cardBg = cardBg,
         cardBorder = cardBorder,
-        nestedBg = if (isDark) Color(0xFF141418) else Color(0xFFFAFAFA),
+        nestedBg = if (isDark) Color(0xFF111114) else Color(0xFFFAFAFA),
         subChipBg = if (isDark) Color(0xFF18181B) else Color(0xFFF4F4F5),
         subtleBorder = if (isDark) Color(0xFF27272A) else Color(0xFFE4E4E7),
         primaryText = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
-        secondaryText = if (isDark) Color(0xFFA1A1AA) else Color(0xFF52525B),
-        mutedText = if (isDark) Color(0xFF71717A) else Color(0xFF71717A),
+        secondaryText = if (isDark) Color(0xFF8E8E93) else Color(0xFF52525B),
+        mutedText = Color(0xFF71717A),
         isDark = isDark
     )
 }
@@ -151,8 +151,8 @@ fun StorageManagementPanel(
             item(key = "cleanup_banner") {
                 val res = lastResult!!
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = QuotaGreen.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(14.dp),
+                    color = palette.cardBg,
                     border = BorderStroke(1.dp, QuotaGreen.copy(alpha = 0.35f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -170,18 +170,18 @@ fun StorageManagementPanel(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = res.summary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Medium,
                                 color = palette.primaryText
                             )
                             val detail = buildString {
                                 append("${res.removedEntries} items removed")
-                                if (res.skippedActiveEntries > 0) append(" • ${res.skippedActiveEntries} active files kept safe")
-                                if (res.errorCount > 0) append(" • ${res.errorCount} skipped")
+                                if (res.skippedActiveEntries > 0) append(" · ${res.skippedActiveEntries} active files kept safe")
+                                if (res.errorCount > 0) append(" · ${res.errorCount} skipped")
                             }
                             Text(
                                 text = detail,
-                                fontSize = 12.sp,
+                                fontSize = 11.5.sp,
                                 color = palette.secondaryText
                             )
                         }
@@ -220,7 +220,7 @@ fun StorageManagementPanel(
                 val activeCacheCount = report.extraCaches.count { it.bytes > 0L }
                 StorageSectionHeaderCard(
                     icon = Icons.Outlined.CleaningServices,
-                    iconTint = Color(0xFFF59E0B),
+                    iconTint = if (report.totalAllCachesBytes > 0L) ClaudeTerracotta else Color(0xFFE8E5DF),
                     title = "Extra Caches & Residual Temp",
                     subtitle = if (activeCacheCount > 0) {
                         "$activeCacheCount active caches across OS, WebView, APT, dev tools & agents"
@@ -228,7 +228,7 @@ fun StorageManagementPanel(
                         "All detected caches are clean (0 B)"
                     },
                     badgeText = Formatter.formatFileSize(context, report.totalAllCachesBytes),
-                    badgeColor = if (report.totalAllCachesBytes > 0L) Color(0xFFF59E0B) else QuotaGreen,
+                    badgeColor = if (report.totalAllCachesBytes > 0L) ClaudeTerracotta else QuotaGreen,
                     isExpanded = showExtraCachesList,
                     onToggle = { showExtraCachesList = !showExtraCachesList },
                     palette = palette
@@ -261,10 +261,10 @@ fun StorageManagementPanel(
             item(key = "classification_title") {
                 Text(
                     text = "STORAGE CLASSIFICATION",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = palette.secondaryText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.6.sp,
+                    color = palette.mutedText,
                     modifier = Modifier.padding(top = 4.dp, start = 4.dp)
                 )
             }
@@ -303,10 +303,10 @@ fun StorageManagementPanel(
             item(key = "deep_inspectors_title") {
                 Text(
                     text = "TOOL & PACKAGE INSPECTOR",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = palette.secondaryText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.6.sp,
+                    color = palette.mutedText,
                     modifier = Modifier.padding(top = 6.dp, start = 4.dp)
                 )
             }
@@ -318,11 +318,11 @@ fun StorageManagementPanel(
                     val artBytes = report.workspaceArtifacts.sumOf { it.bytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.FolderOpen,
-                        iconTint = ClaudeTerracotta,
+                        iconTint = Color(0xFFE8E5DF),
                         title = "Workspaces & Build Artifacts",
-                        subtitle = "${report.workspaces.size} workspaces • ${Formatter.formatFileSize(context, artBytes)} in node_modules / build / venv",
+                        subtitle = "${report.workspaces.size} workspaces · ${Formatter.formatFileSize(context, artBytes)} in node_modules / build / venv",
                         badgeText = Formatter.formatFileSize(context, wsBytes),
-                        badgeColor = ClaudeTerracotta,
+                        badgeColor = palette.primaryText,
                         isExpanded = showWorkspaces,
                         onToggle = { showWorkspaces = !showWorkspaces },
                         palette = palette
@@ -340,7 +340,7 @@ fun StorageManagementPanel(
                         item(key = "ws_artifacts_note") {
                             Text(
                                 text = "Reclaimable dependencies/builds inside workspaces (included in workspace sizes above):",
-                                fontSize = 12.sp,
+                                fontSize = 11.5.sp,
                                 color = palette.secondaryText,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
@@ -366,11 +366,11 @@ fun StorageManagementPanel(
                     val pkgTotal = report.globalPackages.sumOf { it.bytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.Extension,
-                        iconTint = Color(0xFFEC4899),
+                        iconTint = Color(0xFFE8E5DF),
                         title = "Global Node.js / npm Packages",
                         subtitle = "${report.globalPackages.size} installed global npm packages",
                         badgeText = Formatter.formatFileSize(context, pkgTotal),
-                        badgeColor = Color(0xFFEC4899),
+                        badgeColor = palette.primaryText,
                         isExpanded = showToolsPackages,
                         onToggle = { showToolsPackages = !showToolsPackages },
                         palette = palette
@@ -392,11 +392,11 @@ fun StorageManagementPanel(
                     val dpkgSum = report.dpkgPackages.sumOf { it.estimatedBytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.Inventory2,
-                        iconTint = Color(0xFF10B981),
+                        iconTint = Color(0xFFE8E5DF),
                         title = "Installed Linux Packages (dpkg)",
                         subtitle = "Top ${report.dpkgPackages.size} APT packages (dpkg registry metadata, already counted in Linux OS above)",
                         badgeText = "~${Formatter.formatFileSize(context, dpkgSum)}",
-                        badgeColor = Color(0xFF10B981),
+                        badgeColor = palette.primaryText,
                         isExpanded = showDpkgPackages,
                         onToggle = { showDpkgPackages = !showDpkgPackages },
                         palette = palette
@@ -418,11 +418,11 @@ fun StorageManagementPanel(
                     val bigSum = report.largestFiles.sumOf { it.bytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.Archive,
-                        iconTint = Color(0xFF38BDF8),
+                        iconTint = Color(0xFFE8E5DF),
                         title = "Top ${report.largestFiles.size} Largest Files",
                         subtitle = "Biggest individual files inside app private storage",
                         badgeText = Formatter.formatFileSize(context, bigSum),
-                        badgeColor = Color(0xFF38BDF8),
+                        badgeColor = palette.primaryText,
                         isExpanded = showLargestFiles,
                         onToggle = { showLargestFiles = !showLargestFiles },
                         palette = palette
@@ -448,17 +448,17 @@ fun StorageManagementPanel(
                 val ext = report.externalBackups
                 StorageSectionHeaderCard(
                     icon = Icons.Outlined.FolderZip,
-                    iconTint = Color(0xFF8B5CF6),
+                    iconTint = Color(0xFFE8E5DF),
                     title = "Shared Downloads & Backups",
                     subtitle = if (!ext.hasPermission) {
-                        "Separate from App Footprint • Grant file access to scan /sdcard/Download/Antigem"
+                        "Separate from App Footprint · Grant file access to scan /sdcard/Download/Antigem"
                     } else if (ext.items.isEmpty()) {
                         "No archives in /sdcard/Download/Antigem (Separate from App Footprint)"
                     } else {
                         "${ext.items.size} archive/binary files in Downloads (Not inside App Footprint)"
                     },
                     badgeText = if (ext.totalBytes > 0L) Formatter.formatFileSize(context, ext.totalBytes) else "EXTERNAL",
-                    badgeColor = Color(0xFF8B5CF6),
+                    badgeColor = palette.secondaryText,
                     isExpanded = showExternalBackups,
                     onToggle = { showExternalBackups = !showExternalBackups },
                     palette = palette
@@ -532,42 +532,44 @@ private fun StorageHeroCard(
     val context = LocalContext.current
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         color = palette.cardBg,
         border = palette.cardBorder,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = palette.subChipBg,
+                    border = BorderStroke(1.dp, palette.subtleBorder),
+                    modifier = Modifier.size(38.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Storage,
-                        contentDescription = null,
-                        tint = ClaudeTerracotta,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Storage,
+                            contentDescription = null,
+                            tint = ClaudeTerracotta,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Total App Storage Used",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = palette.secondaryText
                     )
                     Text(
                         text = report?.let { Formatter.formatFileSize(context, it.totalBytes) } ?: "Scanning disk…",
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.5).sp,
                         fontFamily = FontFamily.Monospace,
                         color = palette.primaryText
                     )
@@ -575,13 +577,14 @@ private fun StorageHeroCard(
 
                 if (report != null && report.accuracy.deviceFreeBytes > 0L) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = palette.subChipBg,
                         border = BorderStroke(1.dp, palette.subtleBorder)
                     ) {
                         Text(
                             text = "${Formatter.formatFileSize(context, report.accuracy.deviceFreeBytes)} free",
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
                             fontFamily = FontFamily.Monospace,
                             color = palette.primaryText.copy(alpha = 0.85f),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -593,20 +596,20 @@ private fun StorageHeroCard(
                 IconButton(
                     onClick = onRefresh,
                     enabled = !isScanning && !isCleaning,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     if (isScanning) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(17.dp),
                             strokeWidth = 2.dp,
-                            color = Color(0xFF38BDF8)
+                            color = Color(0xFFE8E5DF)
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
                             contentDescription = "Rescan Storage",
                             tint = palette.primaryText,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
@@ -615,20 +618,20 @@ private fun StorageHeroCard(
             if (report != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "${report.accuracy.scannedFiles} files • ${report.accuracy.scannedDirs} dirs • scanned in ${report.accuracy.scanDurationMs}ms (hardlink-deduped)",
-                    fontSize = 12.sp,
+                    text = "${report.accuracy.scannedFiles} files · ${report.accuracy.scannedDirs} dirs · ${report.accuracy.scanDurationMs}ms (hardlink-deduped)",
+                    fontSize = 11.5.sp,
                     color = palette.mutedText
                 )
 
                 val totalForBar = report.totalBytes.coerceAtLeast(1L)
                 val visibleSegments = report.categories.filter { it.bytes > 0L }
                 if (visibleSegments.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(12.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .height(8.dp)
+                            .clip(CircleShape)
                             .background(palette.subChipBg),
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
@@ -643,7 +646,7 @@ private fun StorageHeroCard(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -652,21 +655,21 @@ private fun StorageHeroCard(
                         HeroStatTile(
                             label = "App Binary",
                             value = Formatter.formatFileSize(context, report.appBinaryBytes),
-                            accentColor = Color(0xFF6366F1),
+                            accentColor = Color(0xFFA1A1AA),
                             palette = palette,
                             modifier = Modifier.weight(1f)
                         )
                         HeroStatTile(
                             label = "Tools & Data",
                             value = Formatter.formatFileSize(context, report.netUserDataBytes),
-                            accentColor = Color(0xFF10B981),
+                            accentColor = Color(0xFFE8E5DF),
                             palette = palette,
                             modifier = Modifier.weight(1f)
                         )
                         HeroStatTile(
-                            label = "Caches & Temp",
+                            label = "Caches",
                             value = Formatter.formatFileSize(context, report.totalAllCachesBytes),
-                            accentColor = Color(0xFFF59E0B),
+                            accentColor = ClaudeTerracotta,
                             palette = palette,
                             modifier = Modifier.weight(1f)
                         )
@@ -750,14 +753,15 @@ private fun StorageOptimizeCard(
                     Icon(
                         imageVector = Icons.Outlined.AutoAwesome,
                         contentDescription = null,
-                        tint = Color(0xFF38BDF8),
-                        modifier = Modifier.size(20.dp)
+                        tint = ClaudeTerracotta,
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Optimize Storage",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.2).sp,
                         color = palette.primaryText
                     )
                 }
@@ -765,10 +769,10 @@ private fun StorageOptimizeCard(
                 val reclaimableTotal = safeSize + devSize
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (reclaimableTotal > 0L) Color(0xFFF59E0B).copy(alpha = 0.15f) else QuotaGreen.copy(alpha = 0.15f),
+                    color = palette.subChipBg,
                     border = BorderStroke(
                         1.dp,
-                        if (reclaimableTotal > 0L) Color(0xFFF59E0B).copy(alpha = 0.35f) else QuotaGreen.copy(alpha = 0.35f)
+                        if (reclaimableTotal > 0L) ClaudeTerracotta.copy(alpha = 0.4f) else palette.subtleBorder
                     )
                 ) {
                     Text(
@@ -777,10 +781,10 @@ private fun StorageOptimizeCard(
                         } else {
                             "Optimized"
                         },
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = FontFamily.Monospace,
-                        color = if (reclaimableTotal > 0L) Color(0xFFF59E0B) else QuotaGreen,
+                        color = if (reclaimableTotal > 0L) Color(0xFFE8E5DF) else QuotaGreen,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -886,29 +890,31 @@ private fun StorageSectionHeaderCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 13.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(36.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = palette.subChipBg,
+                border = BorderStroke(1.dp, palette.subtleBorder)
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(19.dp))
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    fontSize = 14.5.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = (-0.2).sp,
                     color = palette.primaryText
                 )
                 Text(
                     text = subtitle,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     color = palette.secondaryText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -917,13 +923,13 @@ private fun StorageSectionHeaderCard(
             Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = badgeColor.copy(alpha = 0.14f),
-                border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f))
+                color = palette.subChipBg,
+                border = BorderStroke(1.dp, palette.subtleBorder)
             ) {
                 Text(
                     text = badgeText,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace,
                     color = badgeColor,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -935,7 +941,7 @@ private fun StorageSectionHeaderCard(
                 contentDescription = if (isExpanded) "Collapse" else "Expand",
                 tint = palette.secondaryText,
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(19.dp)
                     .rotate(rotation)
             )
         }
@@ -1325,9 +1331,9 @@ private fun ToolPackageRow(
             Text(
                 text = Formatter.formatFileSize(context, pkg.bytes),
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace,
-                color = Color(0xFFEC4899)
+                color = Color(0xFFE8E5DF)
             )
         }
     }
@@ -1358,9 +1364,9 @@ private fun DpkgPackageRow(
             Text(
                 text = "~${Formatter.formatFileSize(context, pkg.estimatedBytes)}",
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace,
-                color = Color(0xFF10B981)
+                color = palette.primaryText
             )
         }
     }
@@ -1401,9 +1407,9 @@ private fun LargeFileRow(
             Text(
                 text = Formatter.formatFileSize(context, entry.bytes),
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace,
-                color = Color(0xFF38BDF8)
+                color = palette.primaryText
             )
             if (entry.canDeleteSafely) {
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1412,7 +1418,7 @@ private fun LargeFileRow(
                     enabled = !isBusy,
                     modifier = Modifier.size(40.dp)
                 ) {
-                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete File", tint = Color(0xFFF59E0B), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete File", tint = ClaudeTerracotta, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -1447,9 +1453,9 @@ private fun ExternalBackupRow(
             Text(
                 text = Formatter.formatFileSize(context, item.bytes),
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace,
-                color = Color(0xFF8B5CF6)
+                color = palette.primaryText
             )
             Spacer(modifier = Modifier.width(6.dp))
             IconButton(

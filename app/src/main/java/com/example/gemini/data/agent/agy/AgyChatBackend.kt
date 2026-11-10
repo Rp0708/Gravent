@@ -1994,8 +1994,14 @@ class AgyChatBackend(
         }
     }
 
+    private var refreshQuotasJob: Job? = null
+
     fun refreshQuotas(force: Boolean = true, showToastFeedback: Boolean = false) {
-        backendScope.launch {
+        if (!force && refreshQuotasJob?.isActive == true) return
+        if (force) {
+            refreshQuotasJob?.cancel()
+        }
+        refreshQuotasJob = backendScope.launch {
             _isRefreshingModels.value = true
             var failureError: String? = null
             try {

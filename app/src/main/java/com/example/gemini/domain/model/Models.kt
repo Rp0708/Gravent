@@ -71,11 +71,25 @@ data class ArtifactSnapshot(
 )
 
 @Serializable
+data class TurnFileDelta(
+    val path: String,
+    val status: String = "M",
+    val additions: Int = 0,
+    val deletions: Int = 0,
+    val staged: Boolean = false
+)
+
+@Serializable
 data class TurnDiffStats(
     val additions: Int = 0,
     val deletions: Int = 0,
     val filesChanged: Int = 0,
-    val files: List<String> = emptyList()
+    val files: List<String> = emptyList(),
+    val fileDeltas: List<TurnFileDelta> = emptyList(),
+    val branch: String? = null,
+    val repoSlug: String? = null,
+    val projectPath: String? = null,
+    val timestampMs: Long = 0L
 )
 
 @Serializable

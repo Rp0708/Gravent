@@ -50,6 +50,7 @@ import com.example.gemini.data.remote.HubMediaResolver
 import kotlinx.coroutines.launch
 import com.example.gemini.domain.model.ChatMessage
 import com.example.gemini.domain.model.MessageRole
+import com.example.gemini.domain.model.TurnDiffStats
 import com.example.gemini.theme.ClaudeTerracotta
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
@@ -74,6 +75,7 @@ fun MessageBubble(
     artifactsCount: Int = 0,
     summarizingModelName: String = "AI",
     pendingQueuedUserMessage: String? = null,
+    onInspectGitDiff: ((TurnDiffStats) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -279,11 +281,12 @@ fun MessageBubble(
                             )
                         }
                         if (message.tokenUsage != null || message.diffStats != null || message.createdAt > 0L) {
-                            ResponseTelemetryPill(
+                            ResponseTelemetryAndGitRow(
                                 usage = message.tokenUsage,
                                 createdAtMs = message.createdAt,
                                 diffStats = message.diffStats,
-                                onInspectDetails = { showBubbleTelemetryDialog = true }
+                                onInspectTelemetry = { showBubbleTelemetryDialog = true },
+                                onInspectGitDiff = onInspectGitDiff
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                         }
@@ -578,6 +581,36 @@ fun UserMessageBubble(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ResponseTelemetryAndGitRow(
+    usage: com.example.gemini.domain.model.TokenUsage?,
+    createdAtMs: Long,
+    diffStats: TurnDiffStats?,
+    onInspectTelemetry: () -> Unit,
+    onInspectGitDiff: ((TurnDiffStats) -> Unit)?
+) {
+    val hasDiff = diffStats != null &&
+        (diffStats.additions > 0 || diffStats.deletions > 0 || diffStats.filesChanged > 0)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        ResponseTelemetryPill(
+            usage = usage,
+            createdAtMs = createdAtMs,
+            diffStats = if (hasDiff && onInspectGitDiff != null) null else diffStats,
+            onInspectDetails = onInspectTelemetry
+        )
+        if (hasDiff && diffStats != null && onInspectGitDiff != null) {
+            TurnGitOperationsChip(
+                diffStats = diffStats,
+                onInspectGitDiff = { onInspectGitDiff(diffStats) }
+            )
+        }
+    }
+}
+
 @Composable
 fun AssistantMessageFooter(
     message: ChatMessage,
@@ -586,8 +619,9 @@ fun AssistantMessageFooter(
     onViewRawPayload: ((String) -> Unit)? = null,
     onShowArtifacts: (() -> Unit)? = null,
     artifactsCount: Int = 0,
-    turnDiffStats: com.example.gemini.domain.model.TurnDiffStats? = message.diffStats,
+    turnDiffStats: TurnDiffStats? = message.diffStats,
     onInspectTelemetry: ((ChatMessage) -> Unit)? = null,
+    onInspectGitDiff: ((TurnDiffStats) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -609,20 +643,21 @@ fun AssistantMessageFooter(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp)
     ) {
-        // Token, Diff & Timestamp Telemetry Pill (Displayed just above action icons)
+        // Token, Diff & Timestamp Telemetry Row (Displayed just above action icons)
         val effectiveDiff = turnDiffStats ?: message.diffStats
         if (message.tokenUsage != null || effectiveDiff != null || message.createdAt > 0L) {
-            ResponseTelemetryPill(
+            ResponseTelemetryAndGitRow(
                 usage = message.tokenUsage,
                 createdAtMs = message.createdAt,
                 diffStats = effectiveDiff,
-                onInspectDetails = {
+                onInspectTelemetry = {
                     if (onInspectTelemetry != null) {
                         onInspectTelemetry(message)
                     } else {
                         showLocalTelemetryDialog = true
                     }
-                }
+                },
+                onInspectGitDiff = onInspectGitDiff
             )
             Spacer(modifier = Modifier.height(6.dp))
         }

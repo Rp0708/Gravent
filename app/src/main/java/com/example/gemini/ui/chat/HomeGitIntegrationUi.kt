@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -87,7 +89,9 @@ import com.example.gemini.data.daemon.GitDiffResponse
 import com.example.gemini.data.daemon.GitFileStatus
 import com.example.gemini.data.daemon.GitStatusResponse
 import com.example.gemini.domain.model.TurnDiffStats
+import com.example.gemini.domain.model.TurnFileDelta
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.ui.components.formatTelemetryShortTime
 import com.example.gemini.ui.ide.UnifiedDiffViewer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -126,14 +130,6 @@ fun HomeCodexWorkspaceCard(
     onDiscardAll: (paths: List<String>, onResult: (Boolean, String?) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by rememberSaveable(projectPath) { mutableStateOf(false) }
-    var showAllFiles by remember(projectPath) { mutableStateOf(false) }
-    var selectedDiffFile by remember { mutableStateOf<GitFileStatus?>(null) }
-    var showBranchDialog by remember { mutableStateOf(false) }
-    var showCommitDialog by remember { mutableStateOf(false) }
-    var showDiscardConfirm by remember { mutableStateOf(false) }
-    var actionFeedback by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-
     val shortPath = remember(projectPath) { abbreviateHomeDirectoryPath(projectPath) }
 
     Surface(
@@ -223,487 +219,948 @@ fun HomeCodexWorkspaceCard(
 
             // 2. Integrated Codex Core Git Strip (only when workspace is active)
             if (hasWorkspace) {
-                if (isGitLoading && gitStatus != null) {
-                    LinearProgressIndicator(
-                        color = ClaudeTerracotta,
-                        trackColor = HomeCardDivider,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.5.dp)
-                    )
-                } else {
-                    HorizontalDivider(thickness = 0.6.dp, color = HomeCardDivider)
-                }
+                HomeRepoGitSection(
+                    projectPath = projectPath,
+                    isBridgeOnline = isBridgeOnline,
+                    gitStatus = gitStatus,
+                    isGitLoading = isGitLoading,
+                    alwaysExpanded = false,
+                    onRefreshGit = onRefreshGit,
+                    onOpenInIde = onOpenInIde,
+                    onAskReview = onAskReview,
+                    onCommit = onCommit,
+                    onPush = onPush,
+                    onPull = onPull,
+                    onCheckoutBranch = onCheckoutBranch,
+                    onDiscardAll = onDiscardAll
+                )
+            }
+        }
+    }
+}
 
-                when {
-                    !isBridgeOnline -> {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(7.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(HomeTextSecondary.copy(alpha = 0.6f), CircleShape)
-                            )
+/**
+ * Live GitHub / Git repository status modal launched from inside any active chat screen.
+ * Reuses [HomeRepoGitSection] so Home and in-chat repo operations stay identical.
+ */
+@Composable
+fun InChatRepoGitDialog(
+    projectName: String,
+    projectPath: String,
+    hasWorkspace: Boolean,
+    isBridgeOnline: Boolean,
+    gitStatus: GitStatusResponse?,
+    isGitLoading: Boolean,
+    onRefreshGit: () -> Unit,
+    onOpenInIde: (relativePath: String?) -> Unit,
+    onAskReview: (prompt: String) -> Unit,
+    onCommit: (message: String, alsoPush: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onPush: (onResult: (Boolean, String?) -> Unit) -> Unit,
+    onPull: (onResult: (Boolean, String?) -> Unit) -> Unit,
+    onCheckoutBranch: (branch: String, create: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onDiscardAll: (paths: List<String>, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val shortPath = remember(projectPath) { abbreviateHomeDirectoryPath(projectPath) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = HomeCardBg,
+            border = BorderStroke(1.dp, HomeCardBorder),
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .fillMaxWidth(0.93f)
+                .heightIn(max = 650.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(HomeCardElevated),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AltRoute,
+                            contentDescription = null,
+                            tint = ClaudeTerracotta,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = gitStatus?.repoSlug ?: projectName.ifBlank { "Repository" },
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = HomeTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (shortPath.isNotBlank()) {
                             Text(
-                                text = "Local bridge offline · Git status unavailable",
+                                text = shortPath,
                                 fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
                                 color = HomeTextSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
+                    IconButton(onClick = onRefreshGit, modifier = Modifier.size(30.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh Git",
+                            tint = HomeTextSecondary,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(30.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = HomeTextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
 
-                    isGitLoading && gitStatus == null -> {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(11.dp),
-                                strokeWidth = 1.5.dp,
-                                color = HomeTextSecondary
-                            )
+                if (hasWorkspace) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        HomeRepoGitSection(
+                            projectPath = projectPath,
+                            isBridgeOnline = isBridgeOnline,
+                            gitStatus = gitStatus,
+                            isGitLoading = isGitLoading,
+                            alwaysExpanded = true,
+                            onRefreshGit = onRefreshGit,
+                            onOpenInIde = { relPath ->
+                                onDismiss()
+                                onOpenInIde(relPath)
+                            },
+                            onAskReview = { prompt ->
+                                onDismiss()
+                                onAskReview(prompt)
+                            },
+                            onCommit = onCommit,
+                            onPush = onPush,
+                            onPull = onPull,
+                            onCheckoutBranch = onCheckoutBranch,
+                            onDiscardAll = onDiscardAll
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Select a project folder to inspect Git history and uncommitted changes.",
+                        fontSize = 12.5.sp,
+                        color = HomeTextSecondary,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Per-prompt Git operations popup opened from the `+X -Y [i]` badge next to an assistant response.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TurnGitInfoDialog(
+    diffStats: TurnDiffStats,
+    fallbackProjectPath: String,
+    liveGitStatus: GitStatusResponse?,
+    onOpenRepoHub: (() -> Unit)? = null,
+    onOpenInIde: (relativePath: String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val resolvedProjectPath = diffStats.projectPath?.takeIf { it.isNotBlank() } ?: fallbackProjectPath
+    var selectedDiffFile by remember { mutableStateOf<GitFileStatus?>(null) }
+
+    val fileRows = remember(diffStats) {
+        if (diffStats.fileDeltas.isNotEmpty()) {
+            diffStats.fileDeltas.map { d ->
+                GitFileStatus(
+                    path = d.path,
+                    status = d.status,
+                    staged = d.staged,
+                    additions = d.additions,
+                    deletions = d.deletions
+                )
+            }
+        } else {
+            diffStats.files.map { p ->
+                GitFileStatus(path = p, status = "M", staged = false)
+            }
+        }
+    }
+
+    val modifiedCount = remember(fileRows) { fileRows.count { it.status.equals("M", true) || it.status.equals("R", true) } }
+    val addedCount = remember(fileRows) { fileRows.count { it.status.equals("A", true) || it.status.equals("U", true) || it.status == "?" } }
+    val deletedCount = remember(fileRows) { fileRows.count { it.status.equals("D", true) } }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = HomeCardBg,
+            border = BorderStroke(1.dp, HomeCardBorder),
+            modifier = Modifier
+                .widthIn(max = 500.dp)
+                .fillMaxWidth(0.92f)
+                .heightIn(max = 640.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(HomeCardElevated),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = ClaudeTerracotta,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Prompt Git Changes",
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = HomeTextPrimary
+                        )
+                        val repoInfo = listOfNotNull(
+                            diffStats.repoSlug ?: liveGitStatus?.repoSlug,
+                            diffStats.branch ?: liveGitStatus?.branch,
+                            formatTelemetryShortTime(diffStats.timestampMs).takeIf { it.isNotEmpty() }
+                        ).joinToString(" · ")
+                        if (repoInfo.isNotBlank()) {
                             Text(
-                                text = "Checking repository status…",
-                                fontSize = 11.sp,
-                                color = HomeTextSecondary
+                                text = repoInfo,
+                                fontSize = 11.5.sp,
+                                color = HomeTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
-
-                    gitStatus != null && !gitStatus.isGitRepo -> {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Local folder · not initialized with Git",
-                                fontSize = 11.sp,
-                                color = HomeTextSecondary
-                            )
-                        }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = HomeTextSecondary, modifier = Modifier.size(18.dp))
                     }
+                }
 
-                    gitStatus != null -> {
-                        val hasUncommitted = gitStatus.hasChanges
-                        val hasSyncPending = gitStatus.ahead > 0 || gitStatus.behind > 0
-                        val canExpand = hasUncommitted || hasSyncPending
-
-                        // Compact Git Summary Strip (~36dp height)
+                // Summary Card (+additions, -deletions, operations breakdown & bar)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = HomeCardElevated,
+                    border = BorderStroke(0.8.dp, HomeCardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(9.dp)
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (canExpand) {
-                                        Modifier.clickable { isExpanded = !isExpanded }
-                                    } else Modifier
-                                )
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
-                                modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                // Tappable Branch Chip
-                                Surface(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable { showBranchDialog = true },
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = HomeCardElevated,
-                                    border = BorderStroke(0.6.dp, Color(0xFF2B2B34))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AltRoute,
-                                            contentDescription = "Branch",
-                                            tint = if (hasUncommitted) HomeWarnAmber else HomeAddGreen,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Text(
-                                            text = gitStatus.branch,
-                                            fontSize = 11.sp,
-                                            fontFamily = FontFamily.Monospace,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color(0xFFE4E4E9),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.widthIn(max = 110.dp)
-                                        )
-                                        Icon(
-                                            imageVector = Icons.Default.ArrowDropDown,
-                                            contentDescription = "Switch branch",
-                                            tint = HomeTextSecondary,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-                                }
-
-                                // Optional Remote owner/repo slug
-                                val slug = gitStatus.repoSlug
-                                if (!slug.isNullOrBlank()) {
-                                    Text(
-                                        text = slug,
-                                        fontSize = 11.sp,
-                                        color = HomeTextSecondary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f, fill = false)
-                                    )
-                                }
-
-                                if (gitStatus.ahead > 0) {
-                                    Text(
-                                        text = "↑${gitStatus.ahead}",
-                                        fontSize = 11.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = HomeSkyBlue
-                                    )
-                                }
-                                if (gitStatus.behind > 0) {
-                                    Text(
-                                        text = "↓${gitStatus.behind}",
-                                        fontSize = 11.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = HomeWarnAmber
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                if (hasUncommitted) {
-                                    Surface(
-                                        shape = RoundedCornerShape(7.dp),
-                                        color = Color(0xFF191920),
-                                        border = BorderStroke(0.6.dp, Color(0xFF2D2D36))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                        ) {
-                                            Text(
-                                                text = "${gitStatus.totalChangesCount}",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFFE4E4E9)
-                                            )
-                                            if (gitStatus.totalAdditions > 0) {
-                                                Text(
-                                                    text = "+${gitStatus.totalAdditions}",
-                                                    fontSize = 11.sp,
-                                                    fontFamily = FontFamily.Monospace,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = HomeAddGreen
-                                                )
-                                            }
-                                            if (gitStatus.totalDeletions > 0) {
-                                                Text(
-                                                    text = "-${gitStatus.totalDeletions}",
-                                                    fontSize = 11.sp,
-                                                    fontFamily = FontFamily.Monospace,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = HomeDelRed
-                                                )
-                                            }
-                                            Icon(
-                                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                                contentDescription = if (isExpanded) "Collapse changes" else "Expand changes",
-                                                tint = HomeTextSecondary,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .background(HomeAddGreen, CircleShape)
-                                        )
-                                        Text(
-                                            text = "Clean",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = HomeAddGreen
-                                        )
-                                        if (hasSyncPending) {
-                                            Icon(
-                                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                                contentDescription = null,
-                                                tint = HomeTextSecondary,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        } else {
-                                            IconButton(
-                                                onClick = onRefreshGit,
-                                                modifier = Modifier.size(22.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Refresh,
-                                                    contentDescription = "Refresh Git status",
-                                                    tint = HomeTextSecondary,
-                                                    modifier = Modifier.size(13.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Inline action feedback banner (after commit / push / pull / discard)
-                        actionFeedback?.let { (isOk, msg) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    text = msg,
-                                    fontSize = 11.sp,
-                                    color = if (isOk) HomeAddGreen else HomeDelRed,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
+                                    text = "+${diffStats.additions}",
+                                    fontSize = 16.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HomeAddGreen
                                 )
-                                IconButton(
-                                    onClick = { actionFeedback = null },
-                                    modifier = Modifier.size(18.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Dismiss",
-                                        tint = HomeTextSecondary,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
+                                Text(
+                                    text = "-${diffStats.deletions}",
+                                    fontSize = 16.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HomeDelRed
+                                )
+                            }
+                            Text(
+                                text = "${maxOf(diffStats.filesChanged, fileRows.size)} ${if (maxOf(diffStats.filesChanged, fileRows.size) == 1) "file" else "files"}",
+                                fontSize = 11.5.sp,
+                                color = HomeTextSecondary
+                            )
+                        }
+
+                        val totalDelta = (diffStats.additions + diffStats.deletions).coerceAtLeast(1)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(5.dp)
+                                .clip(CircleShape)
+                                .background(HomeCardBg)
+                        ) {
+                            if (diffStats.additions > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight((diffStats.additions.toFloat() / totalDelta.toFloat()).coerceAtLeast(0.04f))
+                                        .height(5.dp)
+                                        .background(HomeAddGreen)
+                                )
+                            }
+                            if (diffStats.deletions > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight((diffStats.deletions.toFloat() / totalDelta.toFloat()).coerceAtLeast(0.04f))
+                                        .height(5.dp)
+                                        .background(HomeDelRed)
+                                )
                             }
                         }
 
-                        // Expandable Inline Uncommitted Files & Quick Repo Actions
-                        AnimatedVisibility(
-                            visible = isExpanded && canExpand,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            val combinedFiles = remember(gitStatus) {
-                                (gitStatus.stagedFiles + gitStatus.unstagedFiles + gitStatus.untrackedFiles)
-                            }
-                            val visibleFiles = if (showAllFiles) combinedFiles else combinedFiles.take(5)
-                            val countsSummary = remember(gitStatus) {
-                                buildList {
-                                    if (gitStatus.stagedFiles.isNotEmpty()) add("${gitStatus.stagedFiles.size} staged")
-                                    if (gitStatus.unstagedFiles.isNotEmpty()) add("${gitStatus.unstagedFiles.size} modified")
-                                    if (gitStatus.untrackedFiles.isNotEmpty()) add("${gitStatus.untrackedFiles.size} untracked")
-                                }.joinToString(" · ")
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFF101014))
+                        if (modifiedCount > 0 || addedCount > 0 || deletedCount > 0) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                HorizontalDivider(thickness = 0.6.dp, color = HomeCardDivider)
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = countsSummary.ifBlank { "Sync pending with remote" },
-                                        fontSize = 10.5.sp,
-                                        color = HomeTextSecondary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        IconButton(
-                                            onClick = onRefreshGit,
-                                            modifier = Modifier.size(22.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Refresh,
-                                                contentDescription = "Refresh",
-                                                tint = HomeTextSecondary,
-                                                modifier = Modifier.size(13.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "Open SCM",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = HomeWarmAccent,
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .clickable { onOpenInIde(null) }
-                                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-
-                                if (visibleFiles.isNotEmpty()) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .then(
-                                                if (showAllFiles && combinedFiles.size > 6) {
-                                                    Modifier
-                                                        .heightIn(max = 210.dp)
-                                                        .verticalScroll(rememberScrollState())
-                                                } else Modifier
-                                            )
-                                            .padding(horizontal = 10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        visibleFiles.forEach { file ->
-                                            HomeGitChangedFileRow(
-                                                file = file,
-                                                onClick = { selectedDiffFile = file }
-                                            )
-                                        }
-                                    }
-
-                                    if (combinedFiles.size > 5) {
-                                        TextButton(
-                                            onClick = { showAllFiles = !showAllFiles },
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
-                                            modifier = Modifier.height(28.dp)
-                                        ) {
-                                            Text(
-                                                text = if (showAllFiles) {
-                                                    "Show fewer files"
-                                                } else {
-                                                    "Show all ${combinedFiles.size} changed files"
-                                                },
-                                                fontSize = 11.sp,
-                                                color = HomeTextSecondary
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Quick Codex Actions Strip
-                                FlowRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(7.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    if (hasUncommitted) {
-                                        HomeGitActionChip(
-                                            label = "Review changes",
-                                            icon = Icons.Outlined.AutoAwesome,
-                                            accent = ClaudeTerracotta,
-                                            enabled = !isGitLoading,
-                                            onClick = {
-                                                val fileSample = combinedFiles.take(8).joinToString(", ") { it.path }
-                                                val suffix = if (combinedFiles.size > 8) " (+${combinedFiles.size - 8} more)" else ""
-                                                val prompt = "Review the ${gitStatus.totalChangesCount} uncommitted files " +
-                                                    "(+${gitStatus.totalAdditions} -${gitStatus.totalDeletions}) on branch `${gitStatus.branch}` " +
-                                                    "[$fileSample$suffix]. Identify any bugs, edge cases, or regressions."
-                                                onAskReview(prompt)
-                                            }
-                                        )
-
-                                        HomeGitActionChip(
-                                            label = "Commit",
-                                            icon = Icons.Default.Check,
-                                            accent = HomeWarmAccent,
-                                            enabled = !isGitLoading,
-                                            onClick = { showCommitDialog = true }
-                                        )
-                                    }
-
-                                    if (gitStatus.ahead > 0) {
-                                        HomeGitActionChip(
-                                            label = "Push ↑${gitStatus.ahead}",
-                                            icon = Icons.Default.CloudUpload,
-                                            accent = HomeSkyBlue,
-                                            enabled = !isGitLoading,
-                                            onClick = {
-                                                onPush { ok, err ->
-                                                    actionFeedback = ok to (err ?: "Pushed to remote.")
-                                                }
-                                            }
-                                        )
-                                    }
-
-                                    if (gitStatus.behind > 0) {
-                                        HomeGitActionChip(
-                                            label = "Pull ↓${gitStatus.behind}",
-                                            icon = Icons.Default.CloudDownload,
-                                            accent = HomeWarnAmber,
-                                            enabled = !isGitLoading,
-                                            onClick = {
-                                                onPull { ok, err ->
-                                                    actionFeedback = ok to (err ?: "Pulled latest changes.")
-                                                }
-                                            }
-                                        )
-                                    }
-
-                                    if (hasUncommitted) {
-                                        HomeGitActionChip(
-                                            label = "Discard",
-                                            icon = Icons.Default.Undo,
-                                            accent = HomeDelRed,
-                                            enabled = !isGitLoading,
-                                            onClick = { showDiscardConfirm = true }
-                                        )
-                                    }
-                                }
+                                if (modifiedCount > 0) OperationCountTag("$modifiedCount modified", HomeWarnAmber)
+                                if (addedCount > 0) OperationCountTag("$addedCount added", HomeAddGreen)
+                                if (deletedCount > 0) OperationCountTag("$deletedCount deleted", HomeDelRed)
                             }
                         }
                     }
+                }
 
-                    else -> Unit
+                // Changed Files List for this Prompt
+                if (fileRows.isNotEmpty()) {
+                    Text(
+                        text = if (resolvedProjectPath.isNotBlank()) "MODIFIED IN THIS TURN (TAP FOR DIFF)" else "MODIFIED IN THIS TURN",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.6.sp,
+                        color = HomeTextSecondary
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .heightIn(max = 280.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        fileRows.forEach { file ->
+                            HomeGitChangedFileRow(
+                                file = file,
+                                onClick = {
+                                    if (resolvedProjectPath.isNotBlank()) {
+                                        selectedDiffFile = file
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Bottom Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (onOpenRepoHub != null && resolvedProjectPath.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                onDismiss()
+                                onOpenRepoHub()
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, HomeCardBorder),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AltRoute,
+                                contentDescription = null,
+                                tint = HomeWarmAccent,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Repo Status", fontSize = 12.5.sp, color = HomeTextPrimary, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Close", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
     }
 
-    // Dialogs triggered from the Home card
-    if (showBranchDialog && hasWorkspace && gitStatus != null) {
+    selectedDiffFile?.let { fileStatus ->
+        HomeFileDiffDialog(
+            projectPath = resolvedProjectPath,
+            file = fileStatus,
+            onDismiss = { selectedDiffFile = null },
+            onOpenInIde = { relPath ->
+                selectedDiffFile = null
+                onDismiss()
+                onOpenInIde(relPath)
+            }
+        )
+    }
+}
+
+@Composable
+private fun OperationCountTag(label: String, tint: Color) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = HomeCardBg,
+        border = BorderStroke(0.6.dp, tint.copy(alpha = 0.28f))
+    ) {
+        Text(
+            text = label,
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.Medium,
+            color = tint,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HomeRepoGitSection(
+    projectPath: String,
+    isBridgeOnline: Boolean,
+    gitStatus: GitStatusResponse?,
+    isGitLoading: Boolean,
+    alwaysExpanded: Boolean,
+    onRefreshGit: () -> Unit,
+    onOpenInIde: (relativePath: String?) -> Unit,
+    onAskReview: (prompt: String) -> Unit,
+    onCommit: (message: String, alsoPush: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onPush: (onResult: (Boolean, String?) -> Unit) -> Unit,
+    onPull: (onResult: (Boolean, String?) -> Unit) -> Unit,
+    onCheckoutBranch: (branch: String, create: Boolean, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onDiscardAll: (paths: List<String>, onResult: (Boolean, String?) -> Unit) -> Unit
+) {
+    var isExpandedState by rememberSaveable(projectPath, alwaysExpanded) { mutableStateOf(alwaysExpanded) }
+    val isExpanded = if (alwaysExpanded) true else isExpandedState
+    var showAllFiles by remember(projectPath) { mutableStateOf(alwaysExpanded) }
+    var selectedDiffFile by remember { mutableStateOf<GitFileStatus?>(null) }
+    var showBranchDialog by remember { mutableStateOf(false) }
+    var showCommitDialog by remember { mutableStateOf(false) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    var actionFeedback by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+
+    if (isGitLoading && gitStatus != null) {
+        LinearProgressIndicator(
+            color = ClaudeTerracotta,
+            trackColor = HomeCardDivider,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.5.dp)
+        )
+    } else {
+        HorizontalDivider(thickness = 0.6.dp, color = HomeCardDivider)
+    }
+
+    when {
+        !isBridgeOnline -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(HomeTextSecondary.copy(alpha = 0.6f), CircleShape)
+                )
+                Text(
+                    text = "Local bridge offline · Git status unavailable",
+                    fontSize = 11.sp,
+                    color = HomeTextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        isGitLoading && gitStatus == null -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(11.dp),
+                    strokeWidth = 1.5.dp,
+                    color = HomeTextSecondary
+                )
+                Text(
+                    text = "Checking repository status…",
+                    fontSize = 11.sp,
+                    color = HomeTextSecondary
+                )
+            }
+        }
+
+        gitStatus != null && !gitStatus.isGitRepo -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Local folder · not initialized with Git",
+                    fontSize = 11.sp,
+                    color = HomeTextSecondary
+                )
+            }
+        }
+
+        gitStatus != null -> {
+            val hasUncommitted = gitStatus.hasChanges
+            val hasSyncPending = gitStatus.ahead > 0 || gitStatus.behind > 0
+            val canExpand = hasUncommitted || hasSyncPending
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (canExpand && !alwaysExpanded) {
+                            Modifier.clickable { isExpandedState = !isExpandedState }
+                        } else Modifier
+                    )
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { showBranchDialog = true },
+                        shape = RoundedCornerShape(6.dp),
+                        color = HomeCardElevated,
+                        border = BorderStroke(0.6.dp, Color(0xFF2B2B34))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AltRoute,
+                                contentDescription = "Branch",
+                                tint = if (hasUncommitted) HomeWarnAmber else HomeAddGreen,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = gitStatus.branch,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFE4E4E9),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 110.dp)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Switch branch",
+                                tint = HomeTextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+
+                    val slug = gitStatus.repoSlug
+                    if (!slug.isNullOrBlank()) {
+                        Text(
+                            text = slug,
+                            fontSize = 11.sp,
+                            color = HomeTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+
+                    if (gitStatus.ahead > 0) {
+                        Text(
+                            text = "↑${gitStatus.ahead}",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                            color = HomeSkyBlue
+                        )
+                    }
+                    if (gitStatus.behind > 0) {
+                        Text(
+                            text = "↓${gitStatus.behind}",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                            color = HomeWarnAmber
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (hasUncommitted) {
+                        Surface(
+                            shape = RoundedCornerShape(7.dp),
+                            color = Color(0xFF191920),
+                            border = BorderStroke(0.6.dp, Color(0xFF2D2D36))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Text(
+                                    text = "${gitStatus.totalChangesCount}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFE4E4E9)
+                                )
+                                if (gitStatus.totalAdditions > 0) {
+                                    Text(
+                                        text = "+${gitStatus.totalAdditions}",
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = HomeAddGreen
+                                    )
+                                }
+                                if (gitStatus.totalDeletions > 0) {
+                                    Text(
+                                        text = "-${gitStatus.totalDeletions}",
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = HomeDelRed
+                                    )
+                                }
+                                if (!alwaysExpanded) {
+                                    Icon(
+                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = if (isExpanded) "Collapse changes" else "Expand changes",
+                                        tint = HomeTextSecondary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(HomeAddGreen, CircleShape)
+                            )
+                            Text(
+                                text = "Clean",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = HomeAddGreen
+                            )
+                            if (hasSyncPending && !alwaysExpanded) {
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    tint = HomeTextSecondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            } else if (!alwaysExpanded) {
+                                IconButton(
+                                    onClick = onRefreshGit,
+                                    modifier = Modifier.size(22.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Refresh Git status",
+                                        tint = HomeTextSecondary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            actionFeedback?.let { (isOk, msg) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = msg,
+                        fontSize = 11.sp,
+                        color = if (isOk) HomeAddGreen else HomeDelRed,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = { actionFeedback = null },
+                        modifier = Modifier.size(18.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = HomeTextSecondary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded && canExpand,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                val combinedFiles = remember(gitStatus) {
+                    (gitStatus.stagedFiles + gitStatus.unstagedFiles + gitStatus.untrackedFiles)
+                }
+                val visibleFiles = if (showAllFiles) combinedFiles else combinedFiles.take(5)
+                val countsSummary = remember(gitStatus) {
+                    buildList {
+                        if (gitStatus.stagedFiles.isNotEmpty()) add("${gitStatus.stagedFiles.size} staged")
+                        if (gitStatus.unstagedFiles.isNotEmpty()) add("${gitStatus.unstagedFiles.size} modified")
+                        if (gitStatus.untrackedFiles.isNotEmpty()) add("${gitStatus.untrackedFiles.size} untracked")
+                    }.joinToString(" · ")
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF101014))
+                ) {
+                    HorizontalDivider(thickness = 0.6.dp, color = HomeCardDivider)
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = countsSummary.ifBlank { "Sync pending with remote" },
+                            fontSize = 10.5.sp,
+                            color = HomeTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(
+                                onClick = onRefreshGit,
+                                modifier = Modifier.size(22.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh",
+                                    tint = HomeTextSecondary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                            }
+                            Text(
+                                text = "Open SCM",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = HomeWarmAccent,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable { onOpenInIde(null) }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    if (visibleFiles.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (!alwaysExpanded && showAllFiles && combinedFiles.size > 6) {
+                                        Modifier
+                                            .heightIn(max = 210.dp)
+                                            .verticalScroll(rememberScrollState())
+                                    } else Modifier
+                                )
+                                .padding(horizontal = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            visibleFiles.forEach { file ->
+                                HomeGitChangedFileRow(
+                                    file = file,
+                                    onClick = { selectedDiffFile = file }
+                                )
+                            }
+                        }
+
+                        if (!alwaysExpanded && combinedFiles.size > 5) {
+                            TextButton(
+                                onClick = { showAllFiles = !showAllFiles },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    text = if (showAllFiles) {
+                                        "Show fewer files"
+                                    } else {
+                                        "Show all ${combinedFiles.size} changed files"
+                                    },
+                                    fontSize = 11.sp,
+                                    color = HomeTextSecondary
+                                )
+                            }
+                        }
+                    }
+
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (hasUncommitted) {
+                            HomeGitActionChip(
+                                label = "Review changes",
+                                icon = Icons.Outlined.AutoAwesome,
+                                accent = ClaudeTerracotta,
+                                enabled = !isGitLoading,
+                                onClick = {
+                                    val fileSample = combinedFiles.take(8).joinToString(", ") { it.path }
+                                    val suffix = if (combinedFiles.size > 8) " (+${combinedFiles.size - 8} more)" else ""
+                                    val prompt = "Review the ${gitStatus.totalChangesCount} uncommitted files " +
+                                        "(+${gitStatus.totalAdditions} -${gitStatus.totalDeletions}) on branch `${gitStatus.branch}` " +
+                                        "[$fileSample$suffix]. Identify any bugs, edge cases, or regressions."
+                                    onAskReview(prompt)
+                                }
+                            )
+
+                            HomeGitActionChip(
+                                label = "Commit",
+                                icon = Icons.Default.Check,
+                                accent = HomeWarmAccent,
+                                enabled = !isGitLoading,
+                                onClick = { showCommitDialog = true }
+                            )
+                        }
+
+                        if (gitStatus.ahead > 0) {
+                            HomeGitActionChip(
+                                label = "Push ↑${gitStatus.ahead}",
+                                icon = Icons.Default.CloudUpload,
+                                accent = HomeSkyBlue,
+                                enabled = !isGitLoading,
+                                onClick = {
+                                    onPush { ok, err ->
+                                        actionFeedback = ok to (err ?: "Pushed to remote.")
+                                    }
+                                }
+                            )
+                        }
+
+                        if (gitStatus.behind > 0) {
+                            HomeGitActionChip(
+                                label = "Pull ↓${gitStatus.behind}",
+                                icon = Icons.Default.CloudDownload,
+                                accent = HomeWarnAmber,
+                                enabled = !isGitLoading,
+                                onClick = {
+                                    onPull { ok, err ->
+                                        actionFeedback = ok to (err ?: "Pulled latest changes.")
+                                    }
+                                }
+                            )
+                        }
+
+                        if (hasUncommitted) {
+                            HomeGitActionChip(
+                                label = "Discard",
+                                icon = Icons.Default.Undo,
+                                accent = HomeDelRed,
+                                enabled = !isGitLoading,
+                                onClick = { showDiscardConfirm = true }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        else -> Unit
+    }
+
+    if (showBranchDialog && gitStatus != null) {
         HomeBranchPickerDialog(
             projectPath = projectPath,
             currentBranch = gitStatus.branch,
@@ -717,7 +1174,7 @@ fun HomeCodexWorkspaceCard(
         )
     }
 
-    if (showCommitDialog && hasWorkspace && gitStatus != null) {
+    if (showCommitDialog && gitStatus != null) {
         HomeCommitDialog(
             gitStatus = gitStatus,
             isBusy = isGitLoading,
@@ -735,7 +1192,7 @@ fun HomeCodexWorkspaceCard(
         )
     }
 
-    if (showDiscardConfirm && hasWorkspace && gitStatus != null) {
+    if (showDiscardConfirm && gitStatus != null) {
         val allPaths = remember(gitStatus) {
             (gitStatus.stagedFiles + gitStatus.unstagedFiles + gitStatus.untrackedFiles)
                 .map { it.path }

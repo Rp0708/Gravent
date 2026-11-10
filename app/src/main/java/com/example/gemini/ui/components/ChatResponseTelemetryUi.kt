@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -239,7 +241,7 @@ fun ResponseTelemetryPill(
             }
 
             if (timeLabel.isNotEmpty()) {
-                if (usage != null || hasDiff || durationLabel.isNotEmpty()) {
+                if (usage != null || durationLabel.isNotEmpty()) {
                     TelemetryDotSeparator(mutedColor)
                 }
                 Row(
@@ -269,6 +271,88 @@ fun ResponseTelemetryPill(
                     modifier = Modifier.size(13.dp)
                 )
             }
+        }
+    }
+}
+
+/**
+ * Compact `+additions -deletions [i]` pill displayed next to responses that modified repository files.
+ * Tapping opens [TurnGitInfoDialog] showing detailed Git operations and diffs for that turn.
+ */
+@Composable
+fun TurnGitOperationsChip(
+    diffStats: TurnDiffStats?,
+    onInspectGitDiff: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (diffStats == null || (diffStats.additions <= 0 && diffStats.deletions <= 0 && diffStats.filesChanged <= 0)) return
+
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val chipBg = if (isDark) Color(0xFF141715) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    val chipBorder = if (isDark) Color(0xFF262D28) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val dividerColor = if (isDark) Color(0xFF2B322D) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+    val addColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
+    val delColor = if (isDark) Color(0xFFF87171) else Color(0xFFB91C1C)
+    val mutedColor = if (isDark) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onInspectGitDiff),
+        shape = RoundedCornerShape(8.dp),
+        color = chipBg,
+        border = BorderStroke(0.8.dp, chipBorder)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            if (diffStats.additions > 0) {
+                Text(
+                    text = "+${diffStats.additions}",
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold,
+                    color = addColor
+                )
+            }
+            if (diffStats.deletions > 0) {
+                Text(
+                    text = "-${diffStats.deletions}",
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold,
+                    color = delColor
+                )
+            }
+            if (diffStats.additions == 0 && diffStats.deletions == 0 && diffStats.filesChanged > 0) {
+                Text(
+                    text = "${diffStats.filesChanged} ops",
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = mutedColor
+                )
+            } else if (diffStats.filesChanged > 0) {
+                Text(
+                    text = "· ${diffStats.filesChanged}f",
+                    fontSize = 10.5.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = mutedColor
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(11.dp)
+                    .background(dividerColor)
+            )
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = "Prompt Git diff details",
+                tint = if (isDark) Color(0xFFE8E5DF) else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(13.dp)
+            )
         }
     }
 }

@@ -1444,7 +1444,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 }
 
                                 if (pre != null && !resolvedConvId.isNullOrBlank()) {
-                                    val delta = com.example.gemini.data.agent.TurnDiffStore.computeTurnDelta(pre, post)
+                                    val delta = com.example.gemini.data.agent.TurnDiffStore.computeTurnDelta(pre, post, projectPath)
                                     if (delta != null) {
                                         com.example.gemini.data.agent.TurnDiffStore.recordTurnDiff(
                                             conversationId = resolvedConvId,

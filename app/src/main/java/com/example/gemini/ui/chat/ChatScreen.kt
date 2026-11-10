@@ -304,6 +304,8 @@ fun ChatScreen(
     var showRawPayloadDialog by remember { mutableStateOf<String?>(null) }
     var showChatTelemetryDialog by remember { mutableStateOf(false) }
     var focusedTelemetryMessage by remember { mutableStateOf<ChatMessage?>(null) }
+    var showInChatRepoGitDialog by remember { mutableStateOf(false) }
+    var focusedTurnGitDiff by remember { mutableStateOf<com.example.gemini.domain.model.TurnDiffStats?>(null) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var settingsInitialSection by remember { mutableStateOf<SettingsSection?>(null) }
     var showCopilotPatDialog by remember { mutableStateOf(false) }
@@ -576,6 +578,7 @@ fun ChatScreen(
             isActivelyRunning = isActivelyRunning
         )
     }
+    val promptAnchors = remember(feedItems) { extractPromptAnchors(feedItems) }
 
     // Fresh LazyListState per conversation — restores saved position if returning, or initializes directly at bottom
     val convKey = currentConv?.id ?: "empty"
@@ -856,6 +859,57 @@ fun ChatScreen(
 
     val activeChatProject by TermuxDaemonManager.activeProject.collectAsState()
     val usedProjects by TermuxDaemonManager.projects.collectAsState()
+    val activeConvPath = currentConv?.workspaceUri?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
+    val useActiveProjectFallback = messages.isEmpty() || currentConv == null
+    val resolvedChatProject = when {
+        activeConvPath != null -> usedProjects.find { it.path == activeConvPath }
+            ?: com.example.gemini.data.daemon.ProjectItem(File(activeConvPath).name, activeConvPath)
+        useActiveProjectFallback -> activeChatProject
+        else -> null
+    }
+    val resolvedProjectPath = resolvedChatProject?.path?.trim().orEmpty()
+    val resolvedHasWorkspace = resolvedProjectPath.isNotBlank()
+    val resolvedProjectName = if (resolvedHasWorkspace) {
+        resolvedChatProject?.name?.takeIf { it.isNotBlank() }
+            ?: File(resolvedProjectPath).name.ifBlank { "Workspace" }
+    } else {
+        "General Workspace"
+    }
+
+    LaunchedEffect(resolvedProjectPath, systemConnectionState.isBridgeOnline) {
+        if (resolvedHasWorkspace && systemConnectionState.isBridgeOnline) {
+            viewModel.refreshHomeGitStatus(resolvedProjectPath)
+        }
+    }
+
+    LaunchedEffect(showInChatRepoGitDialog) {
+        if (showInChatRepoGitDialog && resolvedHasWorkspace && systemConnectionState.isBridgeOnline) {
+            viewModel.refreshHomeGitStatus(resolvedProjectPath)
+        }
+    }
+
+    val openRelativeFileInIde: (String, String?) -> Unit = { baseProjectPath, relPath ->
+        if (relPath.isNullOrBlank() || baseProjectPath.isBlank()) {
+            onNavigateToIde()
+        } else {
+            val absPath = if (File(relPath).isAbsolute) {
+                relPath
+            } else {
+                "${baseProjectPath.trimEnd('/')}/${relPath.trimStart('/')}"
+            }
+            scope.launch {
+                val content = try {
+                    val f = File(absPath)
+                    if (f.exists()) f.readText() else (IdeApiClient.readFile(absPath) ?: "")
+                } catch (_: Exception) {
+                    IdeApiClient.readFile(absPath) ?: ""
+                }
+                val fileName = File(absPath).name.ifBlank { "file" }
+                TermuxDaemonManager.openOrSelectTab(absPath, fileName, content)
+                onNavigateToIde()
+            }
+        }
+    }
     var showProjectDropdown by remember { mutableStateOf(false) }
     var chatProjectFiles by remember { mutableStateOf<List<com.example.gemini.data.daemon.FileNode>>(emptyList()) }
 
@@ -1118,7 +1172,8 @@ fun ChatScreen(
                     viewModel.startNewChatInWorkspace(wsUri)
                     scope.launch { drawerState.close() }
                 },
-                activeFilePath = activeFileDetailsPath ?: activeMarkdownDoc?.first
+                activeFilePath = activeFileDetailsPath ?: activeMarkdownDoc?.first,
+                conversationDiffs = perConversationDiffs
             )
         }
     ) {
@@ -1260,66 +1315,168 @@ fun ChatScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color(0xFF141417),
-                                border = BorderStroke(1.dp, Color(0xFF27272A))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable(enabled = !isChatStarted) {
-                                            showProjectPickerDialog = true
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFF141417),
+                                    border = BorderStroke(1.dp, Color(0xFF27272A))
                                 ) {
-                                    val logoRes = when (activeAgent) {
-                                        com.example.gemini.domain.model.AgentKind.CLAUDE -> R.drawable.ic_claude_logo
-                                        com.example.gemini.domain.model.AgentKind.COPILOT -> R.drawable.ic_copilot_logo
-                                        else -> R.drawable.ic_antigravity_logo
-                                    }
-                                    Icon(
-                                        painter = painterResource(id = logoRes),
-                                        contentDescription = activeAgentName,
-                                        tint = Color(0xFFFAFAFA),
-                                        modifier = Modifier.size(11.5.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        text = activeAgentName,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFFE4E4E7)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "/",
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF52525B)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.Outlined.Folder,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(11.dp),
-                                        tint = Color(0xFFA1A1AA)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.5.dp))
-                                    Text(
-                                        text = displayedProjectName,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Normal,
-                                        color = Color(0xFFA1A1AA)
-                                    )
-                                    if (!isChatStarted) {
-                                        Spacer(modifier = Modifier.width(2.dp))
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = !isChatStarted) {
+                                                showProjectPickerDialog = true
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        val logoRes = when (activeAgent) {
+                                            com.example.gemini.domain.model.AgentKind.CLAUDE -> R.drawable.ic_claude_logo
+                                            com.example.gemini.domain.model.AgentKind.COPILOT -> R.drawable.ic_copilot_logo
+                                            else -> R.drawable.ic_antigravity_logo
+                                        }
                                         Icon(
-                                            imageVector = Icons.Default.ArrowDropDown,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(13.dp),
-                                            tint = Color(0xFF71717A)
+                                            painter = painterResource(id = logoRes),
+                                            contentDescription = activeAgentName,
+                                            tint = Color(0xFFFAFAFA),
+                                            modifier = Modifier.size(11.5.dp)
                                         )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = activeAgentName,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFFE4E4E7),
+                                            maxLines = 1
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "/",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF52525B)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.Outlined.Folder,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(11.dp),
+                                            tint = Color(0xFFA1A1AA)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.5.dp))
+                                        Text(
+                                            text = displayedProjectName,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Normal,
+                                            color = Color(0xFFA1A1AA),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (!isChatStarted) {
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowDropDown,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(13.dp),
+                                                tint = Color(0xFF71717A)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                val topGit = homeGitStatus
+                                val showTopGitPill = resolvedHasWorkspace &&
+                                    ((topGit != null && topGit.isGitRepo) ||
+                                        (isHomeGitLoading && systemConnectionState.isBridgeOnline))
+                                if (showTopGitPill) {
+                                    val isDirty = topGit != null &&
+                                        (topGit.totalAdditions > 0 || topGit.totalDeletions > 0 || topGit.totalChangesCount > 0)
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = Color(0xFF141417),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isDirty) Color(0xFF4ADE80).copy(alpha = 0.28f) else Color(0xFF27272A)
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .clickable { showInChatRepoGitDialog = true }
+                                                .padding(horizontal = 7.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            if (isHomeGitLoading && topGit == null) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(10.dp),
+                                                    strokeWidth = 1.4.dp,
+                                                    color = Color(0xFF71717A)
+                                                )
+                                                Text(
+                                                    text = "git",
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFFA1A1AA)
+                                                )
+                                            } else if (topGit != null) {
+                                                Icon(
+                                                    imageVector = Icons.Default.AltRoute,
+                                                    contentDescription = "Repository Git Status",
+                                                    tint = if (isDirty) Color(0xFF4ADE80) else Color(0xFFA1A1AA),
+                                                    modifier = Modifier.size(10.5.dp)
+                                                )
+                                                Text(
+                                                    text = topGit.branch.ifBlank { "HEAD" }.take(12),
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFFE4E4E7),
+                                                    maxLines = 1
+                                                )
+                                                if (topGit.totalAdditions > 0) {
+                                                    Text(
+                                                        text = "+${topGit.totalAdditions}",
+                                                        fontSize = 10.sp,
+                                                        fontFamily = FontFamily.Monospace,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color(0xFF4ADE80),
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                                if (topGit.totalDeletions > 0) {
+                                                    Text(
+                                                        text = "-${topGit.totalDeletions}",
+                                                        fontSize = 10.sp,
+                                                        fontFamily = FontFamily.Monospace,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color(0xFFF87171),
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                                if (topGit.totalAdditions == 0 && topGit.totalDeletions == 0) {
+                                                    if (topGit.totalChangesCount > 0) {
+                                                        Text(
+                                                            text = "${topGit.totalChangesCount}f",
+                                                            fontSize = 10.sp,
+                                                            fontFamily = FontFamily.Monospace,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = Color(0xFFFBBF24),
+                                                            maxLines = 1
+                                                        )
+                                                    } else {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(5.dp)
+                                                                .clip(CircleShape)
+                                                                .background(Color(0xFF4ADE80))
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1623,49 +1780,34 @@ fun ChatScreen(
                                     }
                                     else -> {
                                         // 3. Prominent Active Workspace Context Card
-                                        val currentConvPath = currentConv?.workspaceUri?.removePrefix("file://")?.trimEnd('/') ?: ""
-                                        val activeProj = if (currentConvPath.isNotBlank()) {
-                                            usedProjects.find { it.path == currentConvPath } ?: com.example.gemini.data.daemon.ProjectItem(File(currentConvPath).name, currentConvPath)
-                                        } else activeChatProject
-
-                                        val hasWorkspace = activeProj != null && activeProj.path.isNotBlank()
-                                        val displayProjectName = if (hasWorkspace) activeProj.name.ifBlank { File(activeProj.path).name } else "General Workspace"
-                                        val displayProjectPath = if (hasWorkspace) activeProj.path else ""
-
-                                        LaunchedEffect(displayProjectPath, systemConnectionState.isBridgeOnline) {
-                                            if (hasWorkspace && systemConnectionState.isBridgeOnline) {
-                                                viewModel.refreshHomeGitStatus(displayProjectPath)
-                                            }
-                                        }
-
                                         HomeCodexWorkspaceCard(
-                                            projectName = displayProjectName,
-                                            projectPath = displayProjectPath,
-                                            hasWorkspace = hasWorkspace,
+                                            projectName = resolvedProjectName,
+                                            projectPath = resolvedProjectPath,
+                                            hasWorkspace = resolvedHasWorkspace,
                                             isBridgeOnline = systemConnectionState.isBridgeOnline,
-                                            gitStatus = if (hasWorkspace) homeGitStatus else null,
+                                            gitStatus = if (resolvedHasWorkspace) homeGitStatus else null,
                                             isGitLoading = isHomeGitLoading,
                                             onChangeWorkspace = { showProjectPickerDialog = true },
-                                            onRefreshGit = { viewModel.refreshHomeGitStatus(displayProjectPath) },
+                                            onRefreshGit = { viewModel.refreshHomeGitStatus(resolvedProjectPath) },
                                             onOpenInIde = { onNavigateToIde() },
                                             onAskReview = { reviewPrompt ->
                                                 textFieldValue = TextFieldValue(reviewPrompt, TextRange(reviewPrompt.length))
                                                 chatInputFocusRequester.requestFocus()
                                             },
                                             onCommit = { msg, alsoPush, onRes ->
-                                                viewModel.commitFromHome(displayProjectPath, msg, alsoPush, onRes)
+                                                viewModel.commitFromHome(resolvedProjectPath, msg, alsoPush, onRes)
                                             },
                                             onPush = { onRes ->
-                                                viewModel.pushFromHome(displayProjectPath, onRes)
+                                                viewModel.pushFromHome(resolvedProjectPath, onRes)
                                             },
                                             onPull = { onRes ->
-                                                viewModel.pullFromHome(displayProjectPath, onRes)
+                                                viewModel.pullFromHome(resolvedProjectPath, onRes)
                                             },
                                             onCheckoutBranch = { branch, create, onRes ->
-                                                viewModel.checkoutBranchFromHome(displayProjectPath, branch, create, onRes)
+                                                viewModel.checkoutBranchFromHome(resolvedProjectPath, branch, create, onRes)
                                             },
                                             onDiscardAll = { paths, onRes ->
-                                                viewModel.discardFilesFromHome(displayProjectPath, paths, onRes)
+                                                viewModel.discardFilesFromHome(resolvedProjectPath, paths, onRes)
                                             },
                                             modifier = Modifier.padding(bottom = 14.dp)
                                         )
@@ -1962,6 +2104,9 @@ fun ChatScreen(
                                                 onInspectTelemetry = { clickedMsg ->
                                                     focusedTelemetryMessage = clickedMsg
                                                     showChatTelemetryDialog = true
+                                                },
+                                                onInspectGitDiff = { diffStats ->
+                                                    focusedTurnGitDiff = diffStats
                                                 }
                                             )
                                         }
@@ -1992,7 +2137,10 @@ fun ChatScreen(
                                                 summarizingModelName = summarizingModelName,
                                                 pendingQueuedUserMessage = pendingQueuedUserMessage,
                                                 onShowArtifacts = { showArtifactsDrawer = true },
-                                                artifactsCount = artifacts.size
+                                                artifactsCount = artifacts.size,
+                                                onInspectGitDiff = { diffStats ->
+                                                    focusedTurnGitDiff = diffStats
+                                                }
                                             )
                                         }
                                         }
@@ -2018,7 +2166,6 @@ fun ChatScreen(
                     }
 
                     // Codex-style Prompt Navigation Dot Slider (glides across user prompts)
-                    val promptAnchors = remember(feedItems) { extractPromptAnchors(feedItems) }
                     if (messages.isNotEmpty() && promptAnchors.size >= 2) {
                         val sliderOnLeft = !(isFloatingSwitcherEnabled && floatingSwitcherPosX < 0.35f)
                         ChatPromptSlider(
@@ -3143,6 +3290,63 @@ fun ChatScreen(
                 showChatTelemetryDialog = false
                 focusedTelemetryMessage = null
             }
+        )
+    }
+
+    if (showInChatRepoGitDialog) {
+        InChatRepoGitDialog(
+            projectName = resolvedProjectName,
+            projectPath = resolvedProjectPath,
+            hasWorkspace = resolvedHasWorkspace,
+            isBridgeOnline = systemConnectionState.isBridgeOnline,
+            gitStatus = if (resolvedHasWorkspace) homeGitStatus else null,
+            isGitLoading = isHomeGitLoading,
+            onRefreshGit = { viewModel.refreshHomeGitStatus(resolvedProjectPath) },
+            onOpenInIde = { relPath ->
+                showInChatRepoGitDialog = false
+                openRelativeFileInIde(resolvedProjectPath, relPath)
+            },
+            onAskReview = { reviewPrompt ->
+                showInChatRepoGitDialog = false
+                textFieldValue = TextFieldValue(reviewPrompt, TextRange(reviewPrompt.length))
+                chatInputFocusRequester.requestFocus()
+            },
+            onCommit = { msg, alsoPush, onRes ->
+                viewModel.commitFromHome(resolvedProjectPath, msg, alsoPush, onRes)
+            },
+            onPush = { onRes ->
+                viewModel.pushFromHome(resolvedProjectPath, onRes)
+            },
+            onPull = { onRes ->
+                viewModel.pullFromHome(resolvedProjectPath, onRes)
+            },
+            onCheckoutBranch = { branch, create, onRes ->
+                viewModel.checkoutBranchFromHome(resolvedProjectPath, branch, create, onRes)
+            },
+            onDiscardAll = { paths, onRes ->
+                viewModel.discardFilesFromHome(resolvedProjectPath, paths, onRes)
+            },
+            onDismiss = { showInChatRepoGitDialog = false }
+        )
+    }
+
+    focusedTurnGitDiff?.let { targetTurnDiff ->
+        TurnGitInfoDialog(
+            diffStats = targetTurnDiff,
+            fallbackProjectPath = resolvedProjectPath,
+            liveGitStatus = if (resolvedHasWorkspace) homeGitStatus else null,
+            onOpenRepoHub = if (resolvedHasWorkspace) {
+                {
+                    focusedTurnGitDiff = null
+                    showInChatRepoGitDialog = true
+                }
+            } else null,
+            onOpenInIde = { relPath ->
+                val base = targetTurnDiff.projectPath?.takeIf { it.isNotBlank() } ?: resolvedProjectPath
+                focusedTurnGitDiff = null
+                openRelativeFileInIde(base, relPath)
+            },
+            onDismiss = { focusedTurnGitDiff = null }
         )
     }
 

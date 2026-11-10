@@ -1,14 +1,12 @@
 {
-  "version_code": 151,
-  "version_name": "1.0.51",
+  "version_code": 152,
+  "version_name": "1.0.52",
   "min_supported_version_code": 1,
   "changelog": [
-    "Codex Home Git Hub: Integrated branch switcher, owner/repo slug, uncommitted file counts with +lines/-lines stats, inline diff viewer, commit/push/pull/discard actions, and agent diff review into the Home workspace card",
-    "Turn & Session Code Impact Tracking: Persistent +additions/-deletions counters per assistant response and on Home recent conversation cards",
-    "Codex Prompt Dot-Slider: Edge vertical prompt navigation rail with tactile thumb gliding, tap-to-scroll, and live preview tooltips across multi-turn chats",
-    "Response Telemetry Pill & Full-Chat Dialog: Added response timestamps, turn code deltas, interactive breakdown modal for per-response & cumulative chat usage, and summary copy",
-    "Usage Credit & Quota Accuracy Fixes: Corrected Antigravity and Claude credit remaining calculations, fixed float truncation and null 0% badges, merged per-model quota limits with 5h/7d buckets, and enabled automatic post-turn refreshes",
-    "IDE File Citation Pills & Storage Manager: Clean vector filetype citation pills without emoji artifacts, plus per-category app storage breakdown and cache cleanup panel"
+    "In-Chat Git & Per-Prompt Diff Inspector: Added live branch and +/- status pill in the active chat top bar (opening the shared Repo Git Hub dialog), per-response +additions/-deletions [i] chips with a detailed per-turn Git modal (operations count, modified files, inline diffs, IDE deep-links), and conversation diff badges in the history drawer",
+    "Smoother Prompt Slider Navigation: Whisper-quiet blended dot rail that wakes gently on scroll, expands smoothly on touch, and glides a thumb-tracking preview tooltip with spring motion",
+    "Storage Manager Obsidian Polish: Unified typography, neutral card hierarchy, rounded square icons, and terracotta/warm highlights aligned with Settings",
+    "Performance Optimizations: Debounced off-main TurnDiffStore persistence on Dispatchers.IO, single-flight quota refresh deduplication, hoisted prompt anchors in ChatScreen, and shared Home/In-Chat Git UI components"
   ],
   "is_critical": false
 }
