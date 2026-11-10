@@ -7,6 +7,10 @@ import com.example.gemini.ui.components.MarkdownBlock
 import com.example.gemini.ui.components.parseMarkdownBlocks
 import com.example.gemini.ui.components.CodeBlockCache
 import com.example.gemini.ui.components.MarkdownTextCache
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 @Immutable
@@ -31,11 +35,20 @@ sealed class ChatFeedItem(val key: String, val contentType: String) {
 }
 
 object ChatFeedCache {
-    val cache = ConcurrentHashMap<String, List<ChatFeedItem>>()
+    private val cache = android.util.LruCache<String, List<ChatFeedItem>>(400)
+    private val calendarThreadLocal = ThreadLocal.withInitial { Calendar.getInstance() }
+    @Volatile
+    private var cachedDayLabelLocale: Locale? = null
+    @Volatile
+    private var cachedSameYearPattern: String? = null
+    @Volatile
+    private var cachedOtherYearPattern: String? = null
+    private val dayLabelSameYearFormat = ThreadLocal<Pair<String, SimpleDateFormat>>()
+    private val dayLabelOtherYearFormat = ThreadLocal<Pair<String, SimpleDateFormat>>()
 
     fun getOrParse(msg: ChatMessage): List<ChatFeedItem> {
-        val cacheKey = "${msg.id}_${msg.content.hashCode()}_${msg.toolCalls.hashCode()}_${msg.thoughtText?.hashCode() ?: 0}_${msg.tokenUsage?.hashCode() ?: 0}"
-        val cached = cache[cacheKey]
+        val cacheKey = "${msg.id}_${msg.content.hashCode()}_${msg.toolCalls.hashCode()}_${msg.thoughtText?.hashCode() ?: 0}_${msg.tokenUsage?.hashCode() ?: 0}_${msg.diffStats?.hashCode() ?: 0}"
+        val cached = cache.get(cacheKey)
         if (cached != null) return cached
 
         val msgItems = mutableListOf<ChatFeedItem>()
@@ -74,7 +87,7 @@ object ChatFeedCache {
             }
             else -> {}
         }
-        cache[cacheKey] = msgItems
+        cache.put(cacheKey, msgItems)
         return msgItems
     }
 
@@ -93,7 +106,7 @@ object ChatFeedCache {
                     if (item is ChatFeedItem.AssistantBlock) {
                         when (val block = item.block) {
                             is MarkdownBlock.Code -> {
-                                CodeBlockCache.prewarm(block.code, block.language)
+                                CodeBlockCache.prewarm(block.code, block.language, isDark)
                             }
                             is MarkdownBlock.Paragraph -> {
                                 MarkdownTextCache.prewarm(block.text, isDark)
@@ -268,12 +281,13 @@ object ChatFeedCache {
     }
 
     fun clear() {
-        cache.clear()
+        cache.evictAll()
     }
 
     private fun dayKey(millis: Long): String {
-        val c = java.util.Calendar.getInstance().apply { timeInMillis = millis }
-        return "${c.get(java.util.Calendar.YEAR)}-${c.get(java.util.Calendar.DAY_OF_YEAR)}"
+        val c = calendarThreadLocal.get() ?: Calendar.getInstance()
+        c.timeInMillis = millis
+        return "${c.get(Calendar.YEAR)}-${c.get(Calendar.DAY_OF_YEAR)}"
     }
 
     /** A prompt sent this long after the previous one on the same day gets a divider with the time. */
@@ -281,12 +295,30 @@ object ChatFeedCache {
 
     /** "Sat, Oct 10, 15:45" (24-hour time) in the phone's language; the year is added when it is not this year. */
     private fun dayLabel(millis: Long): String {
-        val locale = java.util.Locale.getDefault()
-        val thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-        val year = java.util.Calendar.getInstance().apply { timeInMillis = millis }.get(java.util.Calendar.YEAR)
-        val skeleton = (if (year == thisYear) "EEEMMMd" else "EEEMMMdyyyy") + "Hmm"
-        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
-        return java.text.SimpleDateFormat(pattern, locale).format(java.util.Date(millis))
+        val locale = Locale.getDefault()
+        val c = calendarThreadLocal.get() ?: Calendar.getInstance()
+        c.timeInMillis = System.currentTimeMillis()
+        val thisYear = c.get(Calendar.YEAR)
+        c.timeInMillis = millis
+        val year = c.get(Calendar.YEAR)
+
+        if (cachedDayLabelLocale != locale) {
+            cachedSameYearPattern = android.text.format.DateFormat.getBestDateTimePattern(locale, "EEEMMMdHmm")
+            cachedOtherYearPattern = android.text.format.DateFormat.getBestDateTimePattern(locale, "EEEMMMdyyyyHmm")
+            cachedDayLabelLocale = locale
+        }
+
+        val isSameYear = year == thisYear
+        val pattern = (if (isSameYear) cachedSameYearPattern else cachedOtherYearPattern)
+            ?: android.text.format.DateFormat.getBestDateTimePattern(locale, (if (isSameYear) "EEEMMMd" else "EEEMMMdyyyy") + "Hmm")
+        val holder = if (isSameYear) dayLabelSameYearFormat else dayLabelOtherYearFormat
+        val existing = holder.get()
+        val formatter = if (existing != null && existing.first == pattern) {
+            existing.second
+        } else {
+            SimpleDateFormat(pattern, locale).also { holder.set(pattern to it) }
+        }
+        return formatter.format(Date(millis))
     }
 }
 

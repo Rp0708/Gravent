@@ -2,6 +2,7 @@ package com.example.gemini.ui.settings
 
 import com.example.gemini.ui.claude.SettingsGroupHeader
 import com.example.gemini.ui.components.ClaudeAccent
+import com.example.gemini.ui.components.GraventLogConsole
 import android.Manifest
 import android.content.ComponentName
 import android.content.Context
@@ -1748,6 +1749,7 @@ private fun AppearanceSubScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        val tOrient = graventTokens()
                         val isVert = floatingSwitcherOrientation.equals("VERTICAL", ignoreCase = true)
                         Surface(
                             modifier = Modifier
@@ -1755,17 +1757,17 @@ private fun AppearanceSubScreen(
                                 .clip(RoundedCornerShape(10.dp))
                                 .clickable { onSetFloatingSwitcherOrientation("VERTICAL") },
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isVert) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, if (isVert) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                            color = if (isVert) tOrient.accentSoftBg else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, if (isVert) tOrient.accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(vertical = 8.dp, horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Icon(Icons.Outlined.ExpandLess, contentDescription = null, tint = if (isVert) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Outlined.ExpandLess, contentDescription = null, tint = if (isVert) tOrient.accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Vertical", fontSize = 12.sp, fontWeight = if (isVert) FontWeight.Bold else FontWeight.Normal, color = if (isVert) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface)
+                                Text("Vertical", fontSize = 12.sp, fontWeight = if (isVert) FontWeight.Bold else FontWeight.Normal, color = if (isVert) tOrient.accent else MaterialTheme.colorScheme.onSurface)
                             }
                         }
 
@@ -1775,17 +1777,17 @@ private fun AppearanceSubScreen(
                                 .clip(RoundedCornerShape(10.dp))
                                 .clickable { onSetFloatingSwitcherOrientation("HORIZONTAL") },
                             shape = RoundedCornerShape(10.dp),
-                            color = if (!isVert) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, if (!isVert) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                            color = if (!isVert) tOrient.accentSoftBg else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, if (!isVert) tOrient.accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(vertical = 8.dp, horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = if (!isVert) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = if (!isVert) tOrient.accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Horizontal", fontSize = 12.sp, fontWeight = if (!isVert) FontWeight.Bold else FontWeight.Normal, color = if (!isVert) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface)
+                                Text("Horizontal", fontSize = 12.sp, fontWeight = if (!isVert) FontWeight.Bold else FontWeight.Normal, color = if (!isVert) tOrient.accent else MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -1902,7 +1904,7 @@ private fun AppearanceSubScreen(
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(itemIcon, contentDescription = null, tint = if (isEnabled) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
+                                    Icon(itemIcon, contentDescription = null, tint = if (isEnabled) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = itemLabel,
@@ -1957,7 +1959,7 @@ private fun AppearanceSubScreen(
                         onClick = onResetFloatingSwitcherPosition,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ClaudeTerracotta)
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = graventTokens().accent)
                     ) {
                         Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -2048,14 +2050,15 @@ private fun AppearanceSubScreen(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
 
-                        // Option 1: AntiTerm
+                        // Option 1: Gravent Terminal (internal key STYLE_ANTITERM)
+                        val tLaunch = graventTokens()
                         val isAntiTerm = terminalLauncherStyle == com.example.gemini.data.preferences.TerminalLauncherManager.STYLE_ANTITERM
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isAntiTerm) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                            color = if (isAntiTerm) tLaunch.accentSoftBg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                             border = BorderStroke(
                                 1.dp,
-                                if (isAntiTerm) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                if (isAntiTerm) tLaunch.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2087,7 +2090,7 @@ private fun AppearanceSubScreen(
                                 ) {
                                     androidx.compose.foundation.Image(
                                         painter = androidx.compose.ui.res.painterResource(id = com.example.gemini.R.drawable.splash_logo),
-                                        contentDescription = "AntiTerm",
+                                        contentDescription = "Gravent Terminal",
                                         modifier = Modifier.size(26.dp)
                                     )
                                 }
@@ -2096,7 +2099,7 @@ private fun AppearanceSubScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "AntiTerm",
+                                        text = "Gravent Terminal",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -2132,10 +2135,10 @@ private fun AppearanceSubScreen(
                         val isTermux = terminalLauncherStyle == com.example.gemini.data.preferences.TerminalLauncherManager.STYLE_TERMUX
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isTermux) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                            color = if (isTermux) tLaunch.accentSoftBg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                             border = BorderStroke(
                                 1.dp,
-                                if (isTermux) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                if (isTermux) tLaunch.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2289,7 +2292,7 @@ private fun ServersSubScreen(
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = graventTokens().accent,
                     modifier = Modifier.size(28.dp)
                 )
             },
@@ -2314,7 +2317,7 @@ private fun ServersSubScreen(
                     colors = graventPrimaryButtonColors(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Keep Editing", fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text("Keep Editing", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -2346,7 +2349,7 @@ private fun ServersSubScreen(
                 Icon(
                     imageVector = Icons.Outlined.RestartAlt,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = graventTokens().accent,
                     modifier = Modifier.size(28.dp)
                 )
             },
@@ -2380,7 +2383,7 @@ private fun ServersSubScreen(
                     colors = graventPrimaryButtonColors(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Reopen Now", fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text("Reopen Now", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -2582,7 +2585,7 @@ private fun ServersSubScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Outlined.Terminal, contentDescription = null, tint = ClaudeTerracotta, modifier = Modifier.size(22.dp))
+                    Icon(imageVector = Icons.Outlined.Terminal, contentDescription = null, tint = graventTokens().accent, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = "Binary Executable Paths", fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -2672,7 +2675,7 @@ private fun ServersSubScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Outlined.Security, contentDescription = null, tint = ClaudeTerracotta, modifier = Modifier.size(22.dp))
+                    Icon(imageVector = Icons.Outlined.Security, contentDescription = null, tint = graventTokens().accent, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = "Security Token (Header Obfuscation)", fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -2785,9 +2788,9 @@ private fun ServersSubScreen(
             shape = RoundedCornerShape(10.dp),
             colors = graventPrimaryButtonColors()
         ) {
-            Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+            Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Save Server & Security Settings", fontWeight = FontWeight.Bold, color = Color.Black)
+            Text("Save Server & Security Settings", fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -2975,13 +2978,13 @@ private fun McpSubScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(ClaudeTerracotta.copy(alpha = 0.12f)),
+                            .background(graventTokens().accent.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Extension,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = graventTokens().accent,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -3027,7 +3030,7 @@ private fun McpSubScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = ClaudeTerracotta
+                                color = graventTokens().accent
                             )
                         } else {
                             Icon(
@@ -3053,31 +3056,31 @@ private fun McpSubScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add Server", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text("Add Server", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 // Browse Cascade MCP Marketplace button
+                val mcpAccent = graventTokens().accent
                 OutlinedButton(
                     onClick = { showCascadeCatalogDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ClaudeTerracotta),
-                    border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = mcpAccent),
+                    border = BorderStroke(1.dp, mcpAccent.copy(alpha = 0.5f)),
                     contentPadding = PaddingValues(vertical = 10.dp, horizontal = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Storefront,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = ClaudeTerracotta
+                        tint = mcpAccent
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Browse MCP Catalog / Marketplace (1-Click)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ClaudeTerracotta)
+                    Text("Browse MCP Catalog / Marketplace (1-Click)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = mcpAccent)
                 }
             }
         }
@@ -3118,7 +3121,7 @@ private fun McpSubScreen(
             }
             val presets = listOf(
                 // No spec: opens the picker for an installed plugin's own MCP
-                McpPreset("Custom Plugin MCP", "Pick an installed plugin", Icons.Outlined.Extension, ClaudeTerracotta, null),
+                McpPreset("Custom Plugin MCP", "Pick an installed plugin", Icons.Outlined.Extension, graventTokens().accent, null),
                 McpPreset("Plugin Developer", "Build & test Gravent plugins", Icons.Outlined.DeveloperMode, GeminiPurple,
                     localSpec(bridge.DEVELOPER_MCP_NAME, "/extension_developer")),
                 McpPreset("Browser", "Control the in-app browser", Icons.Outlined.Language, GeminiBlue, localSpec("browser_mcp", "/browser")),
@@ -3192,7 +3195,7 @@ private fun McpSubScreen(
                         CircularProgressIndicator(
                             modifier = Modifier.size(28.dp),
                             strokeWidth = 2.5.dp,
-                            color = ClaudeTerracotta
+                            color = graventTokens().accent
                         )
                         Text(
                             text = "Loading MCP Servers...",
@@ -3242,11 +3245,12 @@ private fun McpSubScreen(
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        val retryAccent = graventTokens().accent
                         OutlinedButton(
                             onClick = onRefreshAll,
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ClaudeTerracotta),
-                            border = BorderStroke(1.dp, ClaudeTerracotta)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = retryAccent),
+                            border = BorderStroke(1.dp, retryAccent)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
@@ -3538,7 +3542,7 @@ private fun McpSubScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Icon(imageVector = Icons.Default.Build, contentDescription = null, tint = ClaudeTerracotta, modifier = Modifier.size(14.dp))
+                                        Icon(imageVector = Icons.Default.Build, contentDescription = null, tint = graventTokens().accent, modifier = Modifier.size(14.dp))
                                         Text(
                                             text = "${server.tools.size} Discovered Tool${if (server.tools.size > 1) "s" else ""}",
                                             fontSize = 12.sp,
@@ -3564,7 +3568,7 @@ private fun McpSubScreen(
                                                 fontSize = 12.sp,
                                                 fontFamily = FontFamily.Monospace,
                                                 fontWeight = FontWeight.Bold,
-                                                color = ClaudeTerracotta
+                                                color = graventTokens().accent
                                             )
                                             if (tool.description.isNotBlank()) {
                                                 Text(
@@ -3597,7 +3601,7 @@ private fun McpSubScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(14.dp),
                                     strokeWidth = 1.5.dp,
-                                    color = ClaudeTerracotta
+                                    color = graventTokens().accent
                                 )
                             } else {
                                 Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -4029,7 +4033,7 @@ private fun AddEditMcpServerDialog(
                                 },
                                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                             ) {
-                                Text("Format", fontSize = 11.sp, color = ClaudeTerracotta)
+                                Text("Format", fontSize = 11.sp, color = graventTokens().accent)
                             }
                         }
 
@@ -4235,7 +4239,7 @@ private fun AddEditMcpServerDialog(
                 },
                 colors = graventPrimaryButtonColors()
             ) {
-                Text("Save", fontWeight = FontWeight.Bold, color = Color.Black)
+                Text("Save", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -4361,7 +4365,7 @@ private fun TerminalSubScreen(
                     Icon(
                         imageVector = Icons.Outlined.Terminal,
                         contentDescription = null,
-                        tint = if (useSshTerminal) QuotaGreen else ClaudeTerracotta,
+                        tint = if (useSshTerminal) QuotaGreen else graventTokens().accent,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -4526,9 +4530,9 @@ private fun TerminalSubScreen(
                         shape = RoundedCornerShape(8.dp),
                         colors = graventPrimaryButtonColors()
                     ) {
-                        Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save SSH Settings", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Black)
+                        Text("Save SSH Settings", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 } else {
                     // Local tools mode details
@@ -4541,15 +4545,16 @@ private fun TerminalSubScreen(
                             Text("Embedded Linux Rootfs", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Text(text = if (isLocalToolsInstalled) "Installed and ready" else "Not installed (>30MB download)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                         }
+                        val rootfsAccent = graventTokens().accent
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = if (isLocalToolsInstalled) QuotaGreen.copy(alpha = 0.15f) else ClaudeTerracotta.copy(alpha = 0.15f)
+                            color = if (isLocalToolsInstalled) QuotaGreen.copy(alpha = 0.15f) else rootfsAccent.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 text = if (isLocalToolsInstalled) "Installed ✓" else "Not Installed",
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isLocalToolsInstalled) QuotaGreen else ClaudeTerracotta,
+                                color = if (isLocalToolsInstalled) QuotaGreen else rootfsAccent,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -4577,7 +4582,7 @@ private fun TerminalSubScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 colors = graventPrimaryButtonColors()
                             ) {
-                                Text("Download & Install Local Tools", fontSize = 12.5.sp, color = Color.Black)
+                                Text("Download & Install Local Tools", fontSize = 12.5.sp)
                             }
                         }
                     }
@@ -4789,7 +4794,7 @@ private fun TerminalSubScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Font Size", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                    Text("${fontSizeState}pt", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                    Text("${fontSizeState}pt", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = graventTokens().accent)
                 }
                 Slider(
                     value = fontSizeState.toFloat(),
@@ -4905,8 +4910,8 @@ private fun TerminalSubScreen(
                             }
                         },
                     shape = RoundedCornerShape(10.dp),
-                    color = if (isBuiltin) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, if (isBuiltin) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                    color = if (isBuiltin) graventTokens().accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, if (isBuiltin) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -4960,8 +4965,8 @@ private fun TerminalSubScreen(
                             }
                         },
                     shape = RoundedCornerShape(10.dp),
-                    color = if (isExternal) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, if (isExternal) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                    color = if (isExternal) graventTokens().accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, if (isExternal) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -4995,8 +5000,9 @@ private fun TerminalSubScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            if (isExternal) {
+                                if (isExternal) {
                                 Spacer(modifier = Modifier.height(8.dp))
+                                val apiAccent = graventTokens().accent
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     OutlinedButton(
                                         onClick = {
@@ -5004,11 +5010,11 @@ private fun TerminalSubScreen(
                                         },
                                         shape = RoundedCornerShape(8.dp),
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.5f))
+                                        border = BorderStroke(1.dp, apiAccent.copy(alpha = 0.5f))
                                     ) {
-                                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(13.dp), tint = ClaudeTerracotta)
+                                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(13.dp), tint = apiAccent)
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Reinstall Package", fontSize = 11.sp, color = ClaudeTerracotta, fontWeight = FontWeight.SemiBold)
+                                        Text("Reinstall Package", fontSize = 11.sp, color = apiAccent, fontWeight = FontWeight.SemiBold)
                                     }
 
                                     OutlinedButton(
@@ -5041,9 +5047,9 @@ private fun TerminalSubScreen(
             shape = RoundedCornerShape(10.dp),
             colors = graventPrimaryButtonColors()
         ) {
-            Icon(imageVector = Icons.Default.Terminal, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+            Icon(imageVector = Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Launch Terminal Now", fontWeight = FontWeight.Bold, color = Color.Black)
+            Text("Launch Terminal Now", fontWeight = FontWeight.Bold)
         }
     }
 
@@ -5054,7 +5060,7 @@ private fun TerminalSubScreen(
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = graventTokens().accent,
                     modifier = Modifier.size(28.dp)
                 )
             },
@@ -5103,9 +5109,9 @@ private fun TerminalSubScreen(
                     colors = graventPrimaryButtonColors(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Black)
+                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Reinstall Now", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Reinstall Now", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -5231,7 +5237,7 @@ private fun TerminalSubScreen(
                             text = "iknowwhatiamdoing",
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            color = ClaudeTerracotta,
+                            color = graventTokens().accent,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
@@ -5601,16 +5607,17 @@ private fun BackupsSubScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    val backupAccent = graventTokens().accent
                     Surface(
                         shape = CircleShape,
-                        color = ClaudeTerracotta.copy(alpha = 0.15f),
+                        color = backupAccent.copy(alpha = 0.15f),
                         modifier = Modifier.size(38.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Outlined.Chat,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = backupAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -5695,9 +5702,9 @@ private fun BackupsSubScreen(
                     colors = graventPrimaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Outlined.CloudUpload, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Backup AGY Chats (backup_chats)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
+                    Text("Backup AGY Chats (backup_chats)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -5875,7 +5882,7 @@ private fun BackupsSubScreen(
     if (showBackupChatsPasswordDialog) {
         AlertDialog(
             onDismissRequest = { showBackupChatsPasswordDialog = false },
-            icon = { Icon(Icons.Outlined.CloudUpload, contentDescription = null, tint = ClaudeTerracotta) },
+            icon = { Icon(Icons.Outlined.CloudUpload, contentDescription = null, tint = graventTokens().accent) },
             title = { Text("Backup AGY Chats", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -5938,7 +5945,7 @@ private fun BackupsSubScreen(
                     },
                     colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Start Backup", fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text("Start Backup", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -6920,7 +6927,7 @@ private fun ScriptExecutionDialog(
     val logs = remember { mutableStateListOf<String>() }
     var isRunning by remember { mutableStateOf(true) }
     var exitCode by remember { mutableStateOf<Int?>(null) }
-    var durationMs by remember { mutableStateOf(0L) }
+    var durationMs by remember { mutableLongStateOf(0L) }
     val listState = rememberLazyListState()
     var executionJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
@@ -7039,40 +7046,16 @@ private fun ScriptExecutionDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Terminal output container
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF090D16),
-                    border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                // Terminal output container (unified Gravent log console)
+                GraventLogConsole(
+                    lines = logs,
+                    title = info.scriptName,
+                    emptyText = "Waiting for script output...",
+                    maxVisibleLines = 150,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                ) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(10.dp)
-                    ) {
-                        items(logs) { line ->
-                            val cleanLine = line.replace(Regex("\u001B\\[[;\\d]*m"), "")
-                            val lineColor = when {
-                                cleanLine.startsWith("❌") || cleanLine.contains("Error", ignoreCase = true) -> Color(0xFFFF5252)
-                                cleanLine.startsWith("✅") || cleanLine.startsWith("🎉") || cleanLine.contains("Success", ignoreCase = true) -> Color(0xFF4CAF50)
-                                cleanLine.startsWith("⚠️") || cleanLine.contains("Note:", ignoreCase = true) || cleanLine.contains("Warning:", ignoreCase = true) -> Color(0xFFFFB74D)
-                                cleanLine.startsWith("=") || cleanLine.startsWith("[") -> Color(0xFF64B5F6)
-                                else -> Color(0xFFE2E8F0)
-                            }
-                            Text(
-                                text = cleanLine,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = lineColor,
-                                lineHeight = 15.sp
-                            )
-                        }
-                    }
-                }
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -7124,7 +7107,7 @@ private fun CommandExecutionDialog(
     val logs = remember { mutableStateListOf<String>() }
     var isRunning by remember { mutableStateOf(true) }
     var exitCode by remember { mutableStateOf<Int?>(null) }
-    var durationMs by remember { mutableStateOf(0L) }
+    var durationMs by remember { mutableLongStateOf(0L) }
     val listState = rememberLazyListState()
     var executionJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
@@ -7707,17 +7690,18 @@ private fun CommandsSubScreen(
                     onClick = onRefreshSecurityAndProjects,
                     modifier = Modifier.size(36.dp)
                 ) {
+                    val tSec = graventTokens()
                     if (isGlobalSettingsLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
-                            color = ClaudeTerracotta
+                            color = tSec.accent
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh",
-                            tint = ClaudeTerracotta,
+                            tint = tSec.accent,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -7725,6 +7709,7 @@ private fun CommandsSubScreen(
             }
 
             if (isGlobalSettingsLoading) {
+                val tSecLoad = graventTokens()
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -7738,7 +7723,7 @@ private fun CommandsSubScreen(
                         CircularProgressIndicator(
                             modifier = Modifier.size(32.dp),
                             strokeWidth = 2.5.dp,
-                            color = ClaudeTerracotta
+                            color = tSecLoad.accent
                         )
                         Text(
                             text = "Connecting to AGY Hub & loading permissions...",
@@ -7785,9 +7770,9 @@ private fun CommandsSubScreen(
                             shape = RoundedCornerShape(10.dp),
                             colors = graventPrimaryButtonColors()
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Retry Connection", fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text("Retry Connection", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -7841,13 +7826,13 @@ private fun CommandsSubScreen(
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = ClaudeTerracotta
+                        color = graventTokens().accent
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Refresh",
-                        tint = ClaudeTerracotta,
+                        tint = graventTokens().accent,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -7880,6 +7865,7 @@ private fun CommandsSubScreen(
             val isAlwaysReview = activeArtifactReview.contains("ALWAYS", ignoreCase = true) || !isAutoReview
 
             // Auto Option
+            val tReview = graventTokens()
             Card(
                 modifier = Modifier
                     .weight(1f)
@@ -7887,11 +7873,11 @@ private fun CommandsSubScreen(
                     .clickable { onSetGlobalArtifactReviewMode("ARTIFACT_REVIEW_MODE_TURBO") },
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isAutoReview) ClaudeTerracotta.copy(alpha = 0.08f) else cardBg
+                    containerColor = if (isAutoReview) tReview.accentSoftBg else cardBg
                 ),
                 border = BorderStroke(
                     if (isAutoReview) 1.5.dp else 1.dp,
-                    if (isAutoReview) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    if (isAutoReview) tReview.accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                 )
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -7901,10 +7887,10 @@ private fun CommandsSubScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "⚡ Auto (Turbo)",
+                            text = "Auto (Turbo)",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isAutoReview) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                            color = if (isAutoReview) tReview.accent else MaterialTheme.colorScheme.onSurface
                         )
                         RadioButton(
                             selected = isAutoReview,
@@ -7931,11 +7917,11 @@ private fun CommandsSubScreen(
                     .clickable { onSetGlobalArtifactReviewMode("ARTIFACT_REVIEW_MODE_ALWAYS") },
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isAlwaysReview) ClaudeTerracotta.copy(alpha = 0.08f) else cardBg
+                    containerColor = if (isAlwaysReview) tReview.accentSoftBg else cardBg
                 ),
                 border = BorderStroke(
                     if (isAlwaysReview) 1.5.dp else 1.dp,
-                    if (isAlwaysReview) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    if (isAlwaysReview) tReview.accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                 )
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -7945,10 +7931,10 @@ private fun CommandsSubScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "✋ Always Ask",
+                            text = "Always Ask",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isAlwaysReview) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                            color = if (isAlwaysReview) tReview.accent else MaterialTheme.colorScheme.onSurface
                         )
                         RadioButton(
                             selected = isAlwaysReview,
@@ -8047,11 +8033,11 @@ private fun CommandsSubScreen(
                     },
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) ClaudeTerracotta.copy(alpha = 0.08f) else cardBg
+                    containerColor = if (isSelected) graventTokens().accent.copy(alpha = 0.08f) else cardBg
                 ),
                 border = BorderStroke(
                     if (isSelected) 1.5.dp else 1.dp,
-                    if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    if (isSelected) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                 )
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
@@ -8088,7 +8074,7 @@ private fun CommandsSubScreen(
                             text = title,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                            color = if (isSelected) graventTokens().accent else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f)
                         )
                         Surface(
@@ -8316,9 +8302,9 @@ private fun CommandsSubScreen(
                     colors = graventPrimaryButtonColors(),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Rule", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text("Add Rule", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -8536,7 +8522,7 @@ private fun CommandsSubScreen(
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = ClaudeTerracotta, modifier = Modifier.size(24.dp))
+                CircularProgressIndicator(color = graventTokens().accent, modifier = Modifier.size(24.dp))
             }
         } else if (projectsList.isEmpty()) {
             Surface(
@@ -8708,16 +8694,17 @@ private fun CommandsSubScreen(
 
             scopes.forEach { (scopeKey, title, subtitle) ->
                 val isSelected = defaultApprovalScope == scopeKey
+                val scopeAccent = graventTokens().accent
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(10.dp))
                         .clickable { onSetDefaultApprovalScope(scopeKey) },
                     shape = RoundedCornerShape(10.dp),
-                    color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.12f) else cardBg,
+                    color = if (isSelected) scopeAccent.copy(alpha = 0.12f) else cardBg,
                     border = BorderStroke(
                         1.5.dp,
-                        if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        if (isSelected) scopeAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                     )
                 ) {
                     Column(
@@ -8728,7 +8715,7 @@ private fun CommandsSubScreen(
                             text = title,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                            color = if (isSelected) scopeAccent else MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -8862,10 +8849,10 @@ private fun AddPermissionRuleDialog(
                                     }
                                 },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSel) ClaudeTerracotta.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            color = if (isSel) graventTokens().accent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                             border = BorderStroke(
                                 if (isSel) 1.5.dp else 1.dp,
-                                if (isSel) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                if (isSel) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                             )
                         ) {
                             Row(
@@ -8983,7 +8970,7 @@ private fun AddPermissionRuleDialog(
                 shape = RoundedCornerShape(8.dp),
                 colors = graventPrimaryButtonColors()
             ) {
-                Text("Save Rule", fontWeight = FontWeight.Bold, color = Color.Black)
+                Text("Save Rule", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -9423,25 +9410,17 @@ private fun DiagnosticsSubScreen(
 
                 if (snapshot.threadGroupSummary.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Thread Breakdown:",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = snapshot.threadGroupSummary,
-                            fontSize = 10.5.sp,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(8.dp)
-                        )
+                    val threadLines = remember(snapshot.threadGroupSummary) {
+                        snapshot.threadGroupSummary.lines().filter { it.isNotBlank() }
                     }
+                    GraventLogConsole(
+                        lines = threadLines,
+                        title = "Thread Breakdown",
+                        maxVisibleLines = 50,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 180.dp)
+                    )
                 }
             }
         }
@@ -9672,7 +9651,7 @@ private fun AboutSubScreen(
                         Icon(
                             imageVector = Icons.Outlined.SystemUpdateAlt,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = graventTokens().accent,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
@@ -9754,11 +9733,11 @@ private fun AboutSubScreen(
                     if (isCheckingUpdate) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = Color.Black,
+                            color = graventTokens().onAccent,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Checking GitHub...", color = Color.Black)
+                        Text("Checking GitHub...")
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,

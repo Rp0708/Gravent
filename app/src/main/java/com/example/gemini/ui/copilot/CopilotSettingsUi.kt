@@ -346,24 +346,13 @@ fun CopilotSubScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF09090B),
-                        border = BorderStroke(1.dp, Color(0xFF27272A)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = toolLogs.takeLast(40).joinToString("\n"),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp,
-                            color = Color(0xFFD4D4D8),
-                            modifier = Modifier
-                                .heightIn(max = 200.dp)
-                                .verticalScroll(rememberScrollState())
-                                .padding(10.dp)
-                        )
-                    }
+                    com.example.gemini.ui.components.GraventLogConsole(
+                        lines = toolLogs,
+                        maxVisibleLines = 50,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                    )
                 }
             }
         }

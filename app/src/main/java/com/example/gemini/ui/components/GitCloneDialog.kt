@@ -32,10 +32,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.data.local.LocalEnvironmentManager
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
 import com.example.gemini.theme.QuotaGreen
 import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -64,7 +64,7 @@ fun GitCloneDialog(
     val logs = remember { mutableStateListOf<String>() }
     var isRunning by remember { mutableStateOf(false) }
     var exitCode by remember { mutableStateOf<Int?>(null) }
-    var durationMs by remember { mutableStateOf(0L) }
+    var durationMs by remember { mutableLongStateOf(0L) }
     var executionJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val listState = rememberLazyListState()
 
@@ -173,14 +173,17 @@ fun GitCloneDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         when {
-                            !started -> Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(ClaudeTerracotta.copy(alpha = 0.14f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Outlined.CloudDownload, contentDescription = null, tint = ClaudeTerracotta, modifier = Modifier.size(20.dp))
+                            !started -> {
+                                val accent = graventTokens().accent
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(accent.copy(alpha = 0.14f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Outlined.CloudDownload, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+                                }
                             }
                             isRunning -> Icon(Icons.Default.Terminal, contentDescription = null, tint = GeminiBlue, modifier = Modifier.size(22.dp))
                             exitCode == 0 -> Icon(Icons.Default.CheckCircle, contentDescription = null, tint = QuotaGreen, modifier = Modifier.size(22.dp))

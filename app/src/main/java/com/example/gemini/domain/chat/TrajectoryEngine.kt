@@ -68,6 +68,16 @@ class TrajectoryEngine {
     private var activeTurnStartStep: Int = 0
     private var pendingUserTurn: ChatTurn.User? = null
 
+    // Snapshot & completed-message caches avoid double-parsing active steps and recreating
+    // unchanged historical ChatMessages (along with non-deterministic timestamps) on every delta.
+    private var cachedTurnsSnapshot: List<ChatTurn>? = null
+    private val cachedCompletedMessages = HashMap<String, Pair<ChatTurn, ChatMessage>>()
+    private val turnCreatedAtCache = HashMap<String, Long>()
+
+    companion object {
+        private val EXIT_CODE_REGEX = Regex("""exited with code (\d+)""", RegexOption.IGNORE_CASE)
+    }
+
     /**
      * Resets state when switching conversations.
      */
@@ -79,6 +89,7 @@ class TrajectoryEngine {
             trajectoryId = ""
             userRespondedStepIndices.clear()
             activeStepsMap.clear()
+            cachedTurnsSnapshot = null
             return@synchronized
         }
         conversationId = newConversationId
@@ -90,6 +101,9 @@ class TrajectoryEngine {
         completedTurns.clear()
         activeStepsMap.clear()
         pendingUserTurn = null
+        cachedTurnsSnapshot = null
+        cachedCompletedMessages.clear()
+        turnCreatedAtCache.clear()
         _turns.value = emptyList()
         _artifacts.value = emptyList()
     }
@@ -109,6 +123,7 @@ class TrajectoryEngine {
             attachments = attachments,
             createdAt = System.currentTimeMillis()
         )
+        cachedTurnsSnapshot = null
         _turns.value = getTurnsLocked()
     }
 
@@ -121,6 +136,7 @@ class TrajectoryEngine {
             }
         }
         pendingUserTurn = null
+        cachedTurnsSnapshot = null
         _turns.value = getTurnsLocked()
     }
 
@@ -140,15 +156,18 @@ class TrajectoryEngine {
             }
         }
         pendingUserTurn = null
+        cachedTurnsSnapshot = null
         _turns.value = getTurnsLocked()
     }
 
-    fun markStepResponded(stepIndex: Int) {
+    fun markStepResponded(stepIndex: Int) = synchronized(stateLock) {
         userRespondedStepIndices.add(stepIndex)
+        cachedTurnsSnapshot = null
     }
 
-    fun unmarkStepResponded(stepIndex: Int) {
+    fun unmarkStepResponded(stepIndex: Int) = synchronized(stateLock) {
         userRespondedStepIndices.remove(stepIndex)
+        cachedTurnsSnapshot = null
     }
 
     fun optimisticUpdateStepStatus(stepIndex: Int, status: String, output: String? = null) = synchronized(stateLock) {
@@ -167,6 +186,7 @@ class TrajectoryEngine {
                 run_command = if (output != null) existing.run_command?.copy(stdout = output) ?: existing.run_command else existing.run_command
             )
             activeStepsMap[stepIndex] = updated
+            cachedTurnsSnapshot = null
             _turns.value = getTurnsLocked()
         }
     }
@@ -323,6 +343,7 @@ class TrajectoryEngine {
             }
         }
 
+        cachedTurnsSnapshot = null
         val result = getTurnsLocked()
         _turns.value = result
         result
@@ -351,6 +372,8 @@ class TrajectoryEngine {
         completedTurns.clear()
         activeStepsMap.clear()
         pendingUserTurn = null
+        cachedCompletedMessages.clear()
+        cachedTurnsSnapshot = null
 
         var currentTurnBlocks = mutableListOf<TurnBlock>()
         var currentTurnSteps = mutableListOf<Step>()
@@ -367,7 +390,15 @@ class TrajectoryEngine {
                     val prevUserStepIdx = if (lastUserStepArrayIndex >= 0) (indices.getOrNull(lastUserStepArrayIndex) ?: lastUserStepArrayIndex) else -1
                     val turnId = "${conversationId}_${prevUserStepIdx + 1}"
                     val tokenUsage = computeTokenUsage(currentTurnSteps)
-                    completedTurns.add(ChatTurn.Assistant(turnId = turnId, blocks = currentTurnBlocks.toList(), tokenUsage = tokenUsage, modelId = turnModel(currentTurnSteps)))
+                    completedTurns.add(
+                        ChatTurn.Assistant(
+                            turnId = turnId,
+                            blocks = currentTurnBlocks.toList(),
+                            tokenUsage = tokenUsage,
+                            modelId = turnModel(currentTurnSteps),
+                            createdAt = turnStartTimestamp(currentTurnSteps)
+                        )
+                    )
                     currentTurnBlocks = mutableListOf()
                     currentTurnSteps = mutableListOf()
                 }
@@ -400,7 +431,16 @@ class TrajectoryEngine {
             val lastUserStepIdx = if (lastUserStepArrayIndex >= 0) (indices.getOrNull(lastUserStepArrayIndex) ?: lastUserStepArrayIndex) else -1
             val turnId = "${conversationId}_${lastUserStepIdx + 1}"
             val tokenUsage = computeTokenUsage(currentTurnSteps)
-            completedTurns.add(ChatTurn.Assistant(turnId = turnId, blocks = currentTurnBlocks.toList(), isStreaming = false, tokenUsage = tokenUsage, modelId = turnModel(currentTurnSteps)))
+            completedTurns.add(
+                ChatTurn.Assistant(
+                    turnId = turnId,
+                    blocks = currentTurnBlocks.toList(),
+                    isStreaming = false,
+                    tokenUsage = tokenUsage,
+                    modelId = turnModel(currentTurnSteps),
+                    createdAt = turnStartTimestamp(currentTurnSteps)
+                )
+            )
         }
     }
 
@@ -442,6 +482,18 @@ class TrajectoryEngine {
     /** The model that generated a turn: the last step that names one (the enum name, as in AiModel.id). */
     private fun turnModel(steps: Iterable<Step>): String? =
         steps.mapNotNull { it.metadata?.generator_model?.name?.takeUnless { n -> n.contains("UNSPECIFIED") } }.lastOrNull()
+
+    private fun turnStartTimestamp(steps: Iterable<Step>): Long? {
+        var earliest: Long? = null
+        for (step in steps) {
+            val ts = parseTimestampToMillis(step.metadata?.created_at)?.takeIf { it > 0 }
+                ?: parseTimestampToMillis(step.metadata?.started_at)?.takeIf { it > 0 }
+            if (ts != null && (earliest == null || ts < earliest)) {
+                earliest = ts
+            }
+        }
+        return earliest
+    }
 
     private fun parseTimestampToMillis(ts: Timestamp?): Long? {
         if (ts == null) return null
@@ -507,20 +559,39 @@ class TrajectoryEngine {
 
         if (blocks.isNotEmpty()) {
             val turnId = "${conversationId}_$activeTurnStartStep"
-            val tokenUsage = computeTokenUsage(activeStepsMap.values)
+            val activeValues = activeStepsMap.values
+            val tokenUsage = computeTokenUsage(activeValues)
+            val turnTs = turnStartTimestamp(activeValues)
             val existingIndex = completedTurns.indexOfLast { it is ChatTurn.Assistant && it.turnId == turnId }
             if (existingIndex >= 0) {
                 val existingTurn = completedTurns[existingIndex] as ChatTurn.Assistant
                 val mergedBlocks = (existingTurn.blocks.filterNot { eb -> blocks.any { it.stepIndex == eb.stepIndex } } + blocks)
                     .sortedBy { it.stepIndex }
-                completedTurns[existingIndex] = existingTurn.copy(blocks = mergedBlocks, isStreaming = false, tokenUsage = tokenUsage ?: existingTurn.tokenUsage, modelId = turnModel(activeStepsMap.values) ?: existingTurn.modelId)
+                completedTurns[existingIndex] = existingTurn.copy(
+                    blocks = mergedBlocks,
+                    isStreaming = false,
+                    tokenUsage = tokenUsage ?: existingTurn.tokenUsage,
+                    modelId = turnModel(activeValues) ?: existingTurn.modelId,
+                    createdAt = existingTurn.createdAt ?: turnTs ?: turnCreatedAtCache[turnId]
+                )
             } else {
-                completedTurns.add(ChatTurn.Assistant(turnId = turnId, blocks = blocks.toList(), isStreaming = false, tokenUsage = tokenUsage, modelId = turnModel(activeStepsMap.values)))
+                val resolvedTs = turnTs ?: turnCreatedAtCache.getOrPut(turnId) { System.currentTimeMillis() }
+                completedTurns.add(
+                    ChatTurn.Assistant(
+                        turnId = turnId,
+                        blocks = blocks.toList(),
+                        isStreaming = false,
+                        tokenUsage = tokenUsage,
+                        modelId = turnModel(activeValues),
+                        createdAt = resolvedTs
+                    )
+                )
             }
         }
 
         activeStepsMap.clear()
         isWaitingInteraction = false
+        cachedTurnsSnapshot = null
     }
 
     /**
@@ -529,6 +600,8 @@ class TrajectoryEngine {
     fun getTurns(): List<ChatTurn> = synchronized(stateLock) { getTurnsLocked() }
 
     private fun getTurnsLocked(): List<ChatTurn> {
+        cachedTurnsSnapshot?.let { return it }
+
         val baseTurns = if (pendingUserTurn != null && completedTurns.none { it is ChatTurn.User && it.stepIndex == pendingUserTurn!!.stepIndex }) {
             completedTurns + pendingUserTurn!!
         } else {
@@ -540,20 +613,25 @@ class TrajectoryEngine {
         val existingAssistantIdx = baseTurns.indexOfLast { it is ChatTurn.Assistant && it.turnId == turnId }
 
         if (activeStepsMap.isEmpty()) {
-            if ((isRunning || pendingUserTurn != null) && !isWaitingInteraction) {
+            val result = if ((isRunning || pendingUserTurn != null) && !isWaitingInteraction) {
                 if (existingAssistantIdx >= 0) {
                     val existingTurn = baseTurns[existingAssistantIdx] as ChatTurn.Assistant
                     val updatedTurn = existingTurn.copy(isStreaming = true)
-                    return baseTurns.toMutableList().apply { set(existingAssistantIdx, updatedTurn) }
+                    baseTurns.toMutableList().apply { set(existingAssistantIdx, updatedTurn) }
+                } else {
+                    val activeTurn = ChatTurn.Assistant(
+                        turnId = turnId,
+                        blocks = emptyList(),
+                        isStreaming = true,
+                        createdAt = turnCreatedAtCache.getOrPut(turnId) { System.currentTimeMillis() }
+                    )
+                    baseTurns + activeTurn
                 }
-                val activeTurn = ChatTurn.Assistant(
-                    turnId = turnId,
-                    blocks = emptyList(),
-                    isStreaming = true
-                )
-                return baseTurns + activeTurn
+            } else {
+                baseTurns
             }
-            return baseTurns
+            cachedTurnsSnapshot = result
+            return result
         }
 
         val activeBlocks = mutableListOf<TurnBlock>()
@@ -581,22 +659,26 @@ class TrajectoryEngine {
 
         isWaitingInteraction = waitingFound
 
-        val finalBlocks = if (existingAssistantIdx >= 0) {
-            val existingTurn = baseTurns[existingAssistantIdx] as ChatTurn.Assistant
+        val existingTurn = if (existingAssistantIdx >= 0) baseTurns[existingAssistantIdx] as ChatTurn.Assistant else null
+        val finalBlocks = if (existingTurn != null) {
             (existingTurn.blocks.filterNot { eb -> activeBlocks.any { it.stepIndex == eb.stepIndex } } + activeBlocks)
                 .sortedBy { it.stepIndex }
         } else {
             activeBlocks.toList()
         }
 
-        val activeTokenUsage = computeTokenUsage(activeStepsMap.values)
-        return if (finalBlocks.isNotEmpty() || (isRunning && !isWaitingInteraction)) {
+        val activeValues = activeStepsMap.values
+        val activeTokenUsage = computeTokenUsage(activeValues)
+        val result = if (finalBlocks.isNotEmpty() || (isRunning && !isWaitingInteraction)) {
             val activeTurn = ChatTurn.Assistant(
                 turnId = turnId,
                 blocks = finalBlocks,
                 isStreaming = isRunning && !isWaitingInteraction,
-                tokenUsage = activeTokenUsage,
-                modelId = turnModel(activeStepsMap.values)
+                tokenUsage = activeTokenUsage ?: existingTurn?.tokenUsage,
+                modelId = turnModel(activeValues) ?: existingTurn?.modelId,
+                createdAt = existingTurn?.createdAt
+                    ?: turnStartTimestamp(activeValues)
+                    ?: turnCreatedAtCache.getOrPut(turnId) { System.currentTimeMillis() }
             )
             if (existingAssistantIdx >= 0) {
                 baseTurns.toMutableList().apply {
@@ -608,6 +690,8 @@ class TrajectoryEngine {
         } else {
             baseTurns
         }
+        cachedTurnsSnapshot = result
+        return result
     }
 
     /**
@@ -615,17 +699,16 @@ class TrajectoryEngine {
      */
     fun toChatMessages(convId: String = conversationId): List<ChatMessage> = synchronized(stateLock) {
         val currentTurns = getTurnsLocked()
-        val messages = mutableListOf<ChatMessage>()
-        val seenMsgIds = mutableSetOf<String>()
+        val messages = ArrayList<ChatMessage>(currentTurns.size)
+        val seenMsgIds = HashSet<String>(currentTurns.size * 2)
 
         for (turn in currentTurns) {
             when (turn) {
                 is ChatTurn.User -> {
                     val uId = "user_${convId}_${turn.stepIndex}"
-                    if (seenMsgIds.contains(uId)) {
+                    if (!seenMsgIds.add(uId)) {
                         continue
                     }
-                    seenMsgIds.add(uId)
                     messages.add(
                         ChatMessage(
                             id = uId,
@@ -634,11 +717,27 @@ class TrajectoryEngine {
                             content = turn.text,
                             attachments = turn.attachments,
                             stepIndex = turn.stepIndex,
-                            createdAt = turn.createdAt ?: System.currentTimeMillis()
+                            createdAt = turn.createdAt ?: turnCreatedAtCache.getOrPut(uId) { System.currentTimeMillis() }
                         )
                     )
                 }
                 is ChatTurn.Assistant -> {
+                    var aId = turn.turnId.ifBlank { "asst_${convId}_$activeTurnStartStep" }
+                    var counter = 1
+                    while (!seenMsgIds.add(aId)) {
+                        aId = "${turn.turnId}_$counter"
+                        counter++
+                    }
+
+                    val canCacheTurn = !turn.isStreaming && turn.blocks.none { it is TurnBlock.Permission }
+                    if (canCacheTurn) {
+                        val cachedEntry = cachedCompletedMessages[aId]
+                        if (cachedEntry != null && cachedEntry.first === turn) {
+                            messages.add(cachedEntry.second)
+                            continue
+                        }
+                    }
+
                     val thoughts = mutableListOf<String>()
                     var maxDuration: Long? = null
                     val toolCalls = mutableListOf<ToolCall>()
@@ -721,28 +820,23 @@ class TrajectoryEngine {
                     val combinedContent = contentParts.joinToString("\n\n").trim()
                     val combinedThought = thoughts.joinToString("\n\n").trim().takeIf { it.isNotBlank() }
 
-                    var aId = turn.turnId.ifBlank { "asst_${convId}_$activeTurnStartStep" }
-                    var counter = 1
-                    while (seenMsgIds.contains(aId)) {
-                        aId = "${turn.turnId}_$counter"
-                        counter++
-                    }
-                    seenMsgIds.add(aId)
-
-                    messages.add(
-                        ChatMessage(
-                            id = aId,
-                            conversationId = convId,
-                            role = MessageRole.ASSISTANT,
-                            content = combinedContent,
-                            thoughtText = combinedThought,
-                            thoughtDurationMs = maxDuration,
-                            toolCalls = toolCalls,
-                            isStreaming = turn.isStreaming,
-                            tokenUsage = turn.tokenUsage,
-                            modelId = turn.modelId
-                        )
+                    val msg = ChatMessage(
+                        id = aId,
+                        conversationId = convId,
+                        role = MessageRole.ASSISTANT,
+                        content = combinedContent,
+                        thoughtText = combinedThought,
+                        thoughtDurationMs = maxDuration,
+                        toolCalls = toolCalls,
+                        isStreaming = turn.isStreaming,
+                        tokenUsage = turn.tokenUsage,
+                        modelId = turn.modelId,
+                        createdAt = turn.createdAt ?: turnCreatedAtCache.getOrPut(aId) { System.currentTimeMillis() }
                     )
+                    if (canCacheTurn) {
+                        cachedCompletedMessages[aId] = turn to msg
+                    }
+                    messages.add(msg)
                 }
             }
         }
@@ -937,7 +1031,7 @@ class TrajectoryEngine {
                     if (output.contains("exited with code 0", ignoreCase = true) || output.contains("exit code 0", ignoreCase = true)) {
                         0
                     } else if (output.contains("exited with code", ignoreCase = true)) {
-                        Regex("""exited with code (\d+)""", RegexOption.IGNORE_CASE).find(output)?.groupValues?.get(1)?.toIntOrNull()
+                        EXIT_CODE_REGEX.find(output)?.groupValues?.get(1)?.toIntOrNull()
                     } else null
                 }
             }

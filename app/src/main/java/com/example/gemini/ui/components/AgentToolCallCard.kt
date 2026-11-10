@@ -160,12 +160,13 @@ fun AgentToolCallCard(
         else -> "Tool:"
     }
 
+    val t = graventTokens()
     val actionColor = when {
-        isPendingApproval -> Color(0xFFF59E0B)
-        isRunning -> graventTokens().accent
+        isPendingApproval -> t.warnAccent
+        isRunning -> t.accent
         isSuccess -> MaterialTheme.colorScheme.onSurface
-        isTerminated || isFailed -> Color(0xFFEF4444)
-        isRejected -> Color.Gray
+        isTerminated || isFailed -> t.errorAccent
+        isRejected -> t.textMuted
         else -> MaterialTheme.colorScheme.onSurface
     }
 
@@ -221,7 +222,7 @@ fun AgentToolCallCard(
                 Icon(
                     imageVector = Icons.Default.HourglassEmpty,
                     contentDescription = "Pending Approval",
-                    tint = Color(0xFFF59E0B),
+                    tint = t.warnAccent,
                     modifier = Modifier.size(14.dp)
                 )
             } else if (isRunning) {
@@ -488,9 +489,9 @@ fun AgentToolCallCard(
             exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF08080A),
-                border = BorderStroke(1.dp, Color(0xFF222226)),
+                shape = RoundedCornerShape(10.dp),
+                color = t.codeBg,
+                border = BorderStroke(1.dp, t.border),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
@@ -524,7 +525,7 @@ fun AgentToolCallCard(
                             fontFamily = if (isBash || isMcp) FontFamily.Monospace else FontFamily.Default,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.5.sp,
-                            color = Color(0xFFFAFAFA),
+                            color = t.textPrimary,
                             modifier = Modifier.weight(1f)
                         )
 
@@ -533,7 +534,7 @@ fun AgentToolCallCard(
                                 text = formatDuration(toolCall.durationMs),
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
-                                color = Color(0xFFA1A1AA),
+                                color = t.textMuted,
                                 modifier = Modifier.padding(horizontal = 6.dp)
                             )
                         }
@@ -550,7 +551,7 @@ fun AgentToolCallCard(
                             Icon(
                                 imageVector = Icons.Outlined.ContentCopy,
                                 contentDescription = "Copy Output",
-                                tint = Color.Gray,
+                                tint = t.textMuted,
                                 modifier = Modifier.size(13.dp)
                             )
                         }
@@ -581,15 +582,17 @@ fun AgentToolCallCard(
                             text = emptyMessage,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
-                            color = Color.Gray
+                            color = t.textMuted
                         )
                     } else {
+                        val styledOutput = remember(toolCall.output, isEditFile, t.isDark) {
+                            formatToolOutputAnnotated(toolCall.output, isEditFile, t)
+                        }
                         Text(
-                            text = toolCall.output,
+                            text = styledOutput,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
                             lineHeight = 16.sp,
-                            color = Color(0xFFE2E8F0),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState())
@@ -607,5 +610,42 @@ fun AgentToolCallCard(
             title = toolCall.command,
             onDismiss = { showFullScreenViewer = false }
         )
+    }
+}
+
+private fun formatToolOutputAnnotated(
+    rawOutput: String,
+    isEditFile: Boolean,
+    t: GraventUiTokens
+): androidx.compose.ui.text.AnnotatedString {
+    val capped = if (rawOutput.length > 16_000) rawOutput.take(16_000) + "\n… (output truncated)" else rawOutput
+    val lines = capped.lines()
+    val hasDiffMarkers = isEditFile || lines.any { it.startsWith("@@ ") || it.startsWith("diff --git ") }
+    return androidx.compose.ui.text.buildAnnotatedString {
+        lines.forEachIndexed { idx, line ->
+            val trimmed = line.trimStart()
+            val spanStyle = when {
+                hasDiffMarkers && (line.startsWith("+++") || line.startsWith("---") || line.startsWith("diff --git ")) ->
+                    androidx.compose.ui.text.SpanStyle(color = t.textMuted, fontWeight = FontWeight.SemiBold)
+                hasDiffMarkers && line.startsWith("@@") ->
+                    androidx.compose.ui.text.SpanStyle(color = t.infoAccent, background = t.infoSoftBg, fontWeight = FontWeight.Medium)
+                hasDiffMarkers && line.startsWith("+") ->
+                    androidx.compose.ui.text.SpanStyle(color = t.successAccent, background = t.successSoftBg)
+                hasDiffMarkers && line.startsWith("-") ->
+                    androidx.compose.ui.text.SpanStyle(color = t.errorAccent, background = t.errorSoftBg)
+                trimmed.startsWith("error:", ignoreCase = true) || trimmed.contains("exception", ignoreCase = true) || trimmed.startsWith("fatal:", ignoreCase = true) ->
+                    androidx.compose.ui.text.SpanStyle(color = t.errorAccent)
+                trimmed.startsWith("warn", ignoreCase = true) || trimmed.startsWith("w:", ignoreCase = true) ->
+                    androidx.compose.ui.text.SpanStyle(color = t.warnAccent)
+                trimmed.startsWith("✓") || trimmed.startsWith("success", ignoreCase = true) || trimmed.contains("build successful", ignoreCase = true) ->
+                    androidx.compose.ui.text.SpanStyle(color = t.successAccent)
+                else ->
+                    androidx.compose.ui.text.SpanStyle(color = t.inlineCodeText)
+            }
+            pushStyle(spanStyle)
+            append(line)
+            pop()
+            if (idx < lines.lastIndex) append('\n')
+        }
     }
 }

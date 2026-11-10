@@ -129,38 +129,21 @@ class AgyBridgeService(
         val instance by lazy { AgyBridgeService() }
     }
 
-    // Fast-failing client for localhost health/status checks (500ms connect timeout)
-    val fastClient: OkHttpClient = OkHttpClient.Builder()
+    // Fast-failing client for localhost health/status checks sharing the same ConnectionPool & Dispatcher
+    val fastClient: OkHttpClient = client.newBuilder()
         .connectTimeout(500, TimeUnit.MILLISECONDS)
         .readTimeout(1000, TimeUnit.MILLISECONDS)
         .writeTimeout(1000, TimeUnit.MILLISECONDS)
         .retryOnConnectionFailure(false)
-        .addInterceptor { chain ->
-            val req = chain.request().newBuilder()
-                .header(AuthPreferences.currentFramedHeader, "true")
-                .build()
-            chain.proceed(req)
-        }
-        .apply {
-            if (com.example.gemini.data.remote.inspector.NetworkInspectorManager.isEnabled) {
-                addInterceptor(com.example.gemini.data.remote.inspector.NetworkInspectorInterceptor("IDE Bridge (HTTP)"))
-            }
-        }
         .build()
 
-    // Dedicated WebSocket client for live bridge monitoring with 1s connect timeout and 1s heartbeat ping
-    val wsClient: OkHttpClient = OkHttpClient.Builder()
+    // Dedicated WebSocket client sharing the same ConnectionPool & Dispatcher
+    val wsClient: OkHttpClient = client.newBuilder()
         .connectTimeout(1000, TimeUnit.MILLISECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .writeTimeout(3, TimeUnit.SECONDS)
         .pingInterval(1, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false)
-        .addInterceptor { chain ->
-            val req = chain.request().newBuilder()
-                .header(AuthPreferences.currentFramedHeader, "true")
-                .build()
-            chain.proceed(req)
-        }
         .build()
 
     private val _systemConnectionState = MutableStateFlow<SystemConnectionState>(SystemConnectionState.Offline)

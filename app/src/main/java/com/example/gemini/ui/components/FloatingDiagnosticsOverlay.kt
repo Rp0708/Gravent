@@ -48,8 +48,8 @@ fun FloatingDiagnosticsOverlay(
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
-    var offsetX by remember { mutableStateOf(16f) }
-    var offsetY by remember { mutableStateOf(screenHeightPx * 0.12f) }
+    var offsetX by remember { mutableFloatStateOf(16f) }
+    var offsetY by remember { mutableFloatStateOf(screenHeightPx * 0.12f) }
 
     Box(
         modifier = modifier

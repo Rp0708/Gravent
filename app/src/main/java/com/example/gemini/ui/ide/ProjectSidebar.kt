@@ -34,8 +34,8 @@ import com.example.gemini.data.daemon.FileNode
 import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.data.preferences.AuthPreferences
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.ui.components.AppToastHelper
 import com.example.gemini.ui.components.ChatToastType
 import java.io.File
@@ -68,7 +68,7 @@ fun ProjectSidebar(
     onRefreshTree: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var projectsDropdownExpanded by mutableStateOf(false)
+    var projectsDropdownExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(SidebarTab.EXPLORER) }
     var showCreateFileDialog by remember { mutableStateOf<String?>(null) } // parentPath
     var isNewFolderMode by remember { mutableStateOf(false) }
@@ -159,7 +159,7 @@ fun ProjectSidebar(
                                             Text(
                                                 text = proj.name,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                                                color = if (isSelected) graventTokens().accent else MaterialTheme.colorScheme.onSurface,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
@@ -256,9 +256,10 @@ fun ProjectSidebar(
                 }
             }
 
+            val tTab = graventTokens()
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = if (selectedTab == SidebarTab.SOURCE_CONTROL) ClaudeTerracotta.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                color = if (selectedTab == SidebarTab.SOURCE_CONTROL) tTab.accentSoftBg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
                     .weight(1f)
                     .clickable { selectedTab = SidebarTab.SOURCE_CONTROL }
@@ -272,14 +273,14 @@ fun ProjectSidebar(
                         imageVector = Icons.Default.AltRoute,
                         contentDescription = null,
                         modifier = Modifier.size(13.dp),
-                        tint = if (selectedTab == SidebarTab.SOURCE_CONTROL) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (selectedTab == SidebarTab.SOURCE_CONTROL) tTab.accent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Git",
                         fontSize = 11.5.sp,
                         fontWeight = if (selectedTab == SidebarTab.SOURCE_CONTROL) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTab == SidebarTab.SOURCE_CONTROL) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (selectedTab == SidebarTab.SOURCE_CONTROL) tTab.accent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -490,7 +491,7 @@ fun ProjectSidebar(
                 Icon(
                     imageVector = if (isNewFolderMode) Icons.Default.CreateNewFolder else Icons.Default.NoteAdd,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = graventTokens().accent,
                     modifier = Modifier.size(28.dp)
                 )
             },
@@ -540,7 +541,7 @@ fun ProjectSidebar(
                 Icon(
                     imageVector = Icons.Default.DriveFileRenameOutline,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = graventTokens().accent,
                     modifier = Modifier.size(28.dp)
                 )
             },
@@ -749,7 +750,7 @@ fun FileTreeNodeItem(
                                 Icon(
                                     imageVector = Icons.Default.NoteAdd,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = graventTokens().accent,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -812,7 +813,7 @@ fun FileTreeNodeItem(
                                 Icon(
                                     imageVector = Icons.Outlined.Share,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = graventTokens().accent,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },

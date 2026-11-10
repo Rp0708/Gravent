@@ -35,6 +35,7 @@ import com.example.gemini.data.local.LocalEnvironmentManager
 import com.example.gemini.data.local.LocalInstallerState
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.theme.*
+import com.example.gemini.ui.components.GraventLogConsole
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,6 +44,7 @@ fun LocalToolsInstallDialog(
     onOpenTerminal: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
+    val t = graventTokens()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val installerState by LocalEnvironmentManager.installerState.collectAsState()
@@ -65,7 +67,7 @@ fun LocalToolsInstallDialog(
         }
     }
 
-    var selectedSourceType by remember { mutableStateOf(0) } // 0: Auto GitHub, 1: Direct URL, 2: Local ZIP File
+    var selectedSourceType by remember { mutableIntStateOf(0) } // 0: Auto GitHub, 1: Direct URL, 2: Local ZIP File
     var directUrlText by remember { mutableStateOf("") }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -111,9 +113,9 @@ fun LocalToolsInstallDialog(
                         .clip(CircleShape)
                         .background(
                             when (installerState) {
-                                is LocalInstallerState.Success -> QuotaGreen.copy(alpha = 0.15f)
-                                is LocalInstallerState.Error -> Color.Red.copy(alpha = 0.15f)
-                                else -> ClaudeTerracotta.copy(alpha = 0.15f)
+                                is LocalInstallerState.Success -> t.successSoftBg
+                                is LocalInstallerState.Error -> t.errorSoftBg
+                                else -> t.accentSoftBg
                             }
                         ),
                     contentAlignment = Alignment.Center
@@ -126,9 +128,9 @@ fun LocalToolsInstallDialog(
                         },
                         contentDescription = null,
                         tint = when (installerState) {
-                            is LocalInstallerState.Success -> QuotaGreen
-                            is LocalInstallerState.Error -> Color.Red
-                            else -> ClaudeTerracotta
+                            is LocalInstallerState.Success -> t.successAccent
+                            is LocalInstallerState.Error -> t.errorAccent
+                            else -> t.accent
                         },
                         modifier = Modifier.size(30.dp)
                     )
@@ -184,7 +186,7 @@ fun LocalToolsInstallDialog(
                                 imageVector = Icons.Outlined.Memory,
                                 contentDescription = null,
                                 modifier = Modifier.size(15.dp),
-                                tint = ClaudeTerracotta
+                                tint = t.accent
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -333,7 +335,7 @@ fun LocalToolsInstallDialog(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (selectedSourceType == 0) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    if (selectedSourceType == 0) t.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -386,7 +388,7 @@ fun LocalToolsInstallDialog(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (selectedSourceType == 2) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    if (selectedSourceType == 2) t.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -452,7 +454,7 @@ fun LocalToolsInstallDialog(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                                     border = BorderStroke(
                                         1.dp,
-                                        if (selectedSourceType == 1) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                        if (selectedSourceType == 1) t.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -506,7 +508,7 @@ fun LocalToolsInstallDialog(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             CircularProgressIndicator(
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 modifier = Modifier.size(36.dp)
                             )
                             Spacer(modifier = Modifier.height(14.dp))
@@ -553,7 +555,7 @@ fun LocalToolsInstallDialog(
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text("Architecture:", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(info.arch, fontSize = 11.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                                        Text(info.arch, fontSize = 11.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = t.accent)
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -605,7 +607,7 @@ fun LocalToolsInstallDialog(
                                     text = "$pct%",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ClaudeTerracotta
+                                    color = t.accent
                                 )
                             }
 
@@ -623,7 +625,7 @@ fun LocalToolsInstallDialog(
                                     .fillMaxWidth()
                                     .height(8.dp)
                                     .clip(RoundedCornerShape(4.dp)),
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
 
@@ -666,7 +668,7 @@ fun LocalToolsInstallDialog(
                                     text = "$pct%",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ClaudeTerracotta
+                                    color = t.accent
                                 )
                             }
 
@@ -684,7 +686,7 @@ fun LocalToolsInstallDialog(
                                     .fillMaxWidth()
                                     .height(8.dp)
                                     .clip(RoundedCornerShape(4.dp)),
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
 
@@ -722,7 +724,7 @@ fun LocalToolsInstallDialog(
                                     .fillMaxWidth()
                                     .height(8.dp)
                                     .clip(RoundedCornerShape(4.dp)),
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
 
@@ -828,8 +830,8 @@ fun LocalToolsInstallDialog(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F1115),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                        color = t.elevatedBg,
+                        border = BorderStroke(1.dp, t.border)
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(
@@ -843,7 +845,7 @@ fun LocalToolsInstallDialog(
                                     Icon(
                                         imageVector = Icons.Default.Terminal,
                                         contentDescription = null,
-                                        tint = ClaudeTerracotta,
+                                        tint = t.accent,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -852,54 +854,27 @@ fun LocalToolsInstallDialog(
                                         fontSize = 11.5.sp,
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White
+                                        color = t.textPrimary
                                     )
                                 }
                                 Icon(
                                     imageVector = if (showLogs) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                     contentDescription = null,
-                                    tint = Color.Gray,
+                                    tint = t.textMuted,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
 
                             if (showLogs) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                LazyColumn(
-                                    state = logsListState,
+                                Spacer(modifier = Modifier.height(8.dp))
+                                GraventLogConsole(
+                                    lines = installerLogs,
+                                    emptyText = "Logs will appear here once installation begins...",
+                                    maxVisibleLines = 100,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(min = 60.dp, max = 150.dp)
-                                        .background(Color(0xFF08090C), RoundedCornerShape(6.dp))
-                                        .padding(6.dp)
-                                ) {
-                                    if (installerLogs.isEmpty()) {
-                                        item {
-                                            Text(
-                                                text = "Logs will appear here once installation begins...",
-                                                fontSize = 10.sp,
-                                                fontFamily = FontFamily.Monospace,
-                                                color = Color.Gray
-                                            )
-                                        }
-                                    } else {
-                                        items(installerLogs) { logLine ->
-                                            Text(
-                                                text = logLine,
-                                                fontSize = 10.sp,
-                                                fontFamily = FontFamily.Monospace,
-                                                lineHeight = 13.sp,
-                                                color = if (logLine.contains("⚠") || logLine.contains("Fail") || logLine.contains("Error")) {
-                                                    Color(0xFFF87171)
-                                                } else if (logLine.contains("✓") || logLine.contains("Success") || logLine.contains("ready") || logLine.contains("Extracted")) {
-                                                    QuotaGreen
-                                                } else {
-                                                    Color(0xFFD1D5DB)
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
+                                        .heightIn(min = 70.dp, max = 160.dp)
+                                )
                             }
                         }
                     }

@@ -608,8 +608,9 @@ fun ChatInputBar(
         }
     }
 
+    val tokens = graventTokens()
     val canSend = textFieldValue.text.trim().isNotEmpty() || attachments.isNotEmpty()
-    val familyColor = if (selectedModel.family == ModelFamily.CLAUDE) ClaudeTerracotta else GeminiBlue
+    val familyColor = if (selectedModel.family == ModelFamily.CLAUDE) tokens.accent else GeminiBlue
     val fileLinkHandler = LocalFileLinkHandler.current
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
 
@@ -805,7 +806,7 @@ fun ChatInputBar(
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = ClaudeTerracotta.copy(alpha = 0.15f)
+                                color = tokens.accent.copy(alpha = 0.15f)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
@@ -815,14 +816,14 @@ fun ChatInputBar(
                                         imageVector = Icons.Rounded.GraphicEq,
                                         contentDescription = null,
                                         modifier = Modifier.size(10.dp),
-                                        tint = ClaudeTerracotta
+                                        tint = tokens.accent
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
                                         text = "Transcribe",
                                         fontSize = 9.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ClaudeTerracotta
+                                        color = tokens.accent
                                     )
                                 }
                             }
@@ -902,14 +903,14 @@ fun ChatInputBar(
                         Surface(
                             onClick = { stopAudioRecording(andSend = true) },
                             shape = CircleShape,
-                            color = ClaudeTerracotta,
+                            color = tokens.accent,
                             modifier = Modifier.size(34.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowUpward,
                                     contentDescription = "Send voice note",
-                                    tint = Color.Black,
+                                    tint = tokens.onAccent,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -1094,7 +1095,7 @@ fun ChatInputBar(
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(14.dp),
                                             strokeWidth = 2.dp,
-                                            color = ClaudeTerracotta
+                                            color = tokens.accent
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
@@ -1198,14 +1199,14 @@ fun ChatInputBar(
                                                 Icon(
                                                     imageVector = Icons.Rounded.Mic,
                                                     contentDescription = null,
-                                                    tint = ClaudeTerracotta,
+                                                    tint = tokens.accent,
                                                     modifier = Modifier.size(20.dp).padding(start = 4.dp)
                                                 )
                                             } else {
                                                 Icon(
                                                     imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
                                                     contentDescription = null,
-                                                    tint = ClaudeTerracotta,
+                                                    tint = tokens.accent,
                                                     modifier = Modifier.size(20.dp).padding(start = 4.dp)
                                                 )
                                             }

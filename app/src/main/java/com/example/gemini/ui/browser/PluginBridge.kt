@@ -27,7 +27,7 @@ object PluginBridge {
     private val json = "application/json".toMediaType()
     private val zip = "application/zip".toMediaType()
     // Repository installs download a whole plugin folder before answering
-    private val http get() = IdeApiClient.okHttpClient.newBuilder().readTimeout(5, TimeUnit.MINUTES).build()
+    private val http by lazy { IdeApiClient.okHttpClient.newBuilder().readTimeout(5, TimeUnit.MINUTES).build() }
 
     private fun url(path: String) = AuthPreferences.currentBridgeHttpUrl.trimEnd('/') + "/api/custom-plugins/" + path
 

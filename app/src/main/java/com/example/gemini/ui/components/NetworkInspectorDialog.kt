@@ -428,7 +428,7 @@ private fun NetworkLogDetailDialog(
     entry: NetworkLogEntry,
     onDismiss: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Overview", "Headers")
     val context = LocalContext.current
 

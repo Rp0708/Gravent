@@ -68,7 +68,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.R
 import com.example.gemini.data.preferences.TerminalLauncherManager
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.theme.graventRadioColors
 import com.example.gemini.theme.graventSwitchColors
@@ -108,6 +107,7 @@ fun TerminalLauncherOnboardingDialog(
                     .padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val dialogTokens = graventTokens()
                 // Header Icon Badge
                 Box(
                     modifier = Modifier
@@ -116,8 +116,8 @@ fun TerminalLauncherOnboardingDialog(
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    ClaudeTerracotta.copy(alpha = 0.25f),
-                                    ClaudeTerracotta.copy(alpha = 0.05f)
+                                    dialogTokens.accent.copy(alpha = 0.25f),
+                                    dialogTokens.accent.copy(alpha = 0.05f)
                                 )
                             )
                         ),
@@ -126,7 +126,7 @@ fun TerminalLauncherOnboardingDialog(
                     Icon(
                         imageVector = Icons.Default.Terminal,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = dialogTokens.accent,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -171,7 +171,7 @@ fun TerminalLauncherOnboardingDialog(
                             text = "HOME SCREEN PREVIEW",
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ClaudeTerracotta,
+                            color = dialogTokens.accent,
                             letterSpacing = 1.sp
                         )
 
@@ -262,7 +262,7 @@ fun TerminalLauncherOnboardingDialog(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = if (!isEnabled) "Hidden" else if (selectedStyle == TerminalLauncherManager.STYLE_TERMUX) "Termux" else "AntiTerm",
+                                    text = if (!isEnabled) "Hidden" else if (selectedStyle == TerminalLauncherManager.STYLE_TERMUX) "Termux" else "GraventTerm",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (!isEnabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
@@ -341,10 +341,10 @@ fun TerminalLauncherOnboardingDialog(
                         val isAntiTermSelected = selectedStyle == TerminalLauncherManager.STYLE_ANTITERM
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isAntiTermSelected) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                            color = if (isAntiTermSelected) dialogTokens.accentSoftBg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isAntiTermSelected) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                if (isAntiTermSelected) dialogTokens.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -472,15 +472,13 @@ fun TerminalLauncherOnboardingDialog(
                     Icon(
                         imageVector = Icons.Outlined.Check,
                         contentDescription = null,
-                        tint = Color.Black,
                         modifier = Modifier.size(17.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Save & Continue",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 

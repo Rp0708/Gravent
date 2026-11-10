@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -628,7 +629,7 @@ fun ClaudeProviderSwitchDialog(backend: ClaudeChatBackend) {
     val sw by backend.pendingProviderSwitch.collectAsState()
     val pending = sw ?: return
     val running by backend.isCurrentChatActivelyRunning.collectAsState()
-    var wait by remember(pending) { mutableStateOf(3) }
+    var wait by remember(pending) { mutableIntStateOf(3) }
     LaunchedEffect(pending) {
         while (wait > 0) {
             delay(1_000)

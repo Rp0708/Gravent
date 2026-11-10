@@ -144,24 +144,33 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val noQuotas = MutableStateFlow<List<ModelQuota>>(emptyList())
     private val alwaysFalse = MutableStateFlow(false)
 
+    private val currentAgentFlow = store.currentConversation
+        .map { it?.agent }
+        .distinctUntilChanged()
+
     private fun <T> byAgent(agy: StateFlow<T>, claude: StateFlow<T>): StateFlow<T> =
-        combine(store.currentConversation, agy, claude) { conv, a, c -> if (conv?.agent == AgentKind.CLAUDE) c else a }
+        combine(currentAgentFlow, agy, claude) { agent, a, c -> if (agent == AgentKind.CLAUDE) c else a }
             .stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
 
     private fun <T> byAgent(agy: StateFlow<T>, claude: StateFlow<T>, copilot: StateFlow<T>): StateFlow<T> =
-        combine(store.currentConversation, agy, claude, copilot) { conv, a, c, cp ->
-            when (conv?.agent) {
+        combine(currentAgentFlow, agy, claude, copilot) { agent, a, c, cp ->
+            when (agent) {
                 AgentKind.CLAUDE -> c
                 AgentKind.COPILOT -> cp
                 else -> a
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, agy.value)
 
+    private val isoUtcFormatThreadLocal = ThreadLocal.withInitial {
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+    }
+
     private fun isoUtc(epochSeconds: Long): String {
         val ms = if (epochSeconds > 1_000_000_000_000L) epochSeconds else epochSeconds * 1000L
-        return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
-            .format(java.util.Date(ms))
+        val fmt = isoUtcFormatThreadLocal.get() ?: return ""
+        return fmt.format(java.util.Date(ms))
     }
 
     private fun agentOf(conversationId: String): AgentKind =
@@ -201,9 +210,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (resetsAtIso.isNullOrBlank()) return null
         val clean = resetsAtIso.substringBefore('.').substringBefore('Z').substringBefore('+')
         return runCatching {
-            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
-                .parse(clean)?.time
+            isoUtcFormatThreadLocal.get()?.parse(clean)?.time
         }.getOrNull()
     }
 
@@ -822,32 +829,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun processAndUploadUri(uri: android.net.Uri, context: android.content.Context) {
         try {
-            val contentResolver = context.contentResolver
-            var fileName = "attachment_${System.currentTimeMillis()}"
-            var fileSize = 0L
+            val resolved = withContext(Dispatchers.IO) {
+                val contentResolver = context.contentResolver
+                var fileName = "attachment_${System.currentTimeMillis()}"
+                var fileSize = 0L
 
-            val cursor = contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                    val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
-                    if (nameIndex >= 0) fileName = it.getString(nameIndex) ?: fileName
-                    if (sizeIndex >= 0) fileSize = it.getLong(sizeIndex)
+                val cursor = contentResolver.query(uri, null, null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                        if (nameIndex >= 0) fileName = it.getString(nameIndex) ?: fileName
+                        if (sizeIndex >= 0) fileSize = it.getLong(sizeIndex)
+                    }
                 }
-            }
 
-            val ext = fileName.substringAfterLast('.', "").lowercase()
-            val mimeType = contentResolver.getType(uri)
-                ?: android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
-                ?: "application/octet-stream"
-            val isImg = mimeType.startsWith("image/")
-            val isAud = mimeType.startsWith("audio/")
+                val ext = fileName.substringAfterLast('.', "").lowercase()
+                val mimeType = contentResolver.getType(uri)
+                    ?: android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                    ?: "application/octet-stream"
+                val isImg = mimeType.startsWith("image/")
+                val isAud = mimeType.startsWith("audio/")
 
-            val bytes = withContext(Dispatchers.IO) {
-                contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            }
-
-            if (bytes != null) {
+                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@withContext null
                 val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                 // Antigravity keeps attachments as hub artifacts; a Claude chat sends them itself (inline or saved
                 // on the bridge when the message is sent), so nothing goes to the AGY hub
@@ -861,7 +865,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     ).getOrNull() ?: uri.toString()
                 }
 
-                val att = com.example.gemini.domain.model.ChatAttachment(
+                com.example.gemini.domain.model.ChatAttachment(
                     id = "att_${System.currentTimeMillis()}_${(0..999).random()}",
                     name = fileName,
                     path = savedHostUri,
@@ -872,7 +876,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     mimeType = mimeType,
                     base64 = base64
                 )
-                _attachments.value = _attachments.value + att
+            }
+
+            if (resolved != null) {
+                _attachments.value = _attachments.value + resolved
             }
         } catch (e: Exception) {
             android.util.Log.e("ChatViewModel", "Failed to add attachment from uri $uri: ${e.message}")
@@ -881,25 +888,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addProjectFileAttachment(filePath: String, fileName: String) {
         viewModelScope.launch {
-            val file = java.io.File(filePath)
-            val ext = fileName.substringAfterLast('.', "").lowercase()
-            val mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
-            val isImg = mimeType.startsWith("image/")
-            val isAud = mimeType.startsWith("audio/")
-            val b64 = if (file.exists()) {
-                android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP)
-            } else ""
+            val att = withContext(Dispatchers.IO) {
+                val file = java.io.File(filePath)
+                val ext = fileName.substringAfterLast('.', "").lowercase()
+                val mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
+                val isImg = mimeType.startsWith("image/")
+                val isAud = mimeType.startsWith("audio/")
+                val b64 = if (file.exists()) {
+                    android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP)
+                } else ""
 
-            val att = com.example.gemini.domain.model.ChatAttachment(
-                id = "att_${System.currentTimeMillis()}_${(0..999).random()}",
-                name = fileName,
-                path = filePath,
-                isImage = isImg,
-                isAudio = isAud,
-                size = file.length(),
-                mimeType = mimeType,
-                base64 = b64.ifBlank { null }
-            )
+                com.example.gemini.domain.model.ChatAttachment(
+                    id = "att_${System.currentTimeMillis()}_${(0..999).random()}",
+                    name = fileName,
+                    path = filePath,
+                    isImage = isImg,
+                    isAudio = isAud,
+                    size = file.length(),
+                    mimeType = mimeType,
+                    base64 = b64.ifBlank { null }
+                )
+            }
             _attachments.value = _attachments.value + att
         }
     }

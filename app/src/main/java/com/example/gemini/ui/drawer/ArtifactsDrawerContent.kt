@@ -31,10 +31,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.gemini.domain.model.ArtifactSnapshot
-import com.example.gemini.theme.ClaudeTerracotta
-import com.example.gemini.theme.GeminiBlue
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.ui.components.ArtifactDownloadHelper
 import com.example.gemini.ui.components.FullScreenImageDialog
+import com.example.gemini.ui.components.GraventBadge
+import com.example.gemini.ui.components.GraventTone
 import com.example.gemini.ui.components.LocalFileLinkHandler
 import com.example.gemini.ui.components.LocalSnackbarHostState
 import kotlinx.coroutines.launch
@@ -51,6 +52,7 @@ fun ArtifactsDrawerContent(
     val snackbarHostState = LocalSnackbarHostState.current
     val fileLinkHandler = LocalFileLinkHandler.current
 
+    val t = graventTokens()
     var selectedImageForPreview by remember { mutableStateOf<ArtifactSnapshot?>(null) }
 
     Column(
@@ -71,13 +73,13 @@ fun ArtifactsDrawerContent(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                    .background(t.accentSoftBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Layers,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = t.accent,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -93,19 +95,10 @@ fun ArtifactsDrawerContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = ClaudeTerracotta.copy(alpha = 0.18f),
-                        border = BorderStroke(0.8.dp, ClaudeTerracotta.copy(alpha = 0.35f))
-                    ) {
-                        Text(
-                            text = "${artifacts.size}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ClaudeTerracotta,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
-                    }
+                    GraventBadge(
+                        text = "${artifacts.size}",
+                        tone = GraventTone.ACCENT
+                    )
                 }
                 Text(
                     text = "Generated files, plans & media",
@@ -278,10 +271,11 @@ private fun ArtifactCardItem(
                         )
                     }
                 } else {
+                    val tItem = graventTokens()
                     val (icon, bgTint, iconTint) = when {
-                        isPlan -> Triple(Icons.Outlined.AutoAwesome, ClaudeTerracotta.copy(alpha = 0.16f), ClaudeTerracotta)
-                        isWalkthrough -> Triple(Icons.Outlined.Description, GeminiBlue.copy(alpha = 0.16f), GeminiBlue)
-                        else -> Triple(Icons.AutoMirrored.Outlined.InsertDriveFile, Color(0xFF8BE9FD).copy(alpha = 0.16f), Color(0xFF8BE9FD))
+                        isPlan -> Triple(Icons.Outlined.AutoAwesome, tItem.accentSoftBg, tItem.accent)
+                        isWalkthrough -> Triple(Icons.Outlined.Description, tItem.infoSoftBg, tItem.infoAccent)
+                        else -> Triple(Icons.AutoMirrored.Outlined.InsertDriveFile, tItem.infoSoftBg, tItem.infoAccent)
                     }
                     Box(
                         modifier = Modifier
@@ -333,7 +327,7 @@ private fun ArtifactCardItem(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Download,
-                        contentDescription = "Download to Downloads/AntiGem",
+                        contentDescription = "Download artifact",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(17.dp)
                     )

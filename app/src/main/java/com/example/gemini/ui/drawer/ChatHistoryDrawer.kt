@@ -80,7 +80,6 @@ import com.example.gemini.domain.model.Conversation
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
 import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.theme.graventTokens
@@ -88,6 +87,8 @@ import androidx.compose.material.icons.outlined.Share
 import com.example.gemini.ui.components.ConversationExportHelper
 import com.example.gemini.ui.components.ConversationShareHelper
 import com.example.gemini.ui.components.DrawerEngineWarmingUpView
+import com.example.gemini.ui.components.GraventBadge
+import com.example.gemini.ui.components.GraventTone
 import com.example.gemini.ui.components.SidebarChatListSkeleton
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -715,7 +716,7 @@ fun ChatHistoryDrawer(
                 tonalElevation = 6.dp,
                 border = BorderStroke(1.dp, graventTokens().accent.copy(alpha = 0.35f))
             ) {
-                var selectedMenuMode by remember { mutableStateOf(0) } // 0: Gravent Hub, 1: React Bits Demo
+                var selectedMenuMode by remember { mutableIntStateOf(0) } // 0: Gravent Hub, 1: React Bits Demo
                 var activeItemValue by remember { mutableStateOf("agent_agy") }
                 val branchAccent = graventTokens().accent
 
@@ -971,7 +972,6 @@ fun ChatHistoryDrawer(
                     Text(
                         text = "New Chat",
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.Black,
                         fontSize = 13.5.sp
                     )
                 }
@@ -2024,34 +2024,16 @@ private fun ChatHistoryItemRow(
         Spacer(modifier = Modifier.width(4.dp))
 
         if (activeInst != null) {
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = Color(0xFF4CAF50).copy(alpha = 0.15f),
-                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.5f)),
+            GraventBadge(
+                text = "RUNNING",
+                tone = GraventTone.SUCCESS,
+                leadingDot = true,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(6.dp))
                     .clickable {
                         onTerminateInstance(activeInst, conv.title)
                     }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(Color(0xFF4CAF50), CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "RUNNING",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2E7D32)
-                    )
-                }
-            }
+            )
             Spacer(modifier = Modifier.width(6.dp))
         } else if (statusDotColor != null) {
             Box(

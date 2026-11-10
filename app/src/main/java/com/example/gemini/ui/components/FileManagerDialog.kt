@@ -35,7 +35,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.data.daemon.FsItemNode
 import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.theme.graventRadioColors
 import com.example.gemini.theme.graventTokens
@@ -251,7 +250,7 @@ fun FileManagerDialog(
                                 Icon(
                                     imageVector = Icons.Default.Folder,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = graventTokens().accent,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -345,7 +344,7 @@ fun FileManagerDialog(
                                 imageVector = Icons.Default.CreateNewFolder,
                                 contentDescription = null,
                                 modifier = Modifier.size(15.dp),
-                                tint = ClaudeTerracotta
+                                tint = graventTokens().accent
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("+ Folder", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
@@ -404,7 +403,7 @@ fun FileManagerDialog(
                 ) {
                     if (isLoading) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = ClaudeTerracotta, modifier = Modifier.size(36.dp))
+                            CircularProgressIndicator(color = graventTokens().accent, modifier = Modifier.size(36.dp))
                         }
                     } else if (errorMessage != null && items.isEmpty()) {
                         Column(
@@ -518,7 +517,7 @@ fun FileManagerDialog(
                                         Icon(
                                             imageVector = resolveFileIcon(item),
                                             contentDescription = null,
-                                            tint = resolveFileColor(item),
+                                            tint = resolveFileColor(item, graventTokens()),
                                             modifier = Modifier.size(22.dp)
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
@@ -658,7 +657,7 @@ fun FileManagerDialog(
                                         imageVector = Icons.Default.Folder,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
-                                        tint = ClaudeTerracotta
+                                        tint = graventTokens().accent
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
@@ -679,7 +678,7 @@ fun FileManagerDialog(
                                             imageVector = Icons.Default.Description,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp),
-                                            tint = ClaudeTerracotta
+                                            tint = graventTokens().accent
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth()
@@ -845,13 +844,14 @@ fun FileManagerDialog(
                         "blank" to "Blank"
                     )
 
+                    val tTmpl = graventTokens()
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         templates.forEach { (tmplKey, tmplLabel) ->
                             val isSel = selectedTemplate == tmplKey
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSel) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                border = BorderStroke(1.dp, if (isSel) ClaudeTerracotta else Color.Transparent),
+                                color = if (isSel) tTmpl.accentSoftBg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                border = BorderStroke(1.dp, if (isSel) tTmpl.accent else Color.Transparent),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp))
@@ -997,7 +997,7 @@ fun FileManagerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    Icon(resolveFileIcon(item), contentDescription = null, tint = resolveFileColor(item), modifier = Modifier.size(28.dp))
+                    Icon(resolveFileIcon(item), contentDescription = null, tint = resolveFileColor(item, graventTokens()), modifier = Modifier.size(28.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(item.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1010,7 +1010,7 @@ fun FileManagerDialog(
                 if (item.isDir && onOpenAsProject != null) {
                     ListItem(
                         headlineContent = { Text("Open as Project in IDE", fontWeight = FontWeight.SemiBold) },
-                        leadingContent = { Icon(Icons.Default.FolderSpecial, contentDescription = null, tint = ClaudeTerracotta) },
+                        leadingContent = { Icon(Icons.Default.FolderSpecial, contentDescription = null, tint = graventTokens().accent) },
                         modifier = Modifier.clickable {
                             showItemOptionsSheet = null
                             onOpenAsProject(ProjectItem(item.name, item.path))
@@ -1112,23 +1112,9 @@ private fun resolveFileIcon(item: FsItemNode): ImageVector {
     }
 }
 
-private fun resolveFileColor(item: FsItemNode): Color {
-    if (item.isDir) return ClaudeTerracotta
-    val ext = item.ext.lowercase()
-    return when (ext) {
-        ".kt", ".kts" -> Color(0xFF7F52FF)
-        ".java" -> Color(0xFFE76F00)
-        ".js", ".jsx" -> Color(0xFFF7DF1E)
-        ".ts", ".tsx" -> Color(0xFF3178C6)
-        ".py" -> Color(0xFF3776AB)
-        ".html", ".htm" -> Color(0xFFE34F26)
-        ".css" -> Color(0xFF1572B6)
-        ".json", ".yaml", ".yml" -> Color(0xFF4CAF50)
-        ".png", ".jpg", ".jpeg", ".webp", ".svg" -> Color(0xFF9C27B0)
-        ".mp3", ".wav", ".m4a" -> Color(0xFF00BCD4)
-        ".md", ".txt" -> Color(0xFF9E9E9E)
-        else -> Color(0xFFB0BEC5)
-    }
+private fun resolveFileColor(item: FsItemNode, t: com.example.gemini.theme.GraventUiTokens): Color {
+    if (item.isDir) return t.accent
+    return resolveUnifiedFileAccent(item.name, t.isDark)
 }
 
 private fun formatFileSize(bytes: Long): String {

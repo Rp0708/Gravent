@@ -78,7 +78,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.theme.graventTokens
 import java.net.URLEncoder
@@ -359,7 +358,7 @@ fun BrowserScreen(
                             Icon(
                                 imageVector = Icons.Outlined.BugReport,
                                 contentDescription = "Inspect DevTools",
-                                tint = if (isDevToolsOn) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = if (hasActivePage) 0.85f else 0.4f),
+                                tint = if (isDevToolsOn) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = if (hasActivePage) 0.85f else 0.4f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -375,12 +374,13 @@ fun BrowserScreen(
                             Icon(
                                 imageVector = if (isDesktopMode) Icons.Outlined.Laptop else Icons.Outlined.TouchApp,
                                 contentDescription = if (isDesktopMode) "Desktop mode enabled" else "Mobile mode enabled",
-                                tint = if (isDesktopMode) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                tint = if (isDesktopMode) graventTokens().accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
 
                         // 3. Search / URL Pill (Center pill with select-all on click & clear button)
+                        val browserTokens = graventTokens()
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
@@ -398,7 +398,7 @@ fun BrowserScreen(
                             color = if (isDarkTheme) Color(0xFF2B2B2B) else Color(0xFFEFEFEF),
                             border = BorderStroke(
                                 1.dp,
-                                if (isAddressFocused) ClaudeTerracotta.copy(alpha = 0.7f)
+                                if (isAddressFocused) browserTokens.accent.copy(alpha = 0.7f)
                                 else if (isDarkTheme) Color(0xFF383838) else Color(0xFFE0E0E0)
                             )
                         ) {
@@ -414,7 +414,7 @@ fun BrowserScreen(
                                     imageVector = if (isHttps) Icons.Default.Lock else if (isLocal) Icons.Default.Computer else Icons.Default.Language,
                                     contentDescription = null,
                                     modifier = Modifier.size(15.dp),
-                                    tint = if (isHttps) Color(0xFF22C55E) else if (isLocal) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    tint = if (isHttps) Color(0xFF22C55E) else if (isLocal) browserTokens.accent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
 
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -456,7 +456,7 @@ fun BrowserScreen(
                                         fontWeight = FontWeight.Normal
                                     ),
                                     singleLine = true,
-                                    cursorBrush = SolidColor(ClaudeTerracotta),
+                                    cursorBrush = SolidColor(graventTokens().accent),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Uri,
                                         imeAction = ImeAction.Go
@@ -607,7 +607,7 @@ fun BrowserScreen(
                         Icon(
                             imageVector = Icons.Outlined.Home,
                             contentDescription = "Home",
-                            tint = if (isHomePage) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                            tint = if (isHomePage) graventTokens().accent else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -858,7 +858,7 @@ fun BrowserScreen(
                     LinearProgressIndicator(
                         progress = { animatedProgress },
                         modifier = Modifier.fillMaxSize(),
-                        color = ClaudeTerracotta,
+                        color = graventTokens().accent,
                         trackColor = Color.Transparent
                     )
                 }
@@ -979,7 +979,7 @@ private fun SearchHistoryOverlay(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = graventTokens().accent,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -1579,7 +1579,7 @@ private fun TabOverviewScreen(
                         )
                         Text(
                             text = "Undo",
-                            color = ClaudeTerracotta,
+                            color = graventTokens().infoAccent,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
@@ -1641,7 +1641,7 @@ private fun TabCardView(
     onClick: () -> Unit,
     onClose: () -> Unit
 ) {
-    var offsetX by remember { mutableStateOf(0f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
 
     Surface(
         modifier = Modifier
@@ -1673,7 +1673,7 @@ private fun TabCardView(
         color = if (isDark) Color(0xFF222222) else Color.White,
         border = BorderStroke(
             if (isSelected) 2.dp else 1.dp,
-            if (isSelected) ClaudeTerracotta else if (isDark) Color(0xFF333333) else Color(0xFFE5E7EB)
+            if (isSelected) graventTokens().accent else if (isDark) Color(0xFF333333) else Color(0xFFE5E7EB)
         ),
         shadowElevation = if (isSelected) 4.dp else 1.dp
     ) {
@@ -1747,7 +1747,7 @@ private fun TabCardView(
                         Icon(
                             imageVector = if (tab.url.isBlank() || tab.url == "about:blank") Icons.Outlined.Home else Icons.Outlined.Language,
                             contentDescription = null,
-                            tint = ClaudeTerracotta.copy(alpha = 0.5f),
+                            tint = graventTokens().accent.copy(alpha = 0.5f),
                             modifier = Modifier.size(36.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -1821,17 +1821,18 @@ fun BrowserDiagnosticOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header Icon
+                val tBrowserErr = graventTokens()
                 Box(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = 0.12f)),
+                        .background(tBrowserErr.accentSoftBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (isStalled) Icons.Outlined.HourglassEmpty else Icons.Outlined.WarningAmber,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = tBrowserErr.accent,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -1905,12 +1906,12 @@ fun BrowserDiagnosticOverlay(
                                 text = if (showDetails) "Hide Diagnostic Logs" else "Show Diagnostic Logs (${recentLogs.size})",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = ClaudeTerracotta
+                                color = tBrowserErr.accent
                             )
                             Icon(
                                 imageVector = if (showDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = tBrowserErr.accent,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -2043,7 +2044,7 @@ private fun BrowserAiLockOverlay(busy: Boolean, onUnlock: () -> Unit) {
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                         modifier = Modifier.height(28.dp)
                     ) {
-                        Text("Unlock", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFFFB38A))
+                        Text("Unlock", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = com.example.gemini.theme.DarkGraventTokens.infoAccent)
                     }
                 }
             }

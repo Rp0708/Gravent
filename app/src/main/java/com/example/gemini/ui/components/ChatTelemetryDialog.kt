@@ -69,7 +69,6 @@ import com.example.gemini.domain.model.ChatMessage
 import com.example.gemini.domain.model.Conversation
 import com.example.gemini.domain.model.MessageRole
 import com.example.gemini.domain.model.TurnDiffStats
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventNeutralButtonColors
 import com.example.gemini.theme.graventTokens
 import java.text.NumberFormat
@@ -460,7 +459,7 @@ fun ChatTelemetryDialog(
                                         Icon(
                                             imageVector = Icons.Outlined.DataObject,
                                             contentDescription = null,
-                                            tint = ClaudeTerracotta,
+                                            tint = tokens.accent,
                                             modifier = Modifier.size(15.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))

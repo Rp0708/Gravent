@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -141,7 +141,7 @@ fun WorkspaceFolderBrowserDialog(
                         Icon(
                             imageVector = Icons.Default.CreateNewFolder,
                             contentDescription = "New Folder",
-                            tint = ClaudeTerracotta
+                            tint = graventTokens().accent
                         )
                     }
                 }
@@ -165,7 +165,7 @@ fun WorkspaceFolderBrowserDialog(
                             ) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(32.dp),
-                                    color = ClaudeTerracotta,
+                                    color = graventTokens().accent,
                                     strokeWidth = 2.5.dp
                                 )
                             }
@@ -224,7 +224,7 @@ fun WorkspaceFolderBrowserDialog(
                                             Icon(
                                                 imageVector = Icons.Default.Folder,
                                                 contentDescription = null,
-                                                tint = ClaudeTerracotta,
+                                                tint = graventTokens().accent,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))

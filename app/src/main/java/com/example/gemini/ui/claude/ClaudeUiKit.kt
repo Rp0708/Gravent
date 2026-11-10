@@ -58,7 +58,7 @@ fun SettingsGroupHeader(title: String, accent: Color, subtitle: String? = null, 
             Text(
                 subtitle,
                 fontSize = 11.sp,
-                color = Color(0xFFA1A1AA),
+                color = graventTokens().textMuted,
                 modifier = Modifier.padding(start = 14.dp, top = 2.dp)
             )
         }
@@ -157,12 +157,12 @@ fun ClaudeNavCard(
 /** Plain content card. */
 @Composable
 fun ClaudeCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val isDark = isAppInDarkTheme()
+    val t = graventTokens()
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = claudeCardColor()),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF1E1E22) else Color(0xFFE4E4E7))
+        colors = CardDefaults.cardColors(containerColor = t.cardBg),
+        border = BorderStroke(1.dp, t.border)
     ) { Column(Modifier.padding(14.dp)) { content() } }
 }
 
@@ -208,19 +208,19 @@ fun ControlChip(
     highlighted: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val isDark = isAppInDarkTheme()
+    val t = graventTokens()
     Surface(
         modifier = modifier.clip(RoundedCornerShape(8.dp)).then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(8.dp),
-        color = if (highlighted) (if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B)) else (if (isDark) Color(0xFF09090B) else Color(0xFFF4F4F5)),
-        border = BorderStroke(1.dp, if (highlighted) Color.White else (if (isDark) Color(0xFF222226) else Color(0xFFE4E4E7)))
+        color = if (highlighted) t.accent else t.chipBg,
+        border = BorderStroke(1.dp, if (highlighted) t.accent else t.border)
     ) {
         Row(Modifier.padding(horizontal = 9.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
                 Icon(
                     icon,
                     null,
-                    tint = if (highlighted) (if (isDark) Color(0xFF09090B) else Color.White) else color,
+                    tint = if (highlighted) t.onAccent else color,
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(Modifier.width(4.dp))
@@ -229,7 +229,7 @@ fun ControlChip(
                 text,
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (highlighted) (if (isDark) Color(0xFF09090B) else Color.White) else color,
+                color = if (highlighted) t.onAccent else color,
                 maxLines = 1
             )
         }

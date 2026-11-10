@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.delay
 
 class InteractiveUiJsBridge(
@@ -63,9 +63,10 @@ fun InteractiveUiView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDark = isAppInDarkTheme()
+    val tokens = graventTokens()
+    val isDark = tokens.isDark
     var isFullscreen by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf(0) } // 0 = App, 1 = Code
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = App, 1 = Code
     var reloadKey by remember { mutableIntStateOf(0) }
     var isCopied by remember { mutableStateOf(false) }
 
@@ -132,15 +133,15 @@ fun InteractiveUiView(
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+        color = tokens.codeBg,
+        border = BorderStroke(1.dp, tokens.border)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .background(tokens.codeHeaderBg)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -149,7 +150,7 @@ fun InteractiveUiView(
                     Icon(
                         imageVector = Icons.Default.SmartButton,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = tokens.accent,
                         modifier = Modifier.size(17.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -157,7 +158,7 @@ fun InteractiveUiView(
                         text = title,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = tokens.textPrimary
                     )
                 }
 
@@ -166,13 +167,13 @@ fun InteractiveUiView(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(tokens.surfaceBg)
                             .padding(2.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(if (selectedTab == 0) ClaudeTerracotta else Color.Transparent)
+                                .background(if (selectedTab == 0) tokens.accent else Color.Transparent)
                                 .clickable { selectedTab = 0 }
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
@@ -180,13 +181,13 @@ fun InteractiveUiView(
                                 text = "App",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = if (selectedTab == 0) tokens.onAccent else tokens.textMuted
                             )
                         }
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(if (selectedTab == 1) ClaudeTerracotta else Color.Transparent)
+                                .background(if (selectedTab == 1) tokens.accent else Color.Transparent)
                                 .clickable { selectedTab = 1 }
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
@@ -194,7 +195,7 @@ fun InteractiveUiView(
                                 text = "Code",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = if (selectedTab == 1) tokens.onAccent else tokens.textMuted
                             )
                         }
                     }
@@ -209,7 +210,7 @@ fun InteractiveUiView(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Restart App",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            tint = tokens.textMuted,
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -222,7 +223,7 @@ fun InteractiveUiView(
                         Icon(
                             imageVector = Icons.Default.Fullscreen,
                             contentDescription = "Open Fullscreen",
-                            tint = ClaudeTerracotta,
+                            tint = tokens.accent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -304,7 +305,7 @@ fun InteractiveUiView(
                             Icon(
                                 imageVector = Icons.Default.SmartButton,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = tokens.accent,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -312,7 +313,7 @@ fun InteractiveUiView(
                                 text = title,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = tokens.textPrimary
                             )
                         }
 
@@ -321,14 +322,14 @@ fun InteractiveUiView(
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = "Restart App",
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = tokens.textPrimary
                                 )
                             }
                             IconButton(onClick = { isFullscreen = false }) {
                                 Icon(
                                     imageVector = Icons.Default.FullscreenExit,
                                     contentDescription = "Exit Fullscreen",
-                                    tint = ClaudeTerracotta
+                                    tint = tokens.accent
                                 )
                             }
                         }

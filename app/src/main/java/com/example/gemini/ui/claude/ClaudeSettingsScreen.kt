@@ -92,7 +92,8 @@ import com.example.gemini.data.agent.claude.ClaudeConfigManager
 import com.example.gemini.data.agent.claude.ClaudeMcpAddRequest
 import com.example.gemini.data.agent.claude.ClaudePluginAction
 import com.example.gemini.data.agent.claude.ClaudePreferences
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
+import com.example.gemini.ui.components.GraventLogConsole
 import com.example.gemini.theme.GeminiBlue
 import com.example.gemini.theme.GeminiPurple
 import com.example.gemini.theme.QuotaAmber
@@ -315,13 +316,14 @@ private fun AccountPage(deps: ClaudeSettingsDeps) {
                 fontSize = 12.sp,
                 color = if (!j.running && j.exit_code != 0) QuotaRed else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
-            Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    j.log.lines().takeLast(30).joinToString("\n"),
-                    fontFamily = FontFamily.Monospace, fontSize = 10.5.sp,
-                    modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState()).padding(8.dp)
-                )
-            }
+            val logLines = remember(j.log) { j.log.lines() }
+            GraventLogConsole(
+                lines = logLines,
+                maxVisibleLines = 50,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 220.dp)
+            )
         }
     }
 
@@ -621,7 +623,7 @@ private fun McpPage(deps: ClaudeSettingsDeps) {
     }
     Text("Quick presets", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
     val tiles = listOf(
-        ClaudeMcpPreset("Custom Plugin MCP", "Pick an installed plugin", Icons.Outlined.Extension, ClaudeTerracotta, null),
+        ClaudeMcpPreset("Custom Plugin MCP", "Pick an installed plugin", Icons.Outlined.Extension, graventTokens().accent, null),
     ) + presets + ClaudeMcpPreset("Custom server", "Any stdio, HTTP or SSE server", Icons.Outlined.Add, ClaudeAccent, null)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         tiles.chunked(2).forEach { row ->

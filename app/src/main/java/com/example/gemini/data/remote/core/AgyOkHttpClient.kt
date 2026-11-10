@@ -11,6 +11,8 @@ import java.util.concurrent.TimeUnit
  * Configured with high multiplexing dispatcher, connection pooling, timeouts, and dynamic CSRF token evaluation.
  */
 object AgyOkHttpClient {
+    private val csrfFetchLock = Any()
+
     val client: OkHttpClient by lazy {
         val dispatcher = Dispatcher().apply {
             maxRequests = 256
@@ -35,14 +37,19 @@ object AgyOkHttpClient {
                 val hubUrl = AuthPreferences.currentHubUrl
                 var token = AgyCsrfManager.instance.token
                 if (token.isBlank()) {
-                    try {
-                        val status = kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
-                            com.example.gemini.data.remote.AgyBridgeService.instance.fetchServerStatus(AuthPreferences.currentBridgeHttpUrl)
+                    synchronized(csrfFetchLock) {
+                        token = AgyCsrfManager.instance.token
+                        if (token.isBlank()) {
+                            try {
+                                val status = kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                                    com.example.gemini.data.remote.AgyBridgeService.instance.fetchServerStatus(AuthPreferences.currentBridgeHttpUrl)
+                                }
+                                if (!status?.csrfToken.isNullOrBlank()) {
+                                    token = status.csrfToken
+                                }
+                            } catch (_: Exception) {}
                         }
-                        if (!status?.csrfToken.isNullOrBlank()) {
-                            token = status.csrfToken
-                        }
-                    } catch (_: Exception) {}
+                    }
                 }
 
                 val request = chain.request().newBuilder()

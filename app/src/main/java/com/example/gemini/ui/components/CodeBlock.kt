@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.WrapText
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
@@ -58,15 +59,22 @@ import com.example.gemini.theme.*
 import kotlinx.coroutines.delay
 import java.util.regex.Pattern
 
-// Syntax theme colors (One Dark / VS Code inspired)
-private val SynKeyword = Color(0xFFC678DD)      // Magenta / Purple
-private val SynType = Color(0xFFE5C07B)         // Gold / Yellow
-private val SynString = Color(0xFF98C379)       // Soft Green
-private val SynNumber = Color(0xFFD19A66)       // Orange / Peach
-private val SynComment = Color(0xFF7F848E)      // Muted Slate Gray
-private val SynAnnotation = Color(0xFFE5C07B)   // Warm Gold
-private val SynFunction = Color(0xFF61AFEF)     // Sky Blue
-private val SynPunctuation = Color(0xFFABB2BF)  // Light Gray
+// Syntax theme colors (One Dark for dark theme, crisp slate/ink for light theme)
+private val SynKeywordDark = Color(0xFFC678DD)
+private val SynTypeDark = Color(0xFFE5C07B)
+private val SynStringDark = Color(0xFF98C379)
+private val SynNumberDark = Color(0xFFD19A66)
+private val SynCommentDark = Color(0xFF7F848E)
+private val SynAnnotationDark = Color(0xFFE5C07B)
+private val SynFunctionDark = Color(0xFF61AFEF)
+
+private val SynKeywordLight = Color(0xFF9333EA)
+private val SynTypeLight = Color(0xFF9A6700)
+private val SynStringLight = Color(0xFF15803D)
+private val SynNumberLight = Color(0xFFB45309)
+private val SynCommentLight = Color(0xFF6B7280)
+private val SynAnnotationLight = Color(0xFFB45309)
+private val SynFunctionLight = Color(0xFF0369A1)
 
 /**
  * Checks whether a code block is runnable / previewable as an interactive Web/HTML/SVG Artifact.
@@ -160,11 +168,13 @@ fun CodeBlock(
     language: String = "",
     modifier: Modifier = Modifier
 ) {
+    val t = graventTokens()
     val context = LocalContext.current
     var isCopied by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Code, 1 = Preview
-    var reloadKey by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Code, 1 = Preview
+    var reloadKey by remember { mutableIntStateOf(0) }
     var isFullscreen by remember { mutableStateOf(false) }
+    var isSoftWrap by remember { mutableStateOf(false) }
 
     val codeKey = remember(code, language) {
         "${code.hashCode()}_${language}"
@@ -178,8 +188,8 @@ fun CodeBlock(
         CodeBlockExpansionCache.setExpanded(codeKey, next)
     }
 
-    val cachedCode = remember(code, language) {
-        CodeBlockCache.getOrCompute(code, language)
+    val cachedCode = remember(code, language, t.isDark) {
+        CodeBlockCache.getOrCompute(code, language, isDark = t.isDark)
     }
     val lineCount = cachedCode.lineCount
     val isLongCode = cachedCode.isLongCode
@@ -199,21 +209,19 @@ fun CodeBlock(
         }
     }
 
-
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(CodeBlockBgDark)
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(t.codeBg)
+            .border(1.dp, t.border, RoundedCornerShape(12.dp))
     ) {
         // Header Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(CodeBlockBgDark.copy(alpha = 0.95f))
+                .background(t.codeHeaderBg)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -224,16 +232,16 @@ fun CodeBlock(
             ) {
                 Text(
                     text = language.ifEmpty { "code" }.uppercase(),
-                    fontSize = 11.5.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ClaudeTerracotta,
+                    color = t.textPrimary,
                     letterSpacing = 0.5.sp
                 )
                 if (lineCount > 1) {
                     Text(
-                        text = "•  $lineCount lines",
+                        text = "• $lineCount lines",
                         fontSize = 10.5.sp,
-                        color = TextPrimaryDark.copy(alpha = 0.5f)
+                        color = t.textMuted
                     )
                 }
             }
@@ -245,7 +253,8 @@ fun CodeBlock(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(t.elevatedBg)
+                        .border(0.5.dp, t.subtleBorder, RoundedCornerShape(16.dp))
                         .padding(2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -253,7 +262,7 @@ fun CodeBlock(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (selectedTab == 0) ClaudeTerracotta else Color.Transparent)
+                            .background(if (selectedTab == 0) t.accent else Color.Transparent)
                             .clickable { selectedTab = 0 }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -261,7 +270,7 @@ fun CodeBlock(
                             Icon(
                                 imageVector = Icons.Outlined.Code,
                                 contentDescription = null,
-                                tint = if (selectedTab == 0) Color.White else TextPrimaryDark.copy(alpha = 0.6f),
+                                tint = if (selectedTab == 0) t.onAccent else t.textMuted,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
@@ -269,7 +278,7 @@ fun CodeBlock(
                                 text = "Code",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (selectedTab == 0) Color.White else TextPrimaryDark.copy(alpha = 0.6f)
+                                color = if (selectedTab == 0) t.onAccent else t.textMuted
                             )
                         }
                     }
@@ -278,7 +287,7 @@ fun CodeBlock(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (selectedTab == 1) ClaudeTerracotta else Color.Transparent)
+                            .background(if (selectedTab == 1) t.accent else Color.Transparent)
                             .clickable { selectedTab = 1 }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -286,7 +295,7 @@ fun CodeBlock(
                             Icon(
                                 imageVector = Icons.Filled.PlayArrow,
                                 contentDescription = null,
-                                tint = if (selectedTab == 1) Color.White else TextPrimaryDark.copy(alpha = 0.6f),
+                                tint = if (selectedTab == 1) t.onAccent else t.textMuted,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
@@ -294,7 +303,7 @@ fun CodeBlock(
                                 text = "Preview",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (selectedTab == 1) Color.White else TextPrimaryDark.copy(alpha = 0.6f)
+                                color = if (selectedTab == 1) t.onAccent else t.textMuted
                             )
                         }
                     }
@@ -311,10 +320,25 @@ fun CodeBlock(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Reload preview",
-                            tint = TextPrimaryDark.copy(alpha = 0.7f),
+                            tint = t.textMuted,
                             modifier = Modifier.size(15.dp)
                         )
                     }
+                }
+            }
+
+            // Soft wrap toggle when viewing Code
+            if (selectedTab == 0) {
+                IconButton(
+                    onClick = { isSoftWrap = !isSoftWrap },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.WrapText,
+                        contentDescription = if (isSoftWrap) "Disable line wrap" else "Wrap long lines",
+                        tint = if (isSoftWrap) t.accent else t.textMuted,
+                        modifier = Modifier.size(15.dp)
+                    )
                 }
             }
 
@@ -326,7 +350,7 @@ fun CodeBlock(
                 Icon(
                     imageVector = Icons.Outlined.OpenInFull,
                     contentDescription = "Fullscreen",
-                    tint = TextPrimaryDark.copy(alpha = 0.7f),
+                    tint = t.textMuted,
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -340,7 +364,7 @@ fun CodeBlock(
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = if (isExpanded) "Collapse code block" else "Expand full height",
-                        tint = if (isExpanded) ClaudeTerracotta else TextPrimaryDark.copy(alpha = 0.7f),
+                        tint = if (isExpanded) t.accent else t.textMuted,
                         modifier = Modifier.size(17.dp)
                     )
                 }
@@ -361,14 +385,14 @@ fun CodeBlock(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Copied",
-                        tint = QuotaGreen,
+                        tint = t.successAccent,
                         modifier = Modifier.size(16.dp)
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Outlined.ContentCopy,
                         contentDescription = "Copy code",
-                        tint = TextPrimaryDark.copy(alpha = 0.7f),
+                        tint = t.textMuted,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -383,14 +407,14 @@ fun CodeBlock(
                     Icon(
                         imageVector = Icons.Filled.PlayArrow,
                         contentDescription = "Run in terminal",
-                        tint = ClaudeTerracotta,
+                        tint = t.accent,
                         modifier = Modifier.size(18.dp)
                     )
                 }
             }
         }
 
-        HorizontalDivider(thickness = 0.7.dp, color = Color.White.copy(alpha = 0.08f))
+        HorizontalDivider(thickness = 0.7.dp, color = t.subtleBorder)
 
         // Body Content
         if (selectedTab == 1 && isPreviewable) {
@@ -402,8 +426,8 @@ fun CodeBlock(
                     .background(Color.White)
             ) {
                 key(reloadKey) {
-                    val previewHtml = remember(code) {
-                        prepareHtmlForPreview(code, isDark = false)
+                    val previewHtml = remember(code, t.isDark) {
+                        prepareHtmlForPreview(code, isDark = t.isDark)
                     }
                     AndroidView(
                         factory = { ctx ->
@@ -426,23 +450,23 @@ fun CodeBlock(
                 }
             }
         } else {
-            // Ultra-fast windowed syntax-highlighted code rendering (0.5ms layout, zero frame drops)
+            // Ultra-fast windowed syntax-highlighted code rendering
             val displayText = if (isExpanded || !isLongCode) cachedCode.fullText else cachedCode.previewText
             val horizontalScroll = rememberScrollState()
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Rebuilt on expand/collapse so a live selection can't point at swapped-out text
-                key(isExpanded) {
+                // Rebuilt on expand/collapse or wrap toggle so a live selection can't point at swapped-out text
+                key(isExpanded, isSoftWrap) {
                     androidx.compose.foundation.text.selection.SelectionContainer {
                         Text(
                             text = displayText,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.5.sp,
                             lineHeight = 19.sp,
-                            softWrap = false,
+                            softWrap = isSoftWrap,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .horizontalScroll(horizontalScroll)
+                                .then(if (isSoftWrap) Modifier else Modifier.horizontalScroll(horizontalScroll))
                                 .padding(horizontal = 14.dp, vertical = 12.dp)
                         )
                     }
@@ -451,12 +475,12 @@ fun CodeBlock(
 
             // Subtle Expand/Collapse footer for long code blocks
             if (isLongCode) {
-                HorizontalDivider(thickness = 0.5.dp, color = Color.White.copy(alpha = 0.05f))
+                HorizontalDivider(thickness = 0.5.dp, color = t.subtleBorder)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { toggleExpand() },
-                    color = CodeBlockBgDark.copy(alpha = 0.7f)
+                    color = t.codeHeaderBg
                 ) {
                     Row(
                         modifier = Modifier
@@ -467,16 +491,16 @@ fun CodeBlock(
                     ) {
                         val hiddenLines = (lineCount - CODE_PREVIEW_LINES).coerceAtLeast(1)
                         Text(
-                            text = if (isExpanded) "Collapse code block ▲" else "Show all $lineCount lines ($hiddenLines more) ▼",
+                            text = if (isExpanded) "Collapse code block" else "Show all $lineCount lines ($hiddenLines more)",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = ClaudeTerracotta
+                            color = t.textPrimary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = t.textSecondary,
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -542,7 +566,7 @@ fun CodeBlock(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(14.dp))
-                                            .background(if (selectedTab == 0) ClaudeTerracotta else Color.Transparent)
+                                            .background(if (selectedTab == 0) t.accent else Color.Transparent)
                                             .clickable { selectedTab = 0 }
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
@@ -550,13 +574,13 @@ fun CodeBlock(
                                             text = "Code",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = if (selectedTab == 0) t.onAccent else t.textMuted
                                         )
                                     }
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(14.dp))
-                                            .background(if (selectedTab == 1) ClaudeTerracotta else Color.Transparent)
+                                            .background(if (selectedTab == 1) t.accent else Color.Transparent)
                                             .clickable { selectedTab = 1 }
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
@@ -564,7 +588,7 @@ fun CodeBlock(
                                             text = "Preview",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = if (selectedTab == 1) t.onAccent else t.textMuted
                                         )
                                     }
                                 }
@@ -649,7 +673,7 @@ fun CodeBlock(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(CodeBlockBgDark)
+                                .background(t.codeBg)
                                 .verticalScroll(modalVerticalScroll)
                         ) {
                             // Line numbers gutter
@@ -658,7 +682,7 @@ fun CodeBlock(
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.5.sp,
                                 lineHeight = 20.sp,
-                                color = Color(0xFF636D83),
+                                color = t.textMuted,
                                 textAlign = TextAlign.End,
                                 modifier = Modifier
                                     .padding(start = 12.dp, end = 10.dp, top = 14.dp, bottom = 14.dp)
@@ -670,7 +694,7 @@ fun CodeBlock(
                                 modifier = Modifier
                                     .width(1.dp)
                                     .fillMaxHeight()
-                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .background(t.subtleBorder)
                             )
 
                             // Syntax-highlighted code
@@ -705,19 +729,29 @@ data class CachedCodeBlock(
     val isLongCode: Boolean
 )
 
-object CodeBlockCache {
-    private val cache = android.util.LruCache<Int, CachedCodeBlock>(400)
+private data class CodeBlockCacheKey(
+    val code: String,
+    val lang: String,
+    val isDark: Boolean
+)
 
-    fun prewarm(code: String, language: String) {
-        getOrCompute(code, language)
+object CodeBlockCache {
+    private val cache = android.util.LruCache<CodeBlockCacheKey, CachedCodeBlock>(400)
+
+    fun prewarm(code: String, language: String, isDark: Boolean = true) {
+        getOrCompute(code, language, isDark)
     }
 
-    fun getOrCompute(code: String, language: String): CachedCodeBlock {
-        val t0 = System.nanoTime()
-        val key = code.hashCode() * 31 + language.lowercase().trim().hashCode()
+    fun getOrCompute(code: String, language: String, isDark: Boolean = true): CachedCodeBlock {
+        val normLang = language.lowercase().trim()
+        val key = CodeBlockCacheKey(code, normLang, isDark)
         val hit = cache.get(key)
         if (hit != null) return hit
-        val full = highlightSyntax(code, language.lowercase().trim())
+        val full = if (normLang in setOf("diff", "patch") || code.startsWith("diff --git ")) {
+            highlightDiff(code, isDark)
+        } else {
+            highlightSyntax(code, normLang, isDark)
+        }
         val raw = full.text
         var lines = 1
         var endOfPreview = raw.length
@@ -756,10 +790,49 @@ private val GENERAL_KW_PATTERN = Pattern.compile("\\b(fun|val|var|class|interfac
 private val TYPES_PATTERN = Pattern.compile("\\b(String|Int|Long|Float|Double|Boolean|Char|Byte|Short|List|Map|Set|Array|Any|Unit|Nothing|Throwable|Exception|Result|StateFlow|Flow|MutableStateFlow|Promise|Observable|void|int|float|double|bool|char|number|string|boolean|any|unknown|never|dict|tuple|str)\\b")
 private val FUNCTION_PATTERN = Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\\s*\\()")
 
+private fun highlightDiff(code: String, isDark: Boolean): AnnotatedString {
+    val tokens = if (isDark) DarkGraventTokens else LightGraventTokens
+    val builder = AnnotatedString.Builder()
+    val lines = code.lines()
+    lines.forEachIndexed { idx, line ->
+        val start = builder.length
+        builder.append(line)
+        val end = builder.length
+        when {
+            line.startsWith("+++") || line.startsWith("---") || line.startsWith("diff --git") || line.startsWith("index ") -> {
+                builder.addStyle(SpanStyle(color = tokens.textMuted, fontWeight = FontWeight.SemiBold), start, end)
+            }
+            line.startsWith("@@") -> {
+                builder.addStyle(SpanStyle(color = tokens.infoAccent, background = tokens.infoSoftBg, fontWeight = FontWeight.Medium), start, end)
+            }
+            line.startsWith("+") -> {
+                builder.addStyle(SpanStyle(color = tokens.successAccent, background = tokens.successSoftBg), start, end)
+            }
+            line.startsWith("-") -> {
+                builder.addStyle(SpanStyle(color = tokens.errorAccent, background = tokens.errorSoftBg), start, end)
+            }
+            else -> {
+                builder.addStyle(SpanStyle(color = tokens.inlineCodeText), start, end)
+            }
+        }
+        if (idx < lines.lastIndex) builder.append('\n')
+    }
+    return builder.toAnnotatedString()
+}
+
 /**
  * Fast regex-based lexical tokenizer for syntax highlighting with precompiled patterns and zero allocations.
  */
-private fun highlightSyntax(code: String, lang: String): AnnotatedString {
+private fun highlightSyntax(code: String, lang: String, isDark: Boolean = true): AnnotatedString {
+    val synKeyword = if (isDark) SynKeywordDark else SynKeywordLight
+    val synType = if (isDark) SynTypeDark else SynTypeLight
+    val synString = if (isDark) SynStringDark else SynStringLight
+    val synNumber = if (isDark) SynNumberDark else SynNumberLight
+    val synComment = if (isDark) SynCommentDark else SynCommentLight
+    val synAnnotation = if (isDark) SynAnnotationDark else SynAnnotationLight
+    val synFunction = if (isDark) SynFunctionDark else SynFunctionLight
+    val baseText = if (isDark) TextPrimaryDark else TextPrimaryLight
+
     val builder = AnnotatedString.Builder(code)
 
     data class Span(val start: Int, val end: Int, val style: SpanStyle)
@@ -780,16 +853,16 @@ private fun highlightSyntax(code: String, lang: String): AnnotatedString {
         "sql" -> COMMENT_SQL
         else -> COMMENT_GENERIC
     }
-    addMatches(commentPat, SpanStyle(color = SynComment, fontStyle = FontStyle.Italic))
+    addMatches(commentPat, SpanStyle(color = synComment, fontStyle = FontStyle.Italic))
 
     // 2. Strings
-    addMatches(STRING_PATTERN, SpanStyle(color = SynString))
+    addMatches(STRING_PATTERN, SpanStyle(color = synString))
 
     // 3. Numbers
-    addMatches(NUMBER_PATTERN, SpanStyle(color = SynNumber))
+    addMatches(NUMBER_PATTERN, SpanStyle(color = synNumber))
 
     // 4. Annotations
-    addMatches(ANNOTATION_PATTERN, SpanStyle(color = SynAnnotation, fontWeight = FontWeight.SemiBold))
+    addMatches(ANNOTATION_PATTERN, SpanStyle(color = synAnnotation, fontWeight = FontWeight.SemiBold))
 
     // 5. Keywords
     val kwPat = when (lang) {
@@ -799,21 +872,21 @@ private fun highlightSyntax(code: String, lang: String): AnnotatedString {
         "sql" -> SQL_KW_PATTERN
         else -> GENERAL_KW_PATTERN
     }
-    addMatches(kwPat, SpanStyle(color = SynKeyword, fontWeight = FontWeight.Bold))
+    addMatches(kwPat, SpanStyle(color = synKeyword, fontWeight = FontWeight.Bold))
 
     // 6. Types / Classes
-    addMatches(TYPES_PATTERN, SpanStyle(color = SynType, fontWeight = FontWeight.SemiBold))
+    addMatches(TYPES_PATTERN, SpanStyle(color = synType, fontWeight = FontWeight.SemiBold))
 
     // 7. Function invocations
     try {
         val fnMatcher = FUNCTION_PATTERN.matcher(code)
         while (fnMatcher.find()) {
-            spans.add(Span(fnMatcher.start(1), fnMatcher.end(1), SpanStyle(color = SynFunction)))
+            spans.add(Span(fnMatcher.start(1), fnMatcher.end(1), SpanStyle(color = synFunction)))
         }
     } catch (_: Exception) {}
 
     // Apply default text color
-    builder.addStyle(SpanStyle(color = TextPrimaryDark), 0, code.length)
+    builder.addStyle(SpanStyle(color = baseText), 0, code.length)
 
     // Apply all non-overlapping / prioritized spans
     spans.sortedWith(compareBy<Span> { it.start }.thenByDescending { it.end }).forEach { span ->

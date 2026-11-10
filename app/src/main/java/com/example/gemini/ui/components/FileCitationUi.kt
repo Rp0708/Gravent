@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.theme.isAppInDarkTheme
 import java.io.File
 
@@ -51,20 +51,23 @@ private const val FILE_CHIP_END_PAD_ID = "file_chip_end_pad"
 private enum class FileVisualKind(
     val id: String,
     val icon: ImageVector,
-    val accentColor: Color
+    private val darkAccent: Color,
+    private val lightAccent: Color
 ) {
-    KOTLIN("kt", Icons.Outlined.Code, Color(0xFFA78BFA)),
-    JAVA("java", Icons.Outlined.Code, Color(0xFFF97316)),
-    PYTHON("py", Icons.Outlined.Code, Color(0xFFFACC15)),
-    TYPESCRIPT("ts", Icons.Outlined.Code, Color(0xFF38BDF8)),
-    JAVASCRIPT("js", Icons.Outlined.Code, Color(0xFFFBBF24)),
-    NATIVE_CODE("native", Icons.Outlined.Code, Color(0xFF38BDF8)),
-    MARKUP("html", Icons.Outlined.Code, Color(0xFFFB7185)),
-    DATA("data", Icons.Outlined.DataObject, Color(0xFF2DD4BF)),
-    SHELL("sh", Icons.Outlined.Terminal, Color(0xFF4ADE80)),
-    IMAGE("img", Icons.Outlined.Image, Color(0xFFC084FC)),
-    DOC("doc", Icons.Outlined.Description, ClaudeTerracotta),
-    GENERIC("file", Icons.Outlined.Description, Color(0xFF93C5FD));
+    KOTLIN("kt", Icons.Outlined.Code, Color(0xFFA78BFA), Color(0xFF7C3AED)),
+    JAVA("java", Icons.Outlined.Code, Color(0xFFFB923C), Color(0xFFC2410C)),
+    PYTHON("py", Icons.Outlined.Code, Color(0xFFFACC15), Color(0xFFA16207)),
+    TYPESCRIPT("ts", Icons.Outlined.Code, Color(0xFF38BDF8), Color(0xFF0284C7)),
+    JAVASCRIPT("js", Icons.Outlined.Code, Color(0xFFFBBF24), Color(0xFFB45309)),
+    NATIVE_CODE("native", Icons.Outlined.Code, Color(0xFF38BDF8), Color(0xFF0369A1)),
+    MARKUP("html", Icons.Outlined.Code, Color(0xFFFB7185), Color(0xFFBE123C)),
+    DATA("data", Icons.Outlined.DataObject, Color(0xFF2DD4BF), Color(0xFF0F766E)),
+    SHELL("sh", Icons.Outlined.Terminal, Color(0xFF4ADE80), Color(0xFF15803D)),
+    IMAGE("img", Icons.Outlined.Image, Color(0xFFC084FC), Color(0xFF7E22CE)),
+    DOC("doc", Icons.Outlined.Description, Color(0xFFE4E4E7), Color(0xFF3F3F46)),
+    GENERIC("file", Icons.Outlined.Description, Color(0xFF93C5FD), Color(0xFF2563EB));
+
+    fun accentFor(isDark: Boolean): Color = if (isDark) darkAccent else lightAccent
 
     companion object {
         private val byId = entries.associateBy { it.id }
@@ -121,10 +124,11 @@ private val FILE_ICON_INLINE_CONTENT_MAP: Map<String, InlineTextContent> = build
                         .padding(start = 2.5.dp, end = 2.5.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    val iconTint = kind.accentFor(isAppInDarkTheme())
                     Icon(
                         imageVector = kind.icon,
                         contentDescription = null,
-                        tint = kind.accentColor,
+                        tint = iconTint,
                         modifier = Modifier.size(12.dp)
                     )
                 }
@@ -221,7 +225,7 @@ internal fun appendFileCitationChip(
             color = if (isDark) Color(0xFFF4F4F5) else Color(0xFF18181B),
             fontWeight = FontWeight.SemiBold,
             fontFamily = FontFamily.SansSerif,
-            fontSize = 13.sp,
+            fontSize = 12.5.sp,
             letterSpacing = (-0.1).sp
         )
     )
@@ -231,10 +235,10 @@ internal fun appendFileCitationChip(
     if (citation.lineSuffix != null) {
         builder.pushStyle(
             SpanStyle(
-                color = if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                color = if (isDark) Color(0xFFA1A1AA) else Color(0xFF6B7280),
                 fontWeight = FontWeight.Medium,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 11.5.sp
+                fontSize = 11.sp
             )
         )
         builder.append(":${citation.lineSuffix}")
@@ -257,6 +261,7 @@ private data class FileChipDrawRect(
 private fun computeFileChipDrawRects(
     layout: TextLayoutResult,
     ranges: List<AnnotatedString.Range<String>>,
+    isDark: Boolean,
     verticalInsetPx: Float,
     minHeightPx: Float
 ): List<FileChipDrawRect> {
@@ -303,7 +308,7 @@ private fun computeFileChipDrawRects(
                     top = top,
                     right = right,
                     bottom = bottom,
-                    accentColor = kind.accentColor
+                    accentColor = kind.accentFor(isDark)
                 )
             )
         }
@@ -338,7 +343,8 @@ internal fun RichMarkdownText(
         return
     }
 
-    val isDark = isAppInDarkTheme()
+    val t = graventTokens()
+    val isDark = t.isDark
     val density = LocalDensity.current
     val verticalInsetPx = with(density) { 1.5.dp.toPx() }
     val minHeightPx = with(density) { 17.dp.toPx() }
@@ -349,10 +355,10 @@ internal fun RichMarkdownText(
     val strokeStyle = remember(density) {
         Stroke(width = with(density) { 0.85.dp.toPx() })
     }
-    val pillBaseFill = if (isDark) Color(0xFF1D1D23) else Color(0xFFF3F4F6)
-    val pillBorderColor = if (isDark) Color(0xFF33333D) else Color(0xFFD4D6DF)
+    val pillBaseFill = t.cardBg
+    val pillBorderColor = t.border
 
-    var chipRects by remember(annotatedString) { mutableStateOf<List<FileChipDrawRect>>(emptyList()) }
+    var chipRects by remember(annotatedString, isDark) { mutableStateOf<List<FileChipDrawRect>>(emptyList()) }
 
     Text(
         text = annotatedString,
@@ -365,6 +371,7 @@ internal fun RichMarkdownText(
             chipRects = computeFileChipDrawRects(
                 layout = layoutResult,
                 ranges = chipAnnotations,
+                isDark = isDark,
                 verticalInsetPx = verticalInsetPx,
                 minHeightPx = minHeightPx
             )
@@ -381,7 +388,7 @@ internal fun RichMarkdownText(
                     cornerRadius = cornerRadius
                 )
                 drawRoundRect(
-                    color = rect.accentColor.copy(alpha = if (isDark) 0.06f else 0.05f),
+                    color = rect.accentColor.copy(alpha = if (isDark) 0.05f else 0.06f),
                     topLeft = topLeft,
                     size = rectSize,
                     cornerRadius = cornerRadius

@@ -39,6 +39,9 @@ import com.example.gemini.data.local.LocalEnvironmentManager
 import com.example.gemini.data.local.LocalInstallerState
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.theme.*
+import com.example.gemini.ui.components.GraventBadge
+import com.example.gemini.ui.components.GraventLogConsole
+import com.example.gemini.ui.components.GraventTone
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -49,6 +52,7 @@ fun FullScreenLocalToolsInstaller(
     onSkip: () -> Unit,
     onComplete: () -> Unit
 ) {
+    val t = graventTokens()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val installerState by LocalEnvironmentManager.installerState.collectAsState()
@@ -72,7 +76,7 @@ fun FullScreenLocalToolsInstaller(
         }
     }
 
-    var selectedSourceType by remember { mutableStateOf(0) } // 0: Auto GitHub, 1: Direct URL, 2: Local ZIP File
+    var selectedSourceType by remember { mutableIntStateOf(0) } // 0: Auto GitHub, 1: Direct URL, 2: Local ZIP File
     var directUrlText by remember { mutableStateOf("") }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var showLogs by remember { mutableStateOf(false) }
@@ -83,13 +87,6 @@ fun FullScreenLocalToolsInstaller(
         if (uri != null) {
             selectedFileUri = uri
             selectedSourceType = 2
-        }
-    }
-
-    val logsListState = rememberLazyListState()
-    LaunchedEffect(installerLogs.size) {
-        if (installerLogs.isNotEmpty()) {
-            logsListState.animateScrollToItem(installerLogs.size - 1)
         }
     }
 
@@ -119,7 +116,7 @@ fun FullScreenLocalToolsInstaller(
                     if (installerState !is LocalInstallerState.Downloading && installerState !is LocalInstallerState.Extracting) {
                         TextButton(
                             onClick = onSkip,
-                            colors = ButtonDefaults.textButtonColors(contentColor = ClaudeTerracotta)
+                            colors = ButtonDefaults.textButtonColors(contentColor = t.accent)
                         ) {
                             Text("Skip for Now", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
                             Spacer(modifier = Modifier.width(4.dp))
@@ -151,9 +148,9 @@ fun FullScreenLocalToolsInstaller(
                     .clip(CircleShape)
                     .background(
                         when (installerState) {
-                            is LocalInstallerState.Success -> QuotaGreen.copy(alpha = 0.15f)
-                            is LocalInstallerState.Error -> Color.Red.copy(alpha = 0.15f)
-                            else -> ClaudeTerracotta.copy(alpha = 0.15f)
+                            is LocalInstallerState.Success -> t.successSoftBg
+                            is LocalInstallerState.Error -> t.errorSoftBg
+                            else -> t.accentSoftBg
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -166,9 +163,9 @@ fun FullScreenLocalToolsInstaller(
                     },
                     contentDescription = null,
                     tint = when (installerState) {
-                        is LocalInstallerState.Success -> QuotaGreen
-                        is LocalInstallerState.Error -> Color.Red
-                        else -> ClaudeTerracotta
+                        is LocalInstallerState.Success -> t.successAccent
+                        is LocalInstallerState.Error -> t.errorAccent
+                        else -> t.accent
                     },
                     modifier = Modifier.size(44.dp)
                 )
@@ -235,7 +232,7 @@ fun FullScreenLocalToolsInstaller(
                             imageVector = Icons.Outlined.Memory,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = ClaudeTerracotta
+                            tint = t.accent
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
@@ -267,7 +264,7 @@ fun FullScreenLocalToolsInstaller(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace,
-                                    color = ClaudeTerracotta
+                                    color = t.accent
                                 )
                             }
                         }
@@ -358,7 +355,7 @@ fun FullScreenLocalToolsInstaller(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             border = BorderStroke(
                                 1.dp,
-                                if (selectedSourceType == 0) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                if (selectedSourceType == 0) t.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -412,7 +409,7 @@ fun FullScreenLocalToolsInstaller(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             border = BorderStroke(
                                 1.dp,
-                                if (selectedSourceType == 2) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                if (selectedSourceType == 2) t.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -478,7 +475,7 @@ fun FullScreenLocalToolsInstaller(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (selectedSourceType == 1) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    if (selectedSourceType == 1) t.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -533,7 +530,7 @@ fun FullScreenLocalToolsInstaller(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator(
-                            color = ClaudeTerracotta,
+                            color = t.accent,
                             modifier = Modifier.size(44.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -569,7 +566,7 @@ fun FullScreenLocalToolsInstaller(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Architecture:", fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(info.arch, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                                Text(info.arch, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = t.accent)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -609,7 +606,7 @@ fun FullScreenLocalToolsInstaller(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Downloading Bootstrap", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                                Text("$pct%", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                                Text("$pct%", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = t.accent)
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             val animatedProgress by animateFloatAsState(
@@ -623,7 +620,7 @@ fun FullScreenLocalToolsInstaller(
                                     .fillMaxWidth()
                                     .height(10.dp)
                                     .clip(RoundedCornerShape(5.dp)),
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -651,7 +648,7 @@ fun FullScreenLocalToolsInstaller(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Unpacking & Extracting", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                                Text("$pct%", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                                Text("$pct%", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = t.accent)
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             val animatedProgress by animateFloatAsState(
@@ -665,7 +662,7 @@ fun FullScreenLocalToolsInstaller(
                                     .fillMaxWidth()
                                     .height(10.dp)
                                     .clip(RoundedCornerShape(5.dp)),
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -692,7 +689,7 @@ fun FullScreenLocalToolsInstaller(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Configuring Shell & Symlinks", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = ClaudeTerracotta, strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = t.accent, strokeWidth = 2.dp)
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             LinearProgressIndicator(
@@ -701,7 +698,7 @@ fun FullScreenLocalToolsInstaller(
                                     .fillMaxWidth()
                                     .height(10.dp)
                                     .clip(RoundedCornerShape(5.dp)),
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -726,7 +723,7 @@ fun FullScreenLocalToolsInstaller(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Verifying Installation", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = ClaudeTerracotta, strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = t.accent, strokeWidth = 2.dp)
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
@@ -824,30 +821,13 @@ fun FullScreenLocalToolsInstaller(
 
                     if (showLogs) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        LazyColumn(
-                            state = logsListState,
+                        GraventLogConsole(
+                            lines = installerLogs,
+                            maxVisibleLines = 120,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 80.dp, max = 200.dp)
-                                .background(Color(0xFF08090C), RoundedCornerShape(8.dp))
-                                .padding(8.dp)
-                        ) {
-                            items(installerLogs) { logLine ->
-                                Text(
-                                    text = logLine,
-                                    fontSize = 10.5.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    lineHeight = 14.sp,
-                                    color = if (logLine.contains("⚠") || logLine.contains("Fail") || logLine.contains("Error")) {
-                                        Color(0xFFF87171)
-                                    } else if (logLine.contains("✓") || logLine.contains("Success") || logLine.contains("ready") || logLine.contains("Extracted")) {
-                                        QuotaGreen
-                                    } else {
-                                        Color(0xFFD1D5DB)
-                                    }
-                                )
-                            }
-                        }
+                                .heightIn(min = 90.dp, max = 210.dp)
+                        )
                     }
                 }
             }

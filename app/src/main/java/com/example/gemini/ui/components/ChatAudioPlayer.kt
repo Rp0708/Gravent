@@ -73,8 +73,8 @@ fun ChatAudioPlayer(
     val coroutineScope = rememberCoroutineScope()
     var isPlaying by remember { mutableStateOf(false) }
     var isBuffering by remember { mutableStateOf(false) }
-    var currentPositionMs by remember { mutableStateOf(0) }
-    var durationMs by remember { mutableStateOf((attachment.durationSeconds * 1000).coerceAtLeast(1000)) }
+    var currentPositionMs by remember { mutableIntStateOf(0) }
+    var durationMs by remember { mutableIntStateOf((attachment.durationSeconds * 1000).coerceAtLeast(1000)) }
     var isPrepared by remember { mutableStateOf(false) }
     var hasError by remember { mutableStateOf(false) }
 

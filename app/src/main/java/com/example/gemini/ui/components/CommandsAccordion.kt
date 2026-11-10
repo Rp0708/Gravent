@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.example.gemini.data.remote.dto.AskQuestionResponseItemDto
 import com.example.gemini.domain.model.ToolCall
 import com.example.gemini.domain.model.ToolType
-import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventTokens
 
 /**
  * Collapsible accordion for terminal, bash, and agent tool executions.
@@ -107,7 +107,8 @@ fun CommandsAccordion(
         label = "pulse_alpha"
     )
 
-    val headerIconTint = if (isBackgroundSection) Color(0xFF60A5FA) else MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+    val t = graventTokens()
+    val headerIconTint = if (isBackgroundSection) t.infoAccent else t.accent.copy(alpha = 0.85f)
 
     Column(
         modifier = modifier
@@ -129,7 +130,7 @@ fun CommandsAccordion(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                tint = t.textMuted,
                 modifier = Modifier
                     .size(15.dp)
                     .rotate(rotation)
@@ -151,7 +152,7 @@ fun CommandsAccordion(
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = FontFamily.Monospace,
-                color = if (isBackgroundSection) Color(0xFF93C5FD) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                color = if (isBackgroundSection) t.infoAccent else t.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false)
@@ -164,22 +165,22 @@ fun CommandsAccordion(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF60A5FA).copy(alpha = 0.12f))
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(t.infoSoftBg)
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF60A5FA).copy(alpha = pulseAlpha))
+                            .background(t.infoAccent.copy(alpha = pulseAlpha))
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "background",
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF60A5FA)
+                        fontWeight = FontWeight.SemiBold,
+                        color = t.infoAccent
                     )
                 }
             } else if (hasActiveRunning) {
@@ -187,30 +188,12 @@ fun CommandsAccordion(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(t.accent)
                 )
             } else if (anyError) {
-                Text(
-                    text = "failed",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f))
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                )
+                GraventBadge(text = "failed", tone = GraventTone.ERROR)
             } else if (allSuccess) {
-                Text(
-                    text = "exit 0",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = QuotaGreen,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(QuotaGreen.copy(alpha = 0.12f))
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                )
+                GraventBadge(text = "exit 0", tone = GraventTone.SUCCESS)
             }
         }
 

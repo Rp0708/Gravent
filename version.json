@@ -1,12 +1,11 @@
 {
-  "version_code": 153,
-  "version_name": "1.0.53",
+  "version_code": 154,
+  "version_name": "1.0.54",
   "min_supported_version_code": 1,
   "changelog": [
-    "Full Dark & Light Mode Theme Support: Introduced GraventUiTokens reactive theme palette across Chat, Settings, Accounts, IDE, File Manager, Terminal, and Dialogs, fixing Light Mode contrast and white-on-white action buttons",
-    "Working Indicator Fix on Long Responses: Synchronized Antigravity TrajectoryEngine turn completion with the authoritative daemon summary stream so Generating animation cleanly settles into the response footer after long multi-tool turns",
-    "UI Polish & Fixes: Right-edge Prompt Slider alignment, clean model display names and multi-hour active duration formatting in response telemetry, accurate Outside chat git attribution, softened Close buttons, and Gravent UI branding",
-    "Automated Compose Rules CI Integration: Wired Detekt 2.0 + io.nlopez.compose.rules into Gradle and the release CI workflow"
+    "Chat Editorial Typography & Contextual Rendering: Theme-adaptive inline code pills, +N/-N diff pills, exit code pills, Markdown-formatted Thinking accordion, coalesced paragraphs, adaptive Dark/Light syntax highlighting with diff/patch coloring, soft-wrap toggle, Fixed Code/App Preview tabs, and colored tool output & severity logs",
+    "Universal Design System Across Every Screen: Extended GraventUiTokens & GraventKit primitives (GraventBadge, GraventEmptyState, GraventLogConsole, unified file accents) across Settings, Installer, Permissions, Diagnostics, File Manager, Branched Tree, IDE, Browser, Claude, and Copilot UI with zero Light Mode contrast regressions",
+    "Backend Speed & Streaming Engine Overhaul: Eliminated O(N^2) streaming rebuilds via TrajectoryEngine turn snapshot/message caching & deterministic timestamps, fixed UI flush stalling & backgrounded media/IO work in AgyChatBackend, added Copilot SSE throttling + stream closing, added distinctUntilChanged & async SharedPreferences writes, and isolated floating overlay state from root recomposition"
   ],
   "is_critical": false
 }

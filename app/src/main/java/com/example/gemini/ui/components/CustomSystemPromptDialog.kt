@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.gemini.data.preferences.AuthPreferences
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 
 @Composable
 fun CustomSystemPromptDialog(
@@ -41,7 +41,8 @@ fun CustomSystemPromptDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(0) }
+    val tokens = graventTokens()
+    var selectedTab by remember { mutableIntStateOf(0) }
     var promptText by remember { mutableStateOf(initialPrompt ?: "") }
     var dynamicServerPrompt by remember { mutableStateOf<String?>(activeSystemPrompt) }
 
@@ -165,7 +166,7 @@ Available slash commands: /goal, /schedule, /browser, /plan, /grill-me, /teamwor
                         Icon(
                             imageVector = Icons.Outlined.Psychology,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = tokens.accent,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -202,7 +203,7 @@ Available slash commands: /goal, /schedule, /browser, /plan, /grill-me, /teamwor
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    contentColor = ClaudeTerracotta,
+                    contentColor = tokens.accent,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp))
                 ) {
                     Tab(
@@ -280,7 +281,7 @@ Available slash commands: /goal, /schedule, /browser, /plan, /grill-me, /teamwor
                             fontFamily = FontFamily.Monospace
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ClaudeTerracotta,
+                            focusedBorderColor = tokens.accent,
                             unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                         )
                     )

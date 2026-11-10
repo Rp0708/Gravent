@@ -93,7 +93,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 
 /**
  * React Bits ease curve: cubic-bezier(0.23, 1, 0.32, 1).
@@ -186,9 +186,9 @@ fun BranchedMenu(
     activeValue: String? = null,
     onSelect: ((value: String, item: Any) -> Unit)? = null,
     onToggle: ((index: Int, isOpen: Boolean) -> Unit)? = null,
-    color: Color = Color(0xFFF5F5F5),
-    accentColor: Color = ClaudeTerracotta,
-    lineColor: Color = Color(0xFF3F3F46),
+    color: Color = graventTokens().textPrimary,
+    accentColor: Color = graventTokens().accent,
+    lineColor: Color = graventTokens().border,
     width: Dp = 260.dp,
     rowHeight: Dp = 36.dp,
     indent: Dp = 40.dp,
@@ -987,7 +987,7 @@ sealed class BranchedChildEntry {
             else -> file.extension.uppercase().take(4)
         }
         override val badgeColor: Color = when (file.extension) {
-            "md", "markdown" -> ClaudeTerracotta
+            "md", "markdown" -> Color(0xFF9E9E9E)
             "kt", "kts", "ts", "js", "java" -> GeminiBlue
             "html", "htm" -> Color(0xFFE44D26)
             "css", "scss", "sass" -> Color(0xFF264DE4)
@@ -1000,6 +1000,7 @@ sealed class BranchedChildEntry {
 
         @Composable
         override fun IconContent() {
+            val tokens = graventTokens()
             val vec = when (file.extension) {
                 "md", "markdown" -> Icons.Outlined.Description
                 "kt", "kts", "ts", "js", "java", "py", "html", "htm", "css", "scss" -> Icons.Outlined.Code
@@ -1011,7 +1012,7 @@ sealed class BranchedChildEntry {
             Icon(
                 imageVector = vec,
                 contentDescription = null,
-                tint = if (isActive) ClaudeTerracotta else badgeColor,
+                tint = if (isActive) tokens.accent else resolveUnifiedFileAccent(file.extension, tokens),
                 modifier = Modifier.size(15.dp)
             )
         }
@@ -1027,14 +1028,15 @@ sealed class BranchedChildEntry {
         override val key: String = "dir_${folder.path}"
         override val label: String = folder.name
         override val badge: String = if (folder.isProjectRoot) "PROJECT" else "DIR"
-        override val badgeColor: Color = if (folder.isProjectRoot) ClaudeTerracotta else GeminiBlue
+        override val badgeColor: Color = GeminiBlue
 
         @Composable
         override fun IconContent() {
+            val tokens = graventTokens()
             Icon(
                 imageVector = if (isExpanded) Icons.Default.FolderOpen else Icons.Default.Folder,
                 contentDescription = null,
-                tint = if (folder.isProjectRoot) ClaudeTerracotta else GeminiBlue,
+                tint = if (folder.isProjectRoot) tokens.accent else GeminiBlue,
                 modifier = Modifier.size(15.dp)
             )
         }
@@ -1053,11 +1055,12 @@ sealed class BranchedChildEntry {
 
         @Composable
         override fun IconContent() {
+            val tokens = graventTokens()
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.CallSplit,
                     contentDescription = null,
-                    tint = if (isActive) ClaudeTerracotta else Color(0xFFFF9800),
+                    tint = if (isActive) tokens.accent else Color(0xFFFF9800),
                     modifier = Modifier.size(15.dp)
                 )
                 if (subagent.isRunning) {
@@ -1109,8 +1112,8 @@ fun BranchedChildrenTree(
     onSelectSubagent: (String) -> Unit,
     onAddFileClick: () -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = ClaudeTerracotta,
-    lineColor: Color = Color(0xFF3F3F46),
+    accentColor: Color = graventTokens().accent,
+    lineColor: Color = graventTokens().border,
     rowHeight: Dp = 31.dp,
     indent: Dp = 34.dp,
     trunk: Dp = 14.dp,
@@ -1334,8 +1337,14 @@ fun BranchedChildrenTree(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
         ) {
+            val tokens = graventTokens()
             entries.forEach { entry ->
                 val isAct = entry.isActive
+                val effectiveBadgeColor = when (entry) {
+                    is BranchedChildEntry.FileEntry -> resolveUnifiedFileAccent(entry.file.extension, tokens)
+                    is BranchedChildEntry.DirectoryEntry -> if (entry.folder.isProjectRoot) accentColor else GeminiBlue
+                    else -> entry.badgeColor
+                }
                 val depthIndent = minOf((entry.depth * 8).dp, 24.dp)
                 val startPadding = indent + depthIndent
                 Row(
@@ -1375,7 +1384,7 @@ fun BranchedChildrenTree(
                             text = entry.label,
                             fontSize = 12.sp,
                             fontWeight = if (isAct || (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot)) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isAct) accentColor else if (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
+                            color = if (isAct) accentColor else if (entry is BranchedChildEntry.DirectoryEntry && entry.folder.isProjectRoot) accentColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1386,12 +1395,12 @@ fun BranchedChildrenTree(
                     if (badgeText != null) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = if (isAct) accentColor.copy(alpha = 0.20f) else entry.badgeColor.copy(alpha = 0.12f),
-                            border = BorderStroke(0.6.dp, if (isAct) accentColor.copy(alpha = 0.5f) else entry.badgeColor.copy(alpha = 0.3f))
+                            color = if (isAct) accentColor.copy(alpha = 0.20f) else effectiveBadgeColor.copy(alpha = 0.12f),
+                            border = BorderStroke(0.6.dp, if (isAct) accentColor.copy(alpha = 0.5f) else effectiveBadgeColor.copy(alpha = 0.3f))
                         ) {
                             Text(
                                 text = badgeText,
-                                color = if (isAct) accentColor else entry.badgeColor,
+                                color = if (isAct) accentColor else effectiveBadgeColor,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.dp)

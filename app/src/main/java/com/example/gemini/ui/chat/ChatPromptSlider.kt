@@ -64,6 +64,8 @@ import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private val WHITESPACE_COLLAPSE_REGEX = Regex("\\s+")
+
 @Immutable
 data class PromptAnchor(
     val feedIndex: Int,
@@ -79,9 +81,8 @@ fun extractPromptAnchors(feedItems: List<ChatFeedItem>): List<PromptAnchor> {
     var ordinal = 1
     feedItems.forEachIndexed { idx, item ->
         if (item is ChatFeedItem.User) {
-            val raw = PromptExpansion.collapse(item.message.content)
-                .replace(Regex("\\s+"), " ")
-                .trim()
+            val collapsed = PromptExpansion.collapse(item.message.content)
+            val raw = collapsed.replace(WHITESPACE_COLLAPSE_REGEX, " ").trim()
             val preview = when {
                 raw.isNotEmpty() -> raw.take(96)
                 item.message.attachments.isNotEmpty() -> {

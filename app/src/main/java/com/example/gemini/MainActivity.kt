@@ -18,7 +18,9 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.example.gemini.theme.GeminiTheme
 import com.example.gemini.ui.chat.ChatScreen
 import com.example.gemini.ui.browser.BrowserScreen
@@ -130,31 +132,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val isFloatingSwitcherEnabled by chatViewModel.isFloatingSwitcherEnabled.collectAsState()
-            val floatingSwitcherOrientation by chatViewModel.floatingSwitcherOrientation.collectAsState()
-            val floatingSwitcherItems by chatViewModel.floatingSwitcherItems.collectAsState()
-            val floatingSwitcherAutoCollapseSec by chatViewModel.floatingSwitcherAutoCollapseSec.collectAsState()
-            val floatingSwitcherPosX by chatViewModel.floatingSwitcherPosX.collectAsState()
-            val floatingSwitcherPosY by chatViewModel.floatingSwitcherPosY.collectAsState()
-            val isFloatingDiagnosticsEnabled by chatViewModel.isFloatingDiagnosticsEnabled.collectAsState()
-            val isNetworkInspectorEnabled by chatViewModel.isNetworkInspectorEnabled.collectAsState()
-            val isFloatingNetworkInspectorEnabled by chatViewModel.isFloatingNetworkInspectorEnabled.collectAsState()
-            var showNetworkInspectorDialog by remember { mutableStateOf(false) }
-
             var pendingUpdateInfo by remember { mutableStateOf<com.example.gemini.data.updater.AppUpdateInfo?>(null) }
             val updateManager = remember { com.example.gemini.data.updater.AppUpdateManager(this@MainActivity) }
 
             LaunchedEffect(Unit) {
                 updateManager.checkForUpdates().onSuccess { info ->
                     pendingUpdateInfo = info
-                }
-            }
-
-            LaunchedEffect(isFloatingDiagnosticsEnabled) {
-                if (isFloatingDiagnosticsEnabled) {
-                    com.example.gemini.data.remote.core.AntiGemLiveDiagnostics.start()
-                } else {
-                    com.example.gemini.data.remote.core.AntiGemLiveDiagnostics.stop()
                 }
             }
 
@@ -238,7 +221,6 @@ class MainActivity : ComponentActivity() {
                                 if (previousViewMode != currentViewMode && previousViewMode != AppViewMode.BROWSER) previousViewMode else AppViewMode.CHAT
                         }
 
-                        val terminalSessions by com.example.gemini.data.local.LocalTerminalManager.sessions.collectAsState()
                         var hasEverOpenedTerminal by remember { mutableStateOf(false) }
                         if (currentViewMode == AppViewMode.TERMINAL) {
                             hasEverOpenedTerminal = true
@@ -331,14 +313,14 @@ class MainActivity : ComponentActivity() {
                                             translationX = if (isVisible) 0f else 20000f
                                         }
                                 ) {
-                                    if (currentViewMode == AppViewMode.TERMINAL || (hasEverOpenedTerminal && terminalSessions.isNotEmpty())) {
-                                        com.example.gemini.ui.components.LocalTerminalContent(
-                                            onClose = {
-                                                currentViewMode =
-                                                    if (previousViewMode == AppViewMode.TERMINAL) AppViewMode.CHAT else previousViewMode
-                                            }
-                                        )
-                                    }
+                                    PersistentTerminalHost(
+                                        isCurrentTerminal = currentViewMode == AppViewMode.TERMINAL,
+                                        hasEverOpenedTerminal = hasEverOpenedTerminal,
+                                        onClose = {
+                                            currentViewMode =
+                                                if (previousViewMode == AppViewMode.TERMINAL) AppViewMode.CHAT else previousViewMode
+                                        }
+                                    )
                                 }
 
                                 // Persistent Web Preview Browser Screen (Retains open tabs, WebViews, state & navigation)
@@ -379,66 +361,17 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
-                                // Floating App Switcher Across Whole App (Renders on top of Chat, IDE, Terminal, Browser)
-                                if (isFloatingSwitcherEnabled) {
-                                    com.example.gemini.ui.components.FloatingSwitcherWidget(
-                                        currentViewMode = currentViewMode,
-                                        orientation = floatingSwitcherOrientation,
-                                        items = floatingSwitcherItems,
-                                        autoCollapseTimeoutSec = floatingSwitcherAutoCollapseSec,
-                                        savedPosXRatio = floatingSwitcherPosX,
-                                        savedPosYRatio = floatingSwitcherPosY,
-                                        onNavigateToChat = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.CHAT
-                                        },
-                                        onNavigateToIde = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.IDE
-                                        },
-                                        onNavigateToBrowser = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.BROWSER
-                                        },
-                                        onNavigateToTerminal = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.TERMINAL
-                                        },
-                                        onNavigateToNotes = {
-                                            previousViewMode = currentViewMode
-                                            currentViewMode = AppViewMode.NOTES
-                                        },
-                                        onPositionSaved = { x, y ->
-                                            chatViewModel.saveFloatingSwitcherPosition(x, y)
-                                        }
-                                    )
-                                }
+                                // Floating App Switcher + Diagnostic/Inspector Overlays (scoped to isolate state churn from root screens)
+                                FloatingSwitcherHost(
+                                    chatViewModel = chatViewModel,
+                                    currentViewMode = currentViewMode,
+                                    onNavigate = { target ->
+                                        previousViewMode = currentViewMode
+                                        currentViewMode = target
+                                    }
+                                )
 
-                                // Floating Video Player Overlay for active background/in-app playback controls
-                                com.example.gemini.ui.components.FloatingVideoPlayerOverlay()
-
-                                // Real-time floating live diagnostics overlay (JVM Threads, OkHttp queues, connections, lag)
-                                if (isFloatingDiagnosticsEnabled) {
-                                    com.example.gemini.ui.components.FloatingDiagnosticsOverlay(
-                                        onDismiss = {
-                                            chatViewModel.setFloatingDiagnosticsEnabled(false)
-                                        }
-                                    )
-                                }
-
-                                // Floating Network Inspector Bubble (In-app draggable bubble across all screens)
-                                if (isNetworkInspectorEnabled && isFloatingNetworkInspectorEnabled) {
-                                    com.example.gemini.ui.components.FloatingNetworkInspectorBubble(
-                                        onClick = { showNetworkInspectorDialog = true }
-                                    )
-                                }
-
-                                // Global Network Inspector Dialog
-                                if (showNetworkInspectorDialog) {
-                                    com.example.gemini.ui.components.NetworkInspectorDialog(
-                                        onDismiss = { showNetworkInspectorDialog = false }
-                                    )
-                                }
+                                FloatingOverlaysHost(chatViewModel = chatViewModel)
 
                                 // Centralized In-App Update Dialog
                                 pendingUpdateInfo?.let { updateInfo ->
@@ -500,78 +433,171 @@ class MainActivity : ComponentActivity() {
 
         if (uri != null) {
             val intentMime = intent.type?.lowercase() ?: ""
-            val crMime = try {
-                contentResolver.getType(uri)?.lowercase()
-            } catch (_: Exception) {
-                null
-            } ?: ""
-            val resolvedMime = intentMime.ifBlank { crMime }
             val uriPath = uri.path?.lowercase() ?: ""
+            lifecycleScope.launch(Dispatchers.IO) {
+                val crMime = try {
+                    contentResolver.getType(uri)?.lowercase()
+                } catch (_: Exception) {
+                    null
+                } ?: ""
+                val resolvedMime = intentMime.ifBlank { crMime }
 
-            var fileName: String? = null
-            if (uri.scheme == "content") {
-                try {
-                    contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-                        ?.use { cursor ->
-                            if (cursor.moveToFirst()) {
-                                val nameIdx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                                if (nameIdx != -1) {
-                                    fileName = cursor.getString(nameIdx)?.lowercase()
+                var fileName: String? = null
+                if (uri.scheme == "content") {
+                    try {
+                        contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                            ?.use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    val nameIdx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                                    if (nameIdx != -1) {
+                                        fileName = cursor.getString(nameIdx)?.lowercase()
+                                    }
                                 }
                             }
-                        }
-                } catch (_: Exception) {
-                }
-            }
-            val displayName =
-                fileName ?: uri.lastPathSegment?.substringAfterLast('/')?.lowercase() ?: uriPath.substringAfterLast('/')
-
-            val isMarkdown =
-                resolvedMime.contains("markdown") || displayName.endsWith(".md") || displayName.endsWith(".markdown") || uriPath.endsWith(
-                    ".md"
-                ) || uriPath.endsWith(".markdown")
-            val isSharedChat =
-                displayName.endsWith(".gravent") || displayName.endsWith(".jsonl.gravent") ||
-                displayName.endsWith(".antigem") || displayName.endsWith(".jsonl.antigem") ||
-                uriPath.endsWith(".gravent") || uriPath.endsWith(".jsonl.gravent") ||
-                uriPath.endsWith(".antigem") || uriPath.endsWith(".jsonl.antigem")
-
-            when {
-                isMarkdown -> {
-                    chatViewModel.loadMarkdownFromUri(this, uri)
-                }
-
-                isSharedChat -> {
-                    chatViewModel.loadSharedConversationFromUri(this, uri)
-                }
-
-                resolvedMime.startsWith("text/") || resolvedMime.contains("json") || resolvedMime.contains("javascript") ||
-                        resolvedMime.contains("xml") || resolvedMime.contains("sql") || resolvedMime.contains("html") ||
-                        resolvedMime.contains("css") || resolvedMime.contains("x-sh") || resolvedMime.contains("script") ||
-                        resolvedMime.contains("code") || displayName.endsWith(".html") || displayName.endsWith(".htm") ||
-                        displayName.endsWith(".js") || displayName.endsWith(".ts") || displayName.endsWith(".py") ||
-                        displayName.endsWith(".json") || displayName.endsWith(".txt") || displayName.endsWith(".xml") -> {
-                    chatViewModel.openFileInIdeDirectly(this, uri)
-                }
-
-                else -> {
-                    // Probe if text, gravent, or antigem trajectory header
-                    try {
-                        val headerSample = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use {
-                            val chars = CharArray(150)
-                            val read = it.read(chars, 0, 150)
-                            if (read > 0) String(chars, 0, read) else ""
-                        } ?: ""
-                        if (headerSample.contains("\"gravent_trajectory\"") || headerSample.contains("\"antigem_trajectory\"")) {
-                            chatViewModel.loadSharedConversationFromUri(this, uri)
-                        } else {
-                            chatViewModel.openFileInIdeDirectly(this, uri)
-                        }
                     } catch (_: Exception) {
-                        chatViewModel.openFileInIdeDirectly(this, uri)
+                    }
+                }
+                val displayName =
+                    fileName ?: uri.lastPathSegment?.substringAfterLast('/')?.lowercase() ?: uriPath.substringAfterLast('/')
+
+                val isMarkdown =
+                    resolvedMime.contains("markdown") || displayName.endsWith(".md") || displayName.endsWith(".markdown") || uriPath.endsWith(
+                        ".md"
+                    ) || uriPath.endsWith(".markdown")
+                val isSharedChat =
+                    displayName.endsWith(".gravent") || displayName.endsWith(".jsonl.gravent") ||
+                    displayName.endsWith(".antigem") || displayName.endsWith(".jsonl.antigem") ||
+                    uriPath.endsWith(".gravent") || uriPath.endsWith(".jsonl.gravent") ||
+                    uriPath.endsWith(".antigem") || uriPath.endsWith(".jsonl.antigem")
+
+                when {
+                    isMarkdown -> withContext(Dispatchers.Main) {
+                        chatViewModel.loadMarkdownFromUri(this@MainActivity, uri)
+                    }
+
+                    isSharedChat -> withContext(Dispatchers.Main) {
+                        chatViewModel.loadSharedConversationFromUri(this@MainActivity, uri)
+                    }
+
+                    resolvedMime.startsWith("text/") || resolvedMime.contains("json") || resolvedMime.contains("javascript") ||
+                            resolvedMime.contains("xml") || resolvedMime.contains("sql") || resolvedMime.contains("html") ||
+                            resolvedMime.contains("css") || resolvedMime.contains("x-sh") || resolvedMime.contains("script") ||
+                            resolvedMime.contains("code") || displayName.endsWith(".html") || displayName.endsWith(".htm") ||
+                            displayName.endsWith(".js") || displayName.endsWith(".ts") || displayName.endsWith(".py") ||
+                            displayName.endsWith(".json") || displayName.endsWith(".txt") || displayName.endsWith(".xml") -> {
+                        withContext(Dispatchers.Main) {
+                            chatViewModel.openFileInIdeDirectly(this@MainActivity, uri)
+                        }
+                    }
+
+                    else -> {
+                        // Probe if text, gravent, or antigem trajectory header
+                        val headerSample = try {
+                            contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use {
+                                val chars = CharArray(150)
+                                val read = it.read(chars, 0, 150)
+                                if (read > 0) String(chars, 0, read) else ""
+                            } ?: ""
+                        } catch (_: Exception) {
+                            ""
+                        }
+                        withContext(Dispatchers.Main) {
+                            if (headerSample.contains("\"gravent_trajectory\"") || headerSample.contains("\"antigem_trajectory\"")) {
+                                chatViewModel.loadSharedConversationFromUri(this@MainActivity, uri)
+                            } else {
+                                chatViewModel.openFileInIdeDirectly(this@MainActivity, uri)
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PersistentTerminalHost(
+    isCurrentTerminal: Boolean,
+    hasEverOpenedTerminal: Boolean,
+    onClose: () -> Unit
+) {
+    val terminalSessions by com.example.gemini.data.local.LocalTerminalManager.sessions.collectAsState()
+    if (isCurrentTerminal || (hasEverOpenedTerminal && terminalSessions.isNotEmpty())) {
+        com.example.gemini.ui.components.LocalTerminalContent(onClose = onClose)
+    }
+}
+
+@Composable
+private fun FloatingSwitcherHost(
+    chatViewModel: ChatViewModel,
+    currentViewMode: AppViewMode,
+    onNavigate: (AppViewMode) -> Unit
+) {
+    val isFloatingSwitcherEnabled by chatViewModel.isFloatingSwitcherEnabled.collectAsState()
+    if (!isFloatingSwitcherEnabled) return
+
+    val floatingSwitcherOrientation by chatViewModel.floatingSwitcherOrientation.collectAsState()
+    val floatingSwitcherItems by chatViewModel.floatingSwitcherItems.collectAsState()
+    val floatingSwitcherAutoCollapseSec by chatViewModel.floatingSwitcherAutoCollapseSec.collectAsState()
+    val floatingSwitcherPosX by chatViewModel.floatingSwitcherPosX.collectAsState()
+    val floatingSwitcherPosY by chatViewModel.floatingSwitcherPosY.collectAsState()
+
+    com.example.gemini.ui.components.FloatingSwitcherWidget(
+        currentViewMode = currentViewMode,
+        orientation = floatingSwitcherOrientation,
+        items = floatingSwitcherItems,
+        autoCollapseTimeoutSec = floatingSwitcherAutoCollapseSec,
+        savedPosXRatio = floatingSwitcherPosX,
+        savedPosYRatio = floatingSwitcherPosY,
+        onNavigateToChat = { onNavigate(AppViewMode.CHAT) },
+        onNavigateToIde = { onNavigate(AppViewMode.IDE) },
+        onNavigateToBrowser = { onNavigate(AppViewMode.BROWSER) },
+        onNavigateToTerminal = { onNavigate(AppViewMode.TERMINAL) },
+        onNavigateToNotes = { onNavigate(AppViewMode.NOTES) },
+        onPositionSaved = { x, y ->
+            chatViewModel.saveFloatingSwitcherPosition(x, y)
+        }
+    )
+}
+
+@Composable
+private fun FloatingOverlaysHost(chatViewModel: ChatViewModel) {
+    val isFloatingDiagnosticsEnabled by chatViewModel.isFloatingDiagnosticsEnabled.collectAsState()
+    val isNetworkInspectorEnabled by chatViewModel.isNetworkInspectorEnabled.collectAsState()
+    val isFloatingNetworkInspectorEnabled by chatViewModel.isFloatingNetworkInspectorEnabled.collectAsState()
+    var showNetworkInspectorDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isFloatingDiagnosticsEnabled) {
+        if (isFloatingDiagnosticsEnabled) {
+            com.example.gemini.data.remote.core.AntiGemLiveDiagnostics.start()
+        } else {
+            com.example.gemini.data.remote.core.AntiGemLiveDiagnostics.stop()
+        }
+    }
+
+    // Floating Video Player Overlay for active background/in-app playback controls
+    com.example.gemini.ui.components.FloatingVideoPlayerOverlay()
+
+    // Real-time floating live diagnostics overlay (JVM Threads, OkHttp queues, connections, lag)
+    if (isFloatingDiagnosticsEnabled) {
+        com.example.gemini.ui.components.FloatingDiagnosticsOverlay(
+            onDismiss = {
+                chatViewModel.setFloatingDiagnosticsEnabled(false)
+            }
+        )
+    }
+
+    // Floating Network Inspector Bubble (In-app draggable bubble across all screens)
+    if (isNetworkInspectorEnabled && isFloatingNetworkInspectorEnabled) {
+        com.example.gemini.ui.components.FloatingNetworkInspectorBubble(
+            onClick = { showNetworkInspectorDialog = true }
+        )
+    }
+
+    // Global Network Inspector Dialog
+    if (showNetworkInspectorDialog) {
+        com.example.gemini.ui.components.NetworkInspectorDialog(
+            onDismiss = { showNetworkInspectorDialog = false }
+        )
     }
 }

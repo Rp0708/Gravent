@@ -135,22 +135,24 @@ fun MessageBubble(
 
         // Message Content Bubble
         if (isUser) {
+            val tUser = graventTokens()
             Column(horizontalAlignment = Alignment.End) {
-                Box(
-                    modifier = Modifier
-                        .widthIn(max = 320.dp)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { showUserActions = !showUserActions }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                Surface(
+                    modifier = Modifier.widthIn(max = 320.dp),
+                    shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 5.dp),
+                    color = tUser.elevatedBg,
+                    border = BorderStroke(0.7.dp, tUser.subtleBorder),
+                    onClick = { showUserActions = !showUserActions }
                 ) {
-                    SelectionContainer {
-                        Text(
-                            text = message.content,
-                            fontSize = 15.sp,
-                            lineHeight = 22.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        SelectionContainer {
+                            Text(
+                                text = message.content,
+                                fontSize = 14.5.sp,
+                                lineHeight = 21.sp,
+                                color = tUser.textPrimary
+                            )
+                        }
                     }
                 }
 
@@ -233,7 +235,7 @@ fun MessageBubble(
                                 Icon(
                                     imageVector = Icons.Outlined.DataObject,
                                     contentDescription = "View Raw Request Payload",
-                                    tint = Color(0xFF8BE9FD),
+                                    tint = graventTokens().infoAccent,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -749,7 +751,7 @@ fun AssistantMessageFooter(
                     Icon(
                         imageVector = Icons.Outlined.DataObject,
                         contentDescription = "View Raw Request Payload",
-                        tint = Color(0xFF8BE9FD),
+                        tint = graventTokens().infoAccent,
                         modifier = Modifier.size(16.dp)
                     )
                 }

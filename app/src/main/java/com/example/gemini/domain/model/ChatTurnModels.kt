@@ -25,7 +25,8 @@ sealed interface ChatTurn {
         val isStreaming: Boolean = false,
         val tokenUsage: TokenUsage? = null,
         /** The model that generated the turn (generator_model enum name, matching AiModel.id). */
-        val modelId: String? = null
+        val modelId: String? = null,
+        val createdAt: Long? = null
     ) : ChatTurn {
         override val key: String get() = "assistant_turn_$turnId"
     }

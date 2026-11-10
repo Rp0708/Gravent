@@ -53,7 +53,14 @@ fun ThinkingAccordion(
     val previewText = remember(thoughtText) {
         thoughtText.trim()
             .lines()
-            .map { it.trim().removePrefix("#").removePrefix("*").removePrefix("-").trim() }
+            .map {
+                it.trim()
+                    .trimStart('#', '*', '-', '>', ' ')
+                    .replace("**", "")
+                    .replace("__", "")
+                    .replace("`", "")
+                    .trim()
+            }
             .firstOrNull { it.isNotBlank() } ?: ""
     }
 
@@ -154,18 +161,15 @@ fun ThinkingAccordion(
                         .width(1.5.dp)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(1.dp))
-                        .background(Color(0xFF27272A))
+                        .background(t.border)
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = thoughtText,
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 12.sp,
-                        lineHeight = 17.5.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    MarkdownContent(
+                        content = thoughtText,
+                        compact = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -176,7 +180,7 @@ fun ThinkingAccordion(
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFFA1A1AA)
+                            color = t.textMuted
                         )
                     }
                 }

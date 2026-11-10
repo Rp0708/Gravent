@@ -759,7 +759,7 @@ private fun ProviderEditor(
                     EditorSection("Advanced", "Extra request headers and environment variables for this provider's chats.") {
                         OutlinedTextField(
                             headers, { headers = it }, label = { Text("Headers (one per line)") }, minLines = 2, maxLines = 6,
-                            placeholder = { Text("X-Title: AntiGem\nHTTP-Referer: https://example.com") },
+                            placeholder = { Text("X-Title: Gravent\nHTTP-Referer: https://example.com") },
                             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace), modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
@@ -1027,11 +1027,18 @@ private fun RawResponseDialog(raw: ClaudeFetchRaw, onDismiss: () -> Unit) {
                 }
                 if (raw.paging_error.isNotBlank()) Text("Stopped early: ${raw.paging_error}", fontSize = 11.sp, color = QuotaAmber)
                 Text("The body below is the first page only.", fontSize = 10.5.sp, color = muted)
-                Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
-                    Column(Modifier.verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()).padding(8.dp)) {
-                        Text(raw.body.ifBlank { "(empty body)" } + if (raw.truncated) "\n… (cut)" else "", fontSize = 10.5.sp, fontFamily = FontFamily.Monospace)
-                    }
+                val bodyLines = remember(raw.body, raw.truncated) {
+                    val base = raw.body.ifBlank { "(empty body)" } + if (raw.truncated) "\n… (cut)" else ""
+                    base.lines()
                 }
+                com.example.gemini.ui.components.GraventLogConsole(
+                    lines = bodyLines,
+                    maxVisibleLines = 150,
+                    emptyText = "(empty body)",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                )
             }
         },
         confirmButton = {

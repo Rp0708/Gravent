@@ -97,10 +97,18 @@ sealed class FileSaveResult {
     data class Error(val message: String) : FileSaveResult()
 }
 
+private val HEX_CHARS = "0123456789abcdef".toCharArray()
+
 fun computeSha256(content: String): String {
     val md = java.security.MessageDigest.getInstance("SHA-256")
     val bytes = md.digest(content.toByteArray(Charsets.UTF_8))
-    return bytes.joinToString("") { "%02x".format(it) }
+    val chars = CharArray(bytes.size * 2)
+    for (i in bytes.indices) {
+        val v = bytes[i].toInt() and 0xFF
+        chars[i * 2] = HEX_CHARS[v ushr 4]
+        chars[i * 2 + 1] = HEX_CHARS[v and 0x0F]
+    }
+    return String(chars)
 }
 
 object IdeApiClient {

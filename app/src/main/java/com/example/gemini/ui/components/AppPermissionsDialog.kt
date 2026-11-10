@@ -171,9 +171,10 @@ fun AppPermissionsDialog(
         }
     }
 
-    val screenBg = if (isDark) ClaudeDarkBg else ClaudeCream
-    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
-    val textSecondary = if (isDark) TextSecondaryDark else TextSecondaryLight
+    val t = graventTokens()
+    val screenBg = t.pageBg
+    val textPrimary = t.textPrimary
+    val textSecondary = t.textSecondary
 
     Surface(
         modifier = Modifier
@@ -199,13 +200,13 @@ fun AppPermissionsDialog(
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = if (isDark) 0.16f else 0.12f)),
+                        .background(t.accentSoftBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Shield,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = t.accent,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -245,8 +246,8 @@ fun AppPermissionsDialog(
                     icon = Icons.Outlined.NotificationsActive,
                     title = "Notifications & Service",
                     badgeText = "Required",
-                    badgeColor = ClaudeTerracotta,
-                    accentColor = ClaudeTerracotta,
+                    badgeColor = t.accent,
+                    accentColor = t.accent,
                     description = "Required for persistent background terminal service, live status alerts, updates, and rootfs package installer progress.",
                     isGranted = hasNotification,
                     onGrantClick = {
@@ -264,8 +265,8 @@ fun AppPermissionsDialog(
                     icon = Icons.Outlined.Folder,
                     title = "Storage & /sdcard",
                     badgeText = "Optional",
-                    badgeColor = GeminiBlue,
-                    accentColor = GeminiBlue,
+                    badgeColor = t.infoAccent,
+                    accentColor = t.infoAccent,
                     description = "Allows Gravent to access /sdcard to import local bootstrap packages, inspect files, and manage external code workspaces.",
                     isGranted = hasStorage,
                     onGrantClick = { requestStorage() }
@@ -277,8 +278,8 @@ fun AppPermissionsDialog(
                     icon = Icons.Outlined.Mic,
                     title = "Microphone & Voice",
                     badgeText = "Optional",
-                    badgeColor = GeminiPurple,
-                    accentColor = GeminiPurple,
+                    badgeColor = t.accent,
+                    accentColor = if (isDark) GeminiPurple else Color(0xFF7C3AED),
                     description = "Enables voice-to-text dictation and voice commands directly in chat.",
                     isGranted = hasAudio,
                     onGrantClick = { audioLauncher.launch(Manifest.permission.RECORD_AUDIO) }
@@ -296,9 +297,9 @@ fun AppPermissionsDialog(
             ) {
                 if (!hasNotification) {
                     Text(
-                        text = "👉 Please enable Notifications above to proceed",
+                        text = "Please enable Notifications above to proceed",
                         fontSize = 12.5.sp,
-                        color = Color(0xFFEF4444),
+                        color = t.errorAccent,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -314,7 +315,7 @@ fun AppPermissionsDialog(
                     colors = graventPrimaryButtonColors()
                 ) {
                     Text(
-                        text = if (hasNotification) "Continue to Gravent 🚀" else "Notifications Required to Proceed",
+                        text = if (hasNotification) "Continue to Gravent" else "Notifications Required to Proceed",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
@@ -336,24 +337,21 @@ private fun PermissionCard(
     isGranted: Boolean,
     onGrantClick: () -> Unit
 ) {
-    val cardBg = if (isDark) {
-        if (isGranted) Color(0xFF232320) else Color(0xFF272623)
-    } else {
-        if (isGranted) Color(0xFFF9FAFB) else Color(0xFFFFFFFF)
-    }
+    val t = graventTokens()
+    val cardBg = if (isGranted) t.elevatedBg else t.cardBg
 
     val cardBorder = if (isGranted) {
-        BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = if (isDark) 0.5f else 0.4f))
+        BorderStroke(1.dp, t.successAccent.copy(alpha = if (isDark) 0.45f else 0.35f))
     } else {
-        BorderStroke(1.dp, if (isDark) Color(0xFF383733) else Color(0xFFE5E7EB))
+        BorderStroke(1.dp, t.border)
     }
 
-    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
-    val textSecondary = if (isDark) TextSecondaryDark else TextSecondaryLight
+    val textPrimary = t.textPrimary
+    val textSecondary = t.textSecondary
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = cardBg,
         border = cardBorder
     ) {
@@ -368,15 +366,15 @@ private fun PermissionCard(
                     .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (isGranted) Color(0xFF22C55E).copy(alpha = if (isDark) 0.16f else 0.12f)
-                        else accentColor.copy(alpha = if (isDark) 0.16f else 0.12f)
+                        if (isGranted) t.successSoftBg
+                        else accentColor.copy(alpha = if (isDark) 0.16f else 0.11f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isGranted) Icons.Default.CheckCircle else icon,
                     contentDescription = null,
-                    tint = if (isGranted) Color(0xFF22C55E) else accentColor,
+                    tint = if (isGranted) t.successAccent else accentColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -401,24 +399,10 @@ private fun PermissionCard(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = if (isGranted) {
-                            Color(0xFF22C55E).copy(alpha = if (isDark) 0.18f else 0.12f)
-                        } else {
-                            badgeColor.copy(alpha = if (isDark) 0.18f else 0.12f)
-                        }
-                    ) {
-                        Text(
-                            text = if (isGranted) "Enabled ✓" else badgeText,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false,
-                            color = if (isGranted) Color(0xFF22C55E) else badgeColor,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+                    GraventBadge(
+                        text = if (isGranted) "Enabled" else badgeText,
+                        tone = if (isGranted) GraventTone.SUCCESS else if (badgeColor == t.infoAccent) GraventTone.INFO else GraventTone.ACCENT
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -440,13 +424,13 @@ private fun PermissionCard(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
-                            tint = Color(0xFF22C55E),
+                            tint = t.successAccent,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Permission active",
                             fontSize = 11.5.sp,
-                            color = Color(0xFF22C55E),
+                            color = t.successAccent,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -454,10 +438,7 @@ private fun PermissionCard(
                     FilledTonalButton(
                         onClick = onGrantClick,
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = if (isDark) Color(0xFF383733) else Color(0xFFE5E7EB),
-                            contentColor = textPrimary
-                        ),
+                        colors = graventNeutralButtonColors(),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         modifier = Modifier.height(32.dp)
                     ) {

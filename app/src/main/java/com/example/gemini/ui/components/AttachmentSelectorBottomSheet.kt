@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
+import com.example.gemini.theme.graventTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +52,7 @@ fun AttachmentSelectorBottomSheet(
 
             AttachmentOptionRow(
                 icon = Icons.Outlined.Image,
-                iconColor = ClaudeTerracotta,
+                iconColor = graventTokens().accent,
                 title = "Photo / Image",
                 subtitle = "Attach an image for multimodal vision & analysis",
                 onClick = {

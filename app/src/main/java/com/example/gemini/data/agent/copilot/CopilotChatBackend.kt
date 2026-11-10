@@ -150,6 +150,7 @@ class CopilotChatBackend(
         val conv = _conversations.value.find { it.id == id } ?: return
         store.currentConversation.value = conv
         _conversationError.value = null
+        _messages.value = emptyList()
         loadMessages(id)
     }
 
@@ -256,92 +257,99 @@ class CopilotChatBackend(
                     .post(body)
                     .build()
 
-                val response = httpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    val errBody = response.body?.string().orEmpty()
-                    throw IllegalStateException("Copilot API error ${response.code}: $errBody")
-                }
-
-                val contentType = response.header("Content-Type").orEmpty().lowercase()
                 val accumulated = StringBuilder()
 
-                if (contentType.contains("application/json") && !contentType.contains("text/event-stream")) {
-                    // Full buffered JSON response
-                    val bodyString = response.body?.string().orEmpty()
-                    var extractedContent: String? = null
-                    try {
-                        val parsed = json.decodeFromString<CopilotChatChunk>(bodyString)
-                        val choice = parsed.choices.firstOrNull()
-                        extractedContent = choice?.message?.content
-                            ?: choice?.delta?.content
-                            ?: choice?.text
-                    } catch (_: Exception) {}
-
-                    if (extractedContent.isNullEmpty()) {
-                        val match = CONTENT_JSON_REGEX.find(bodyString) ?: TEXT_JSON_REGEX.find(bodyString)
-                        if (match != null) {
-                            val unescaped = unescapeJsonString(match.groupValues[1])
-                            if (unescaped.isNotEmpty()) extractedContent = unescaped
-                        }
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        val errBody = response.body?.string().orEmpty()
+                        throw IllegalStateException("Copilot API error ${response.code}: $errBody")
                     }
 
-                    val contentText = extractedContent.orEmpty()
-                    if (contentText.isNotEmpty()) {
-                        accumulated.append(contentText)
-                        withContext(Dispatchers.Main) {
-                            _messages.value = _messages.value.map { msg ->
-                                if (msg.id == assistantMsgId) msg.copy(content = contentText) else msg
+                    val contentType = response.header("Content-Type").orEmpty().lowercase()
+
+                    if (contentType.contains("application/json") && !contentType.contains("text/event-stream")) {
+                        // Full buffered JSON response
+                        val bodyString = response.body?.string().orEmpty()
+                        var extractedContent: String? = null
+                        try {
+                            val parsed = json.decodeFromString<CopilotChatChunk>(bodyString)
+                            val choice = parsed.choices.firstOrNull()
+                            extractedContent = choice?.message?.content
+                                ?: choice?.delta?.content
+                                ?: choice?.text
+                        } catch (_: Exception) {}
+
+                        if (extractedContent.isNullEmpty()) {
+                            val match = CONTENT_JSON_REGEX.find(bodyString) ?: TEXT_JSON_REGEX.find(bodyString)
+                            if (match != null) {
+                                val unescaped = unescapeJsonString(match.groupValues[1])
+                                if (unescaped.isNotEmpty()) extractedContent = unescaped
                             }
                         }
-                    }
-                } else {
-                    // Event stream (SSE)
-                    val responseStream = response.body?.byteStream() ?: throw IllegalStateException("Empty response body")
-                    val reader = BufferedReader(InputStreamReader(responseStream))
 
-                    while (isActive) {
-                        val currentLine = reader.readLine() ?: break
-                        val raw = currentLine.trim()
-                        if (raw.isEmpty()) continue
-
-                        val jsonPayload = if (raw.startsWith("data:")) {
-                            val d = raw.removePrefix("data:").trim()
-                            if (d == "[DONE]") break
-                            d
-                        } else if (raw.startsWith("{") && raw.endsWith("}")) {
-                            raw
-                        } else null
-
-                        if (jsonPayload != null && jsonPayload.isNotBlank()) {
-                            var deltaContent: String? = null
-                            try {
-                                val chunk = json.decodeFromString<CopilotChatChunk>(jsonPayload)
-                                val choice = chunk.choices.firstOrNull()
-                                deltaContent = choice?.delta?.content
-                                    ?: choice?.delta?.text
-                                    ?: choice?.message?.content
-                                    ?: choice?.text
-                            } catch (_: Exception) {
-                                // R8 obfuscation or schema divergence fallback
-                            }
-
-                            // Robust fallback: if deserialization did not yield content, extract via regex
-                            if (deltaContent.isNullEmpty()) {
-                                val match = CONTENT_JSON_REGEX.find(jsonPayload) ?: TEXT_JSON_REGEX.find(jsonPayload)
-                                if (match != null) {
-                                    val unescaped = unescapeJsonString(match.groupValues[1])
-                                    if (unescaped.isNotEmpty()) {
-                                        deltaContent = unescaped
-                                    }
+                        val contentText = extractedContent.orEmpty()
+                        if (contentText.isNotEmpty()) {
+                            accumulated.append(contentText)
+                            withContext(Dispatchers.Main) {
+                                _messages.value = _messages.value.map { msg ->
+                                    if (msg.id == assistantMsgId) msg.copy(content = contentText) else msg
                                 }
                             }
+                        }
+                    } else {
+                        // Event stream (SSE)
+                        val responseStream = response.body?.byteStream() ?: throw IllegalStateException("Empty response body")
+                        val reader = BufferedReader(InputStreamReader(responseStream))
+                        var lastUiEmitMs = 0L
 
-                            if (!deltaContent.isNullEmpty()) {
-                                accumulated.append(deltaContent)
-                                val currentText = accumulated.toString()
-                                withContext(Dispatchers.Main) {
-                                    _messages.value = _messages.value.map { msg ->
-                                        if (msg.id == assistantMsgId) msg.copy(content = currentText) else msg
+                        while (isActive) {
+                            val currentLine = reader.readLine() ?: break
+                            val raw = currentLine.trim()
+                            if (raw.isEmpty()) continue
+
+                            val jsonPayload = if (raw.startsWith("data:")) {
+                                val d = raw.removePrefix("data:").trim()
+                                if (d == "[DONE]") break
+                                d
+                            } else if (raw.startsWith("{") && raw.endsWith("}")) {
+                                raw
+                            } else null
+
+                            if (jsonPayload != null && jsonPayload.isNotBlank()) {
+                                var deltaContent: String? = null
+                                try {
+                                    val chunk = json.decodeFromString<CopilotChatChunk>(jsonPayload)
+                                    val choice = chunk.choices.firstOrNull()
+                                    deltaContent = choice?.delta?.content
+                                        ?: choice?.delta?.text
+                                        ?: choice?.message?.content
+                                        ?: choice?.text
+                                } catch (_: Exception) {
+                                    // R8 obfuscation or schema divergence fallback
+                                }
+
+                                // Robust fallback: if deserialization did not yield content, extract via regex
+                                if (deltaContent.isNullEmpty()) {
+                                    val match = CONTENT_JSON_REGEX.find(jsonPayload) ?: TEXT_JSON_REGEX.find(jsonPayload)
+                                    if (match != null) {
+                                        val unescaped = unescapeJsonString(match.groupValues[1])
+                                        if (unescaped.isNotEmpty()) {
+                                            deltaContent = unescaped
+                                        }
+                                    }
+                                }
+
+                                if (!deltaContent.isNullEmpty()) {
+                                    accumulated.append(deltaContent)
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastUiEmitMs >= 32L) {
+                                        lastUiEmitMs = now
+                                        val currentText = accumulated.toString()
+                                        withContext(Dispatchers.Main) {
+                                            _messages.value = _messages.value.map { msg ->
+                                                if (msg.id == assistantMsgId) msg.copy(content = currentText) else msg
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -472,22 +480,24 @@ class CopilotChatBackend(
     }
 
     private fun loadConversations() {
-        val file = File(storageDir, "conversations_index.json")
-        if (!file.exists()) return
-        try {
-            val text = file.readText()
-            val list = json.decodeFromString<List<ConversationRecord>>(text)
-            // Filter out empty ghost chats that never had messages sent
-            val valid = list.map { it.toConversation() }.filter { conv ->
-                val msgFile = File(storageDir, "conv_${conv.id}.json")
-                msgFile.exists() && msgFile.length() > 5
+        backendScope.launch(Dispatchers.IO) {
+            val file = File(storageDir, "conversations_index.json")
+            if (!file.exists()) return@launch
+            try {
+                val text = file.readText()
+                val list = json.decodeFromString<List<ConversationRecord>>(text)
+                // Filter out empty ghost chats that never had messages sent
+                val valid = list.map { it.toConversation() }.filter { conv ->
+                    val msgFile = File(storageDir, "conv_${conv.id}.json")
+                    msgFile.exists() && msgFile.length() > 5
+                }
+                _conversations.value = valid
+                if (valid.size != list.size) {
+                    saveConversations()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load conversations", e)
             }
-            _conversations.value = valid
-            if (valid.size != list.size) {
-                saveConversations()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load conversations", e)
         }
     }
 
@@ -504,18 +514,27 @@ class CopilotChatBackend(
     }
 
     private fun loadMessages(convId: String) {
-        val file = File(storageDir, "conv_$convId.json")
-        if (!file.exists()) {
-            _messages.value = emptyList()
-            return
-        }
-        try {
-            val text = file.readText()
-            val list = json.decodeFromString<List<MessageRecord>>(text)
-            _messages.value = list.map { it.toChatMessage() }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load messages", e)
-            _messages.value = emptyList()
+        backendScope.launch(Dispatchers.IO) {
+            val file = File(storageDir, "conv_$convId.json")
+            if (!file.exists()) {
+                if (store.currentConversation.value?.id == convId) {
+                    _messages.value = emptyList()
+                }
+                return@launch
+            }
+            try {
+                val text = file.readText()
+                val list = json.decodeFromString<List<MessageRecord>>(text)
+                val mapped = list.map { it.toChatMessage() }
+                if (store.currentConversation.value?.id == convId) {
+                    _messages.value = mapped
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load messages", e)
+                if (store.currentConversation.value?.id == convId) {
+                    _messages.value = emptyList()
+                }
+            }
         }
     }
 

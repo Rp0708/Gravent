@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "auth_prefs")
@@ -160,36 +161,36 @@ class AuthPreferences(private val context: Context) {
         currentSecurityToken = token
     }
 
-    val groupChatsByWorkspace: Flow<Boolean> = context.dataStore.data.map { it[GROUP_CHATS_BY_WORKSPACE] ?: false }
+    val groupChatsByWorkspace: Flow<Boolean> = context.dataStore.data.map { it[GROUP_CHATS_BY_WORKSPACE] ?: false }.distinctUntilChanged()
 
-    val preferredModelId: Flow<String?> = context.dataStore.data.map { it[PREFERRED_MODEL_ID] }
-    val preferredModelKey: Flow<String?> = context.dataStore.data.map { it[PREFERRED_MODEL_KEY] }
-    val preferredModelName: Flow<String?> = context.dataStore.data.map { it[PREFERRED_MODEL_NAME] }
-    val useSshTerminal: Flow<Boolean> = context.dataStore.data.map { 
+    val preferredModelId: Flow<String?> = context.dataStore.data.map { it[PREFERRED_MODEL_ID] }.distinctUntilChanged()
+    val preferredModelKey: Flow<String?> = context.dataStore.data.map { it[PREFERRED_MODEL_KEY] }.distinctUntilChanged()
+    val preferredModelName: Flow<String?> = context.dataStore.data.map { it[PREFERRED_MODEL_NAME] }.distinctUntilChanged()
+    val useSshTerminal: Flow<Boolean> = context.dataStore.data.map {
         it[USE_SSH_TERMINAL] ?: false
-    }
-    val isLocalToolsEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_LOCAL_TOOLS_ENABLED] ?: false }
-    val isLocalToolsInstalled: Flow<Boolean> = context.dataStore.data.map { it[IS_LOCAL_TOOLS_INSTALLED] ?: false }
-    val localToolsInstallDate: Flow<Long?> = context.dataStore.data.map { it[LOCAL_TOOLS_INSTALL_DATE] }
-    val localToolsVersion: Flow<String?> = context.dataStore.data.map { it[LOCAL_TOOLS_VERSION] }
-    val agyBridgeHttpUrl: Flow<String> = context.dataStore.data.map { 
+    }.distinctUntilChanged()
+    val isLocalToolsEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_LOCAL_TOOLS_ENABLED] ?: false }.distinctUntilChanged()
+    val isLocalToolsInstalled: Flow<Boolean> = context.dataStore.data.map { it[IS_LOCAL_TOOLS_INSTALLED] ?: false }.distinctUntilChanged()
+    val localToolsInstallDate: Flow<Long?> = context.dataStore.data.map { it[LOCAL_TOOLS_INSTALL_DATE] }.distinctUntilChanged()
+    val localToolsVersion: Flow<String?> = context.dataStore.data.map { it[LOCAL_TOOLS_VERSION] }.distinctUntilChanged()
+    val agyBridgeHttpUrl: Flow<String> = context.dataStore.data.map {
         val url = it[AGY_BRIDGE_HTTP_URL]?.let(::migrateBridgeUrl) ?: DEFAULT_BRIDGE_HTTP_URL
         currentBridgeHttpUrl = url
         url
-    }
-    val agyBridgeWsUrl: Flow<String> = agyBridgeHttpUrl.map { toWsUrl(it) }
-    val agyHubUrl: Flow<String> = context.dataStore.data.map { 
+    }.distinctUntilChanged()
+    val agyBridgeWsUrl: Flow<String> = agyBridgeHttpUrl.map { toWsUrl(it) }.distinctUntilChanged()
+    val agyHubUrl: Flow<String> = context.dataStore.data.map {
         val url = it[AGY_HUB_URL]?.let(::migrateHubUrl) ?: DEFAULT_HUB_URL
         currentHubUrl = url
         url
-    }
+    }.distinctUntilChanged()
 
-    val accessToken: Flow<String?> = context.dataStore.data.map { it[ACCESS_TOKEN] }
-    val refreshToken: Flow<String?> = context.dataStore.data.map { it[REFRESH_TOKEN] }
-    val expiresAt: Flow<Long?> = context.dataStore.data.map { it[EXPIRES_AT] }
-    val projectId: Flow<String?> = context.dataStore.data.map { it[PROJECT_ID] ?: "rising-fact-p41fc" }
-    val subscriptionTier: Flow<String?> = context.dataStore.data.map { it[SUBSCRIPTION_TIER] ?: "pro" }
-    val userEmail: Flow<String?> = context.dataStore.data.map { it[USER_EMAIL] }
+    val accessToken: Flow<String?> = context.dataStore.data.map { it[ACCESS_TOKEN] }.distinctUntilChanged()
+    val refreshToken: Flow<String?> = context.dataStore.data.map { it[REFRESH_TOKEN] }.distinctUntilChanged()
+    val expiresAt: Flow<Long?> = context.dataStore.data.map { it[EXPIRES_AT] }.distinctUntilChanged()
+    val projectId: Flow<String?> = context.dataStore.data.map { it[PROJECT_ID] ?: "rising-fact-p41fc" }.distinctUntilChanged()
+    val subscriptionTier: Flow<String?> = context.dataStore.data.map { it[SUBSCRIPTION_TIER] ?: "pro" }.distinctUntilChanged()
+    val userEmail: Flow<String?> = context.dataStore.data.map { it[USER_EMAIL] }.distinctUntilChanged()
 
     fun getThemeModeSync(): String {
         val cached = syncPrefs.getString("app_theme_mode", null)
@@ -218,22 +219,22 @@ class AuthPreferences(private val context: Context) {
         return "SYSTEM"
     }
 
-    val enabledModelIds: Flow<Set<String>?> = context.dataStore.data.map { it[ENABLED_MODELS] }
-    val isDevModeEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_DEV_MODE_ENABLED] ?: false }
-    val chatFontScale: Flow<Float> = context.dataStore.data.map { it[CHAT_FONT_SCALE] ?: 1.0f }
+    val enabledModelIds: Flow<Set<String>?> = context.dataStore.data.map { it[ENABLED_MODELS] }.distinctUntilChanged()
+    val isDevModeEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_DEV_MODE_ENABLED] ?: false }.distinctUntilChanged()
+    val chatFontScale: Flow<Float> = context.dataStore.data.map { it[CHAT_FONT_SCALE] ?: 1.0f }.distinctUntilChanged()
 
     /** The Claude Code-style "working" row under a running reply; off = only the "…" dots before the first output. */
-    val workingAnimationEnabled: Flow<Boolean> = context.dataStore.data.map { it[WORKING_ANIMATION_ENABLED] ?: true }
+    val workingAnimationEnabled: Flow<Boolean> = context.dataStore.data.map { it[WORKING_ANIMATION_ENABLED] ?: true }.distinctUntilChanged()
 
     /** Wavy-line dividers in chats: a new day ("Sat, Oct 10") and model switches ("Switched to …"). */
-    val chatDividersEnabled: Flow<Boolean> = context.dataStore.data.map { it[CHAT_DIVIDERS_ENABLED] ?: true }
+    val chatDividersEnabled: Flow<Boolean> = context.dataStore.data.map { it[CHAT_DIVIDERS_ENABLED] ?: true }.distinctUntilChanged()
     val themeMode: Flow<String> = context.dataStore.data.map { prefs ->
         val mode = prefs[APP_THEME_MODE] ?: "SYSTEM"
         if (syncPrefs.getString("app_theme_mode", null) != mode) {
             syncPrefs.edit().putString("app_theme_mode", mode).apply()
         }
         mode
-    }
+    }.distinctUntilChanged()
     fun getTerminalFontSizeSync(): Int = syncPrefs.getInt("terminal_font_size", 14)
     fun getTerminalCursorStyleSync(): String = syncPrefs.getString("terminal_cursor_style", "BAR") ?: "BAR"
     fun getTerminalBufferSizeSync(): Int = syncPrefs.getInt("terminal_buffer_size", 20000)
@@ -245,58 +246,58 @@ class AuthPreferences(private val context: Context) {
             syncPrefs.edit().putInt("terminal_font_size", size).apply()
         }
         size
-    }
+    }.distinctUntilChanged()
     val terminalCursorStyle: Flow<String> = context.dataStore.data.map { prefs ->
         val style = prefs[TERMINAL_CURSOR_STYLE] ?: "BAR"
         if (syncPrefs.getString("terminal_cursor_style", null) != style) {
             syncPrefs.edit().putString("terminal_cursor_style", style).apply()
         }
         style
-    }
+    }.distinctUntilChanged()
     val terminalBufferSize: Flow<Int> = context.dataStore.data.map { prefs ->
         val size = prefs[TERMINAL_BUFFER_SIZE] ?: 20000
         if (syncPrefs.getInt("terminal_buffer_size", 20000) != size) {
             syncPrefs.edit().putInt("terminal_buffer_size", size).apply()
         }
         size
-    }
+    }.distinctUntilChanged()
     val terminalTheme: Flow<String> = context.dataStore.data.map { prefs ->
         val th = prefs[TERMINAL_THEME] ?: "DEFAULT"
         if (syncPrefs.getString("terminal_theme", null) != th) {
             syncPrefs.edit().putString("terminal_theme", th).apply()
         }
         th
-    }
+    }.distinctUntilChanged()
 
-    val termuxSshHost: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_HOST] ?: "127.0.0.1" }
-    val termuxSshPort: Flow<Int> = context.dataStore.data.map { it[TERMUX_SSH_PORT]?.toIntOrNull() ?: 8022 }
-    val termuxSshUser: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_USER] ?: "root" }
-    val termuxSshPass: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_PASS] ?: "root" }
-    val isTerminalToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_TERMINAL_TOOL_ENABLED] ?: false }
-    val isAutoExecuteTerminal: Flow<Boolean> = context.dataStore.data.map { it[AUTO_EXECUTE_TERMINAL] ?: true }
+    val termuxSshHost: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_HOST] ?: "127.0.0.1" }.distinctUntilChanged()
+    val termuxSshPort: Flow<Int> = context.dataStore.data.map { it[TERMUX_SSH_PORT]?.toIntOrNull() ?: 8022 }.distinctUntilChanged()
+    val termuxSshUser: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_USER] ?: "root" }.distinctUntilChanged()
+    val termuxSshPass: Flow<String> = context.dataStore.data.map { it[TERMUX_SSH_PASS] ?: "root" }.distinctUntilChanged()
+    val isTerminalToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_TERMINAL_TOOL_ENABLED] ?: false }.distinctUntilChanged()
+    val isAutoExecuteTerminal: Flow<Boolean> = context.dataStore.data.map { it[AUTO_EXECUTE_TERMINAL] ?: true }.distinctUntilChanged()
 
-    val isWebSearchToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_WEB_SEARCH_TOOL_ENABLED] ?: true }
-    val isWebReaderToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_WEB_READER_TOOL_ENABLED] ?: true }
-    val isChoicesToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_CHOICES_TOOL_ENABLED] ?: true }
-    val isFileToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_FILE_TOOL_ENABLED] ?: false }
-    val isAutomationToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_AUTOMATION_TOOL_ENABLED] ?: false }
-    val isMathToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_MATH_TOOL_ENABLED] ?: true }
-    val isInteractiveUiToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_INTERACTIVE_UI_TOOL_ENABLED] ?: false }
-    val contextWindowLimit: Flow<Int> = context.dataStore.data.map { it[CONTEXT_WINDOW_LIMIT] ?: 10 }
-    val summaryModelId: Flow<String> = context.dataStore.data.map { it[SUMMARY_MODEL_ID] ?: "always_ask" }
+    val isWebSearchToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_WEB_SEARCH_TOOL_ENABLED] ?: true }.distinctUntilChanged()
+    val isWebReaderToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_WEB_READER_TOOL_ENABLED] ?: true }.distinctUntilChanged()
+    val isChoicesToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_CHOICES_TOOL_ENABLED] ?: true }.distinctUntilChanged()
+    val isFileToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_FILE_TOOL_ENABLED] ?: false }.distinctUntilChanged()
+    val isAutomationToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_AUTOMATION_TOOL_ENABLED] ?: false }.distinctUntilChanged()
+    val isMathToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_MATH_TOOL_ENABLED] ?: true }.distinctUntilChanged()
+    val isInteractiveUiToolEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_INTERACTIVE_UI_TOOL_ENABLED] ?: false }.distinctUntilChanged()
+    val contextWindowLimit: Flow<Int> = context.dataStore.data.map { it[CONTEXT_WINDOW_LIMIT] ?: 10 }.distinctUntilChanged()
+    val summaryModelId: Flow<String> = context.dataStore.data.map { it[SUMMARY_MODEL_ID] ?: "always_ask" }.distinctUntilChanged()
 
     val commandAutoExecutionPolicy: Flow<String> = context.dataStore.data.map {
         it[COMMAND_AUTO_EXECUTION_POLICY] ?: "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
-    }
+    }.distinctUntilChanged()
     val commandSandboxEnabled: Flow<Boolean> = context.dataStore.data.map {
         it[COMMAND_SANDBOX_ENABLED] ?: false
-    }
+    }.distinctUntilChanged()
     val requireApprovalForFileEdits: Flow<Boolean> = context.dataStore.data.map {
         it[REQUIRE_APPROVAL_FOR_FILE_EDITS] ?: false
-    }
+    }.distinctUntilChanged()
     val defaultApprovalScope: Flow<String> = context.dataStore.data.map {
         it[DEFAULT_APPROVAL_SCOPE] ?: "PERMISSION_SCOPE_ONCE"
-    }
+    }.distinctUntilChanged()
 
     suspend fun setWebSearchToolEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
@@ -483,7 +484,7 @@ class AuthPreferences(private val context: Context) {
     }
 
     suspend fun saveThemeMode(mode: String) {
-        syncPrefs.edit().putString("app_theme_mode", mode).commit()
+        syncPrefs.edit().putString("app_theme_mode", mode).apply()
         context.dataStore.edit { prefs ->
             prefs[APP_THEME_MODE] = mode
         }
@@ -673,7 +674,7 @@ class AuthPreferences(private val context: Context) {
 
     fun saveNetworkInspectorEnabledSync(enabled: Boolean) {
         com.example.gemini.data.remote.inspector.NetworkInspectorManager.isEnabled = enabled
-        syncPrefs.edit().putBoolean("is_network_inspector_enabled", enabled).commit()
+        syncPrefs.edit().putBoolean("is_network_inspector_enabled", enabled).apply()
     }
 
     suspend fun saveNetworkInspectorEnabled(enabled: Boolean) {
@@ -696,7 +697,7 @@ class AuthPreferences(private val context: Context) {
 
     fun saveFloatingNetworkInspectorEnabledSync(enabled: Boolean) {
         com.example.gemini.data.remote.inspector.NetworkInspectorManager.isFloatingBubbleEnabled = enabled
-        syncPrefs.edit().putBoolean("is_floating_network_inspector_enabled", enabled).commit()
+        syncPrefs.edit().putBoolean("is_floating_network_inspector_enabled", enabled).apply()
     }
 
     suspend fun saveFloatingNetworkInspectorEnabled(enabled: Boolean) {

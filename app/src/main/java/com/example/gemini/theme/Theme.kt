@@ -113,7 +113,19 @@ data class GraventUiTokens(
     val gitAddBorder: Color,
     val gitDel: Color,
     val warnAmber: Color,
-    val warmHighlight: Color
+    val warmHighlight: Color,
+    val infoAccent: Color = Color(0xFF38BDF8),
+    val infoSoftBg: Color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+    val successAccent: Color = Color(0xFF4ADE80),
+    val successSoftBg: Color = Color(0xFF22C55E).copy(alpha = 0.14f),
+    val warnSoftBg: Color = Color(0xFFFBBF24).copy(alpha = 0.14f),
+    val errorAccent: Color = Color(0xFFF87171),
+    val errorSoftBg: Color = Color(0xFFEF4444).copy(alpha = 0.14f),
+    val codeBg: Color = Color(0xFF0B0C10),
+    val codeHeaderBg: Color = Color(0xFF121318),
+    val inlineCodeBg: Color = Color(0xFF202129),
+    val inlineCodeText: Color = Color(0xFFE4E4E7),
+    val inlineCodeBorder: Color = Color(0xFF2E303B)
 )
 
 private val DarkGraventTokens = GraventUiTokens(
@@ -138,7 +150,19 @@ private val DarkGraventTokens = GraventUiTokens(
     gitAddBorder = Color(0xFF262D28),
     gitDel = Color(0xFFF87171),
     warnAmber = Color(0xFFFBBF24),
-    warmHighlight = Color(0xFFE8E5DF)
+    warmHighlight = Color(0xFFE8E5DF),
+    infoAccent = Color(0xFF38BDF8),
+    infoSoftBg = Color(0xFF0EA5E9).copy(alpha = 0.15f),
+    successAccent = Color(0xFF4ADE80),
+    successSoftBg = Color(0xFF22C55E).copy(alpha = 0.15f),
+    warnSoftBg = Color(0xFFF59E0B).copy(alpha = 0.15f),
+    errorAccent = Color(0xFFF87171),
+    errorSoftBg = Color(0xFFEF4444).copy(alpha = 0.15f),
+    codeBg = Color(0xFF0B0C10),
+    codeHeaderBg = Color(0xFF121319),
+    inlineCodeBg = Color(0xFF20212A),
+    inlineCodeText = Color(0xFFE4E4E7),
+    inlineCodeBorder = Color(0xFF2F313D)
 )
 
 private val LightGraventTokens = GraventUiTokens(
@@ -163,7 +187,19 @@ private val LightGraventTokens = GraventUiTokens(
     gitAddBorder = Color(0xFFBBF7D0),
     gitDel = Color(0xFFB91C1C),
     warnAmber = Color(0xFFB45309),
-    warmHighlight = Color(0xFF3F3F46)
+    warmHighlight = Color(0xFF3F3F46),
+    infoAccent = Color(0xFF0284C7),
+    infoSoftBg = Color(0xFFE0F2FE),
+    successAccent = Color(0xFF15803D),
+    successSoftBg = Color(0xFFDCFCE7),
+    warnSoftBg = Color(0xFFFEF3C7),
+    errorAccent = Color(0xFFDC2626),
+    errorSoftBg = Color(0xFFFEE2E2),
+    codeBg = Color(0xFFF8F9FB),
+    codeHeaderBg = Color(0xFFEEEEF2),
+    inlineCodeBg = Color(0xFFEEEEF3),
+    inlineCodeText = Color(0xFF18181B),
+    inlineCodeBorder = Color(0xFFDCDCE3)
 )
 
 val LocalIsDarkTheme = staticCompositionLocalOf { true }

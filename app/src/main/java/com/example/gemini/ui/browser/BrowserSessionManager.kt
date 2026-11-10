@@ -26,6 +26,7 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.webkit.*
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -94,10 +95,10 @@ class BrowserTabSession(
     var url by mutableStateOf(initialUrl)
     var title by mutableStateOf(initialTitle)
     var isLoading by mutableStateOf(false)
-    var progress by mutableStateOf(0)
+    var progress by mutableIntStateOf(0)
     var canGoBack by mutableStateOf(false)
     var canGoForward by mutableStateOf(false)
-    var scrollY by mutableStateOf(0)
+    var scrollY by mutableIntStateOf(0)
     var webView: WebView? = null
     var isBackgroundActive by mutableStateOf(true)
     var lastError by mutableStateOf<BrowserNetworkError?>(null)

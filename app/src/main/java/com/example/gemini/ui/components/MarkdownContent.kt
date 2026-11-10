@@ -96,9 +96,11 @@ import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.example.gemini.data.remote.HubMediaResolver
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.DarkGraventTokens
 import com.example.gemini.theme.GeminiBlue
+import com.example.gemini.theme.LightGraventTokens
 import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.delay
@@ -139,7 +141,7 @@ sealed class MarkdownBlock {
     @androidx.compose.runtime.Immutable
     data class Bullet(val indent: Int, val text: String) : MarkdownBlock()
     @androidx.compose.runtime.Immutable
-    data class Numbered(val number: String, val text: String) : MarkdownBlock()
+    data class Numbered(val number: String, val text: String, val indent: Int = 0) : MarkdownBlock()
     @androidx.compose.runtime.Immutable
     data class Task(val isChecked: Boolean, val text: String) : MarkdownBlock()
     @androidx.compose.runtime.Immutable
@@ -179,7 +181,8 @@ fun MarkdownBlockView(
     onRejectTool: ((com.example.gemini.domain.model.ToolCall) -> Unit)? = null,
     onTerminateTool: ((com.example.gemini.domain.model.ToolCall) -> Unit)? = null,
     onSubmitChoices: ((com.example.gemini.domain.model.ToolCall, List<com.example.gemini.data.remote.dto.AskQuestionResponseItemDto>, String) -> Unit)? = null,
-    onSkipChoices: ((com.example.gemini.domain.model.ToolCall, List<com.example.gemini.data.remote.dto.AskQuestionResponseItemDto>) -> Unit)? = null
+    onSkipChoices: ((com.example.gemini.domain.model.ToolCall, List<com.example.gemini.data.remote.dto.AskQuestionResponseItemDto>) -> Unit)? = null,
+    compact: Boolean = false
 ) {
     when (block) {
         is MarkdownBlock.AgentThought -> {
@@ -245,39 +248,57 @@ fun MarkdownBlockView(
             MarkdownDetailsView(details = block, modifier = modifier)
         }
         is MarkdownBlock.Header -> {
-            val (fontSize, topPad, bottomPad) = when (block.level) {
-                1 -> Triple(20.sp, 10.dp, 5.dp)
-                2 -> Triple(17.5.sp, 9.dp, 4.dp)
-                3 -> Triple(15.5.sp, 8.dp, 4.dp)
-                4 -> Triple(14.sp, 7.dp, 3.dp)
-                5 -> Triple(13.sp, 6.dp, 2.dp)
-                else -> Triple(12.5.sp, 5.dp, 2.dp)
+            val t = graventTokens()
+            val (fontSize, lineHeight, topPad, bottomPad) = when (block.level) {
+                1 -> if (compact) listOf(14.5.sp, 20.sp, 6.dp, 3.dp) else listOf(20.sp, 26.sp, 12.dp, 6.dp)
+                2 -> if (compact) listOf(13.5.sp, 19.sp, 5.dp, 2.dp) else listOf(17.5.sp, 23.sp, 10.dp, 5.dp)
+                3 -> if (compact) listOf(13.sp, 18.sp, 4.dp, 2.dp) else listOf(15.5.sp, 21.sp, 8.dp, 4.dp)
+                4 -> listOf(if (compact) 12.5.sp else 14.5.sp, if (compact) 17.5.sp else 20.sp, 6.dp, 3.dp)
+                5 -> listOf(13.sp, 18.5.sp, 5.dp, 2.dp)
+                else -> listOf(12.5.sp, 18.sp, 4.dp, 2.dp)
             }
-            FormattedInlineText(
-                text = block.text,
-                style = TextStyle(
-                    fontSize = fontSize,
-                    fontWeight = FontWeight.Bold,
-                    color = if (block.level <= 3) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                ),
-                modifier = modifier.padding(top = topPad, bottom = bottomPad)
-            )
+            @Suppress("UNCHECKED_CAST")
+            val fSize = fontSize as androidx.compose.ui.unit.TextUnit
+            val lHeight = lineHeight as androidx.compose.ui.unit.TextUnit
+            val tPad = topPad as androidx.compose.ui.unit.Dp
+            val bPad = bottomPad as androidx.compose.ui.unit.Dp
+            Column(modifier = modifier.fillMaxWidth().padding(top = tPad, bottom = bPad)) {
+                FormattedInlineText(
+                    text = block.text,
+                    compact = compact,
+                    style = TextStyle(
+                        fontSize = fSize,
+                        lineHeight = lHeight,
+                        letterSpacing = if (block.level <= 2 && !compact) (-0.25).sp else 0.sp,
+                        fontWeight = if (block.level <= 3) FontWeight.Bold else FontWeight.SemiBold,
+                        color = if (block.level <= 4) t.textPrimary else t.textSecondary,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    )
+                )
+                if (block.level <= 2 && !compact) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(thickness = 0.6.dp, color = t.subtleBorder)
+                }
+            }
         }
         is MarkdownBlock.Bullet -> {
+            val t = graventTokens()
+            val bodySize = if (compact) 12.5.sp else 14.5.sp
+            val bodyLineHeight = if (compact) 18.sp else 21.5.sp
             Row(
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp)
+                    .padding(vertical = if (compact) 1.5.dp else 2.5.dp)
                     .padding(start = (block.indent * 14).dp),
                 verticalAlignment = Alignment.Top
             ) {
-                val bulletAccent = com.example.gemini.theme.graventTokens().accent
                 Text(
-                    text = if (block.indent == 0) "• " else "◦ ",
+                    text = if (block.indent == 0) "•" else "◦",
                     fontWeight = FontWeight.Bold,
-                    color = bulletAccent,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp,
+                    color = if (block.indent == 0) t.accent.copy(alpha = 0.75f) else t.textMuted,
+                    fontSize = bodySize,
+                    lineHeight = bodyLineHeight,
+                    modifier = Modifier.widthIn(min = 14.dp),
                     style = TextStyle(
                         platformStyle = PlatformTextStyle(includeFontPadding = false),
                         lineHeightStyle = LineHeightStyle(
@@ -288,24 +309,41 @@ fun MarkdownBlockView(
                 )
                 FormattedInlineText(
                     text = block.text,
+                    compact = compact,
+                    style = TextStyle(
+                        fontSize = bodySize,
+                        lineHeight = bodyLineHeight,
+                        color = if (compact) t.textSecondary else t.textPrimary,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.None
+                        )
+                    ),
                     modifier = Modifier.weight(1f)
                 )
             }
         }
         is MarkdownBlock.Numbered -> {
+            val t = graventTokens()
+            val bodySize = if (compact) 12.5.sp else 14.5.sp
+            val bodyLineHeight = if (compact) 18.sp else 21.5.sp
             Row(
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp, horizontal = 2.dp),
+                    .padding(vertical = if (compact) 1.5.dp else 2.5.dp)
+                    .padding(start = (block.indent * 14).dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = "${block.number} ",
-                    fontWeight = FontWeight.Bold,
-                    color = com.example.gemini.theme.graventTokens().accent,
-                    fontSize = 13.5.sp,
-                    lineHeight = 21.sp,
+                    text = block.number,
+                    fontWeight = FontWeight.SemiBold,
+                    color = t.textMuted,
+                    fontSize = if (compact) 12.sp else 13.5.sp,
+                    lineHeight = bodyLineHeight,
+                    modifier = Modifier.widthIn(min = 24.dp).padding(end = 6.dp),
                     style = TextStyle(
+                        fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false),
                         lineHeightStyle = LineHeightStyle(
                             alignment = LineHeightStyle.Alignment.Center,
@@ -315,28 +353,53 @@ fun MarkdownBlockView(
                 )
                 FormattedInlineText(
                     text = block.text,
+                    compact = compact,
+                    style = TextStyle(
+                        fontSize = bodySize,
+                        lineHeight = bodyLineHeight,
+                        color = if (compact) t.textSecondary else t.textPrimary,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.None
+                        )
+                    ),
                     modifier = Modifier.weight(1f)
                 )
             }
         }
         is MarkdownBlock.Task -> {
+            val t = graventTokens()
+            val bodySize = if (compact) 12.5.sp else 14.5.sp
+            val bodyLineHeight = if (compact) 18.sp else 21.5.sp
             Row(
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp, horizontal = 2.dp),
+                    .padding(vertical = 2.5.dp, horizontal = 2.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
                     imageVector = if (block.isChecked) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
                     contentDescription = if (block.isChecked) "Completed" else "Incomplete",
-                    tint = if (block.isChecked) QuotaGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    tint = if (block.isChecked) t.successAccent else t.textMuted,
                     modifier = Modifier
-                        .padding(top = 1.5.dp, end = 6.dp)
-                        .size(17.dp)
+                        .padding(top = 2.dp, end = 7.dp)
+                        .size(16.dp)
                 )
                 FormattedInlineText(
                     text = block.text,
                     isStrikethrough = block.isChecked,
+                    compact = compact,
+                    style = TextStyle(
+                        fontSize = bodySize,
+                        lineHeight = bodyLineHeight,
+                        color = if (compact) t.textSecondary else t.textPrimary,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.None
+                        )
+                    ),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -349,39 +412,61 @@ fun MarkdownBlockView(
         }
 
         is MarkdownBlock.Blockquote -> {
+            val t = graventTokens()
             Surface(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(vertical = 5.dp),
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                shape = RoundedCornerShape(10.dp),
+                color = t.elevatedBg,
+                border = BorderStroke(0.5.dp, t.subtleBorder)
             ) {
-                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                Row(modifier = Modifier.height(IntrinsicSize.Min).padding(horizontal = 10.dp, vertical = 8.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .width(4.dp)
-                            .background(com.example.gemini.theme.graventTokens().accent)
+                            .width(2.5.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(t.accent.copy(alpha = 0.65f))
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     FormattedInlineText(
                         text = block.text,
-                        modifier = Modifier.padding(vertical = 7.dp, horizontal = 4.dp)
+                        compact = compact,
+                        style = TextStyle(
+                            fontSize = if (compact) 12.sp else 14.sp,
+                            lineHeight = if (compact) 17.5.sp else 20.5.sp,
+                            color = t.textSecondary,
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
         is MarkdownBlock.HorizontalRule -> {
             HorizontalDivider(
-                modifier = modifier.padding(vertical = 8.dp),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                modifier = modifier.padding(vertical = 10.dp),
+                thickness = 0.7.dp,
+                color = graventTokens().subtleBorder
             )
         }
         is MarkdownBlock.Paragraph -> {
+            val t = graventTokens()
             FormattedInlineText(
                 text = block.text,
-                modifier = modifier.padding(vertical = 3.dp)
+                compact = compact,
+                style = TextStyle(
+                    fontSize = if (compact) 12.5.sp else 14.5.sp,
+                    lineHeight = if (compact) 18.sp else 21.5.sp,
+                    color = if (compact) t.textSecondary else t.textPrimary,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.None
+                    )
+                ),
+                modifier = modifier.padding(vertical = if (compact) 2.dp else 3.5.dp)
             )
         }
     }
@@ -400,40 +485,40 @@ fun MarkdownAlertView(
     alert: MarkdownBlock.Alert,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isAppInDarkTheme()
+    val t = graventTokens()
     val style = when (alert.type) {
         AlertType.NOTE -> AlertStyle(
-            accentColor = Color(0xFF3B82F6),
-            lightBg = Color(0xFFEFF6FF),
-            darkBg = Color(0x223B82F6),
+            accentColor = t.infoAccent,
+            lightBg = t.infoSoftBg,
+            darkBg = t.infoSoftBg,
             defaultTitle = "Note",
             icon = Icons.Outlined.Info
         )
         AlertType.TIP -> AlertStyle(
-            accentColor = Color(0xFF10B981),
-            lightBg = Color(0xFFECFDF5),
-            darkBg = Color(0x2210B981),
+            accentColor = t.successAccent,
+            lightBg = t.successSoftBg,
+            darkBg = t.successSoftBg,
             defaultTitle = "Tip",
             icon = Icons.Outlined.Lightbulb
         )
         AlertType.IMPORTANT -> AlertStyle(
-            accentColor = Color(0xFF8B5CF6),
-            lightBg = Color(0xFFF5F3FF),
-            darkBg = Color(0x228B5CF6),
+            accentColor = if (t.isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED),
+            lightBg = Color(0x147C3AED),
+            darkBg = Color(0x1EA78BFA),
             defaultTitle = "Important",
             icon = Icons.Outlined.PriorityHigh
         )
         AlertType.WARNING -> AlertStyle(
-            accentColor = Color(0xFFF59E0B),
-            lightBg = Color(0xFFFFFBEB),
-            darkBg = Color(0x22F59E0B),
+            accentColor = t.warnAccent,
+            lightBg = t.warnSoftBg,
+            darkBg = t.warnSoftBg,
             defaultTitle = "Warning",
             icon = Icons.Outlined.Warning
         )
         AlertType.CAUTION -> AlertStyle(
-            accentColor = Color(0xFFEF4444),
-            lightBg = Color(0xFFFEF2F2),
-            darkBg = Color(0x22EF4444),
+            accentColor = t.errorAccent,
+            lightBg = t.errorSoftBg,
+            darkBg = t.errorSoftBg,
             defaultTitle = "Caution",
             icon = Icons.Outlined.Report
         )
@@ -445,22 +530,24 @@ fun MarkdownAlertView(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = if (isDark) style.darkBg else style.lightBg,
-        border = BorderStroke(1.dp, style.accentColor.copy(alpha = if (isDark) 0.35f else 0.25f))
+        shape = RoundedCornerShape(12.dp),
+        color = style.darkBg,
+        border = BorderStroke(1.dp, style.accentColor.copy(alpha = if (t.isDark) 0.28f else 0.24f))
     ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+        Row(
+            modifier = Modifier
+                .height(IntrinsicSize.Min)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(4.dp)
+                    .width(2.5.dp)
+                    .clip(RoundedCornerShape(2.dp))
                     .background(style.accentColor)
             )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = if (alert.text.isNotBlank()) 4.dp else 0.dp)
@@ -469,21 +556,27 @@ fun MarkdownAlertView(
                         imageVector = style.icon,
                         contentDescription = displayTitle,
                         tint = style.accentColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = displayTitle,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.5.sp,
                         color = style.accentColor,
-                        letterSpacing = 0.3.sp
+                        letterSpacing = 0.2.sp
                     )
                 }
 
                 if (alert.text.isNotBlank()) {
                     FormattedInlineText(
                         text = alert.text,
+                        style = TextStyle(
+                            fontSize = 13.5.sp,
+                            lineHeight = 20.sp,
+                            color = t.textPrimary,
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -503,7 +596,8 @@ fun MarkdownContent(
     onRejectTool: ((com.example.gemini.domain.model.ToolCall) -> Unit)? = null,
     onTerminateTool: ((com.example.gemini.domain.model.ToolCall) -> Unit)? = null,
     onSubmitChoices: ((com.example.gemini.domain.model.ToolCall, List<com.example.gemini.data.remote.dto.AskQuestionResponseItemDto>, String) -> Unit)? = null,
-    onSkipChoices: ((com.example.gemini.domain.model.ToolCall, List<com.example.gemini.data.remote.dto.AskQuestionResponseItemDto>) -> Unit)? = null
+    onSkipChoices: ((com.example.gemini.domain.model.ToolCall, List<com.example.gemini.data.remote.dto.AskQuestionResponseItemDto>) -> Unit)? = null,
+    compact: Boolean = false
 ) {
     val t0 = System.nanoTime()
     val blocks = remember(content, toolCalls) {
@@ -529,7 +623,8 @@ fun MarkdownContent(
                 onRejectTool = onRejectTool,
                 onTerminateTool = onTerminateTool,
                 onSubmitChoices = onSubmitChoices,
-                onSkipChoices = onSkipChoices
+                onSkipChoices = onSkipChoices,
+                compact = compact
             )
         }
     }
@@ -645,7 +740,7 @@ fun MermaidDiagramView(
 ) {
     val context = LocalContext.current
     val isDark = isAppInDarkTheme()
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Diagram, 1 = Code
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Diagram, 1 = Code
     var isCopied by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
 
@@ -897,7 +992,7 @@ fun MermaidFullscreenDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     var isCopied by remember { mutableStateOf(false) }
     var webViewRef by remember { mutableStateOf<android.webkit.WebView?>(null) }
 
@@ -1361,11 +1456,11 @@ fun AgentErrorCard(
 ) {
     val context = LocalContext.current
     var isExpanded by remember { mutableStateOf(false) }
-    val isDark = isAppInDarkTheme()
+    val t = graventTokens()
 
-    val cardBg = if (isDark) Color(0xFF2A1515) else Color(0xFFFDECEC)
-    val cardBorder = if (isDark) Color(0xFF742A2A) else Color(0xFFF5C2C2)
-    val errorColor = if (isDark) Color(0xFFFF6B6B) else Color(0xFFD32F2F)
+    val cardBg = t.errorSoftBg
+    val cardBorder = t.errorAccent.copy(alpha = if (t.isDark) 0.35f else 0.25f)
+    val errorColor = t.errorAccent
 
     Surface(
         modifier = modifier
@@ -1400,18 +1495,10 @@ fun AgentErrorCard(
                 )
                 if (error.errorCode != null && error.errorCode != 0) {
                     Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = errorColor.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = "Code: ${error.errorCode}",
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = errorColor,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
-                        )
-                    }
+                    GraventBadge(
+                        text = "Code ${error.errorCode}",
+                        tone = GraventTone.ERROR
+                    )
                 }
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -1436,7 +1523,7 @@ fun AgentErrorCard(
                     Icon(
                         imageVector = Icons.Outlined.ContentCopy,
                         contentDescription = "Copy Error Details",
-                        tint = errorColor.copy(alpha = 0.7f),
+                        tint = errorColor.copy(alpha = 0.75f),
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -1448,8 +1535,8 @@ fun AgentErrorCard(
                 Text(
                     text = error.userMessage,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    lineHeight = 18.sp
+                    color = t.textPrimary,
+                    lineHeight = 18.5.sp
                 )
             }
 
@@ -1457,9 +1544,9 @@ fun AgentErrorCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = error.shortError,
-                    fontSize = 12.5.sp,
+                    fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    color = t.textSecondary,
                     lineHeight = 17.sp
                 )
             }
@@ -1472,14 +1559,15 @@ fun AgentErrorCard(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { isExpanded = !isExpanded }
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .background(t.elevatedBg)
+                        .border(0.5.dp, t.subtleBorder, RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.ExpandMore,
                         contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        tint = t.textMuted,
                         modifier = Modifier
                             .size(16.dp)
                             .rotate(if (isExpanded) 180f else 0f)
@@ -1489,7 +1577,7 @@ fun AgentErrorCard(
                         text = if (isExpanded) "Hide Error Details & Stack Trace" else "View Error Details & Stack Trace",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = t.textSecondary
                     )
                 }
 
@@ -1503,15 +1591,16 @@ fun AgentErrorCard(
                             .fillMaxWidth()
                             .padding(top = 6.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(if (isDark) Color(0xFF1E1010) else Color(0xFFF7E2E2))
-                            .padding(8.dp)
+                            .background(t.codeBg)
+                            .border(0.5.dp, t.subtleBorder, RoundedCornerShape(8.dp))
+                            .padding(10.dp)
                     ) {
                         if (error.errorId.isNotBlank()) {
                             Text(
                                 text = "Error ID: ${error.errorId}",
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                color = t.textMuted
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                         }
@@ -1521,8 +1610,8 @@ fun AgentErrorCard(
                                 text = verboseText,
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
-                                lineHeight = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                lineHeight = 15.5.sp,
+                                color = t.inlineCodeText
                             )
                         }
                     }
@@ -2283,13 +2372,14 @@ fun MarkdownTableView(
         Log.d("PERF_TRACE", "📊 [Table Comp] rows=${table.rows.size}, cols=$numCols, took=${"%.2f".format(dt)}ms")
     }
 
+    val tTable = graventTokens()
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .clip(RoundedCornerShape(10.dp))
             .border(
-                BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
+                BorderStroke(1.dp, tTable.border),
                 RoundedCornerShape(10.dp)
             )
     ) {
@@ -2322,9 +2412,9 @@ fun MarkdownTableView(
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)
+            color = tTable.cardBg
         ) {
-            val dividerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+            val dividerColor = tTable.subtleBorder
 
             Column(
                 modifier = Modifier
@@ -2336,7 +2426,7 @@ fun MarkdownTableView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
+                        .background(tTable.elevatedBg)
                 ) {
                     cachedHeaders.forEachIndexed { colIdx, headerResult ->
                         if (colIdx > 0) {
@@ -2368,9 +2458,9 @@ fun MarkdownTableView(
                                 inlineContent = headerResult.inlineContent,
                                 modifier = Modifier.fillMaxWidth(),
                                 style = TextStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                    color = tTable.textPrimary,
                                     textAlign = textAlign
                                 )
                             )
@@ -2378,7 +2468,7 @@ fun MarkdownTableView(
                     }
                 }
 
-                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+                HorizontalDivider(thickness = 1.dp, color = tTable.border)
 
                 // Table Data Rows
                 cachedRows.forEachIndexed { rowIdx, rowCells ->
@@ -2388,7 +2478,7 @@ fun MarkdownTableView(
                             .height(IntrinsicSize.Min)
                             .background(
                                 if (rowIdx % 2 == 0) Color.Transparent
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                                else tTable.elevatedBg.copy(alpha = 0.45f)
                             )
                     ) {
                         rowCells.forEachIndexed { colIdx, cellResult ->
@@ -2423,7 +2513,7 @@ fun MarkdownTableView(
                                     style = TextStyle(
                                         fontSize = 13.sp,
                                         lineHeight = 19.sp,
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = tTable.textPrimary,
                                         textAlign = textAlign
                                     )
                                 )
@@ -2432,7 +2522,7 @@ fun MarkdownTableView(
                     }
 
                     if (rowIdx < cachedRows.size - 1) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
                     }
                 }
             }
@@ -2445,9 +2535,19 @@ data class FormattedInlineResult(
     val inlineContent: Map<String, InlineTextContent>
 )
 
+private val HEX_COLOR_REGEX = Regex("^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+private val COMPOSE_HEX_COLOR_REGEX = Regex("^(?:Color\\()?0x([0-9a-fA-F]{6,8})\\)?$")
+private val COMPOSE_HEX_PREFIX_REGEX = Regex("^(?:Color\\()?0x")
+private val RGB_COLOR_REGEX = Regex("^rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)(?:\\s*,\\s*([\\d.]+))?\\s*\\)$", RegexOption.IGNORE_CASE)
+private val HTML_TAG_STRIP_REGEX = Regex("<[^>]+>")
+private val INLINE_DIFF_ADD_REGEX = Regex("^\\+\\d+$")
+private val INLINE_DIFF_DEL_REGEX = Regex("^-\\d+$")
+private val INLINE_EXIT_OK_REGEX = Regex("^(?:exit\\s+0|PASS(?:ED)?|OK)$", RegexOption.IGNORE_CASE)
+private val INLINE_EXIT_ERR_REGEX = Regex("^(?:exit\\s+[1-9]\\d*|FAIL(?:ED)?|ERROR)$", RegexOption.IGNORE_CASE)
+
 fun parseHexOrRgbColor(str: String): Color? {
     val clean = str.trim()
-    if (clean.matches(Regex("^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"))) {
+    if (clean.matches(HEX_COLOR_REGEX)) {
         return try {
             val hex = clean.removePrefix("#")
             val argb = when (hex.length) {
@@ -2462,14 +2562,14 @@ fun parseHexOrRgbColor(str: String): Color? {
             Color(argb)
         } catch (_: Exception) { null }
     }
-    if (clean.matches(Regex("^(?:Color\\()?0x([0-9a-fA-F]{6,8})\\)?$"))) {
+    if (clean.matches(COMPOSE_HEX_COLOR_REGEX)) {
         return try {
-            val hex = clean.replace(Regex("^(?:Color\\()?0x"), "").removeSuffix(")")
+            val hex = clean.replace(COMPOSE_HEX_PREFIX_REGEX, "").removeSuffix(")")
             val argb = if (hex.length == 6) "FF$hex".toLong(16) else hex.toLong(16)
             Color(argb)
         } catch (_: Exception) { null }
     }
-    val rgbMatch = Regex("^rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)(?:\\s*,\\s*([\\d.]+))?\\s*\\)$", RegexOption.IGNORE_CASE).find(clean)
+    val rgbMatch = RGB_COLOR_REGEX.find(clean)
     if (rgbMatch != null) {
         return try {
             val r = rgbMatch.groupValues[1].toInt().coerceIn(0, 255)
@@ -2516,11 +2616,19 @@ private val INLINE_MARKDOWN_PATTERN: Pattern = Pattern.compile(
     Pattern.DOTALL or Pattern.CASE_INSENSITIVE
 )
 
+private data class InlineTextCacheKey(
+    val text: String,
+    val isDark: Boolean,
+    val isStrikethrough: Boolean,
+    val compact: Boolean,
+    val densityKey: Int
+)
+
 object MarkdownTextCache {
-    private val cache = android.util.LruCache<Int, FormattedInlineResult>(600)
+    private val cache = android.util.LruCache<InlineTextCacheKey, FormattedInlineResult>(600)
 
     fun prewarm(text: String, isDark: Boolean = true) {
-        getOrCompute(text, isStrikethrough = false, isDark = isDark, density = null, fileLinkHandler = null)
+        getOrCompute(text, isStrikethrough = false, isDark = isDark, density = null, fileLinkHandler = null, compact = false)
     }
 
     fun getOrCompute(
@@ -2528,7 +2636,8 @@ object MarkdownTextCache {
         isStrikethrough: Boolean = false,
         isDark: Boolean = false,
         density: Density? = null,
-        fileLinkHandler: FileLinkHandler? = null
+        fileLinkHandler: FileLinkHandler? = null,
+        compact: Boolean = false
     ): FormattedInlineResult {
         // Fast path for plain text without markdown tokens
         if (!text.contains('*') && !text.contains('_') && !text.contains('`') &&
@@ -2546,9 +2655,11 @@ object MarkdownTextCache {
             return FormattedInlineResult(str, emptyMap())
         }
 
-        val cacheKey = text.hashCode() * 31 + (if (isDark) 1 else 0) * 7 + (if (isStrikethrough) 2 else 0)
+        val hasMath = text.contains('$') || text.contains("\\(")
+        val densityKey = if (hasMath && density != null) (density.density * 100f).toInt() else 0
+        val cacheKey = InlineTextCacheKey(text, isDark, isStrikethrough, compact, densityKey)
         return cache.get(cacheKey) ?: run {
-            val res = buildRichAnnotatedString(text, isStrikethrough, isDark, density, fileLinkHandler)
+            val res = buildRichAnnotatedString(text, isStrikethrough, isDark, density, fileLinkHandler, compact = compact)
             cache.put(cacheKey, res)
             res
         }
@@ -2560,8 +2671,8 @@ fun FormattedInlineText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = TextStyle(
-        fontSize = 14.sp,
-        lineHeight = 21.sp,
+        fontSize = 14.5.sp,
+        lineHeight = 21.5.sp,
         platformStyle = PlatformTextStyle(includeFontPadding = false),
         lineHeightStyle = LineHeightStyle(
             alignment = LineHeightStyle.Alignment.Center,
@@ -2569,14 +2680,15 @@ fun FormattedInlineText(
         ),
         color = MaterialTheme.colorScheme.onSurface
     ),
-    isStrikethrough: Boolean = false
+    isStrikethrough: Boolean = false,
+    compact: Boolean = false
 ) {
     val isDark = isAppInDarkTheme()
     val density = LocalDensity.current
     val fileLinkHandler = LocalFileLinkHandler.current
 
-    val result = remember(text, isStrikethrough, isDark, density, fileLinkHandler) {
-        MarkdownTextCache.getOrCompute(text, isStrikethrough, isDark, density, fileLinkHandler)
+    val result = remember(text, isStrikethrough, isDark, density, fileLinkHandler, compact) {
+        MarkdownTextCache.getOrCompute(text, isStrikethrough, isDark, density, fileLinkHandler, compact)
     }
 
     RichMarkdownText(
@@ -2594,7 +2706,8 @@ private fun appendFormattedContent(
     density: Density?,
     fileLinkHandler: FileLinkHandler?,
     inlineContentMap: MutableMap<String, InlineTextContent>,
-    depth: Int
+    depth: Int,
+    compact: Boolean = false
 ) {
     if (depth >= 3 || (!content.contains('[') && !content.contains('<') && !content.contains('`') &&
         !content.contains('$') && !content.contains('*') && !content.contains('_') &&
@@ -2609,7 +2722,8 @@ private fun appendFormattedContent(
         isDark = isDark,
         density = density,
         fileLinkHandler = fileLinkHandler,
-        depth = depth + 1
+        depth = depth + 1,
+        compact = compact
     )
     builder.append(nested.annotatedString)
     inlineContentMap.putAll(nested.inlineContent)
@@ -2621,7 +2735,8 @@ private fun buildRichAnnotatedString(
     isDark: Boolean = false,
     density: Density? = null,
     fileLinkHandler: FileLinkHandler? = null,
-    depth: Int = 0
+    depth: Int = 0,
+    compact: Boolean = false
 ): FormattedInlineResult {
     val t0 = System.nanoTime()
     val builder = AnnotatedString.Builder()
@@ -2792,8 +2907,8 @@ private fun buildRichAnnotatedString(
                 inlineContentMap = inlineContentMap
             )
         } else if ((fullMatch.startsWith("`") && fullMatch.endsWith("`")) || fullMatch.startsWith("<code", ignoreCase = true)) {
-            // Inline code `...` or <code>...</code> with Color Swatch preview support
-            val codeContent = if (fullMatch.startsWith("`")) fullMatch.removeSurrounding("`") else fullMatch.replace(Regex("<[^>]+>"), "")
+            // Inline code `...` or <code>...</code> with Color Swatch preview & contextual diff/status styling
+            val codeContent = if (fullMatch.startsWith("`")) fullMatch.removeSurrounding("`") else fullMatch.replace(HTML_TAG_STRIP_REGEX, "")
             val parsedColor = parseHexOrRgbColor(codeContent)
             if (parsedColor != null) {
                 val swatchId = "color_swatch_${inlineContentMap.size}"
@@ -2816,25 +2931,39 @@ private fun buildRichAnnotatedString(
                 builder.pushStyle(
                     SpanStyle(
                         fontFamily = FontFamily.Monospace,
-                        background = parsedColor.copy(alpha = if (isDark) 0.22f else 0.14f),
-                        fontWeight = FontWeight.Bold,
+                        background = parsedColor.copy(alpha = if (isDark) 0.20f else 0.13f),
+                        fontWeight = FontWeight.SemiBold,
                         color = if (isDark) Color(0xFFF1F1F4) else Color(0xFF1E1E24),
-                        fontSize = 12.5.sp
+                        fontSize = if (compact) 11.5.sp else 12.5.sp
                     )
                 )
-                builder.append(" $codeContent ")
+                builder.append("\u00A0$codeContent\u00A0")
                 builder.pop()
             } else {
+                val tokens = if (isDark) DarkGraventTokens else LightGraventTokens
+                val trimmedCode = codeContent.trim()
+                val (pillBg, pillFg, pillWeight) = when {
+                    INLINE_DIFF_ADD_REGEX.matches(trimmedCode) ->
+                        Triple(tokens.successSoftBg, tokens.successAccent, FontWeight.SemiBold)
+                    INLINE_DIFF_DEL_REGEX.matches(trimmedCode) ->
+                        Triple(tokens.errorSoftBg, tokens.errorAccent, FontWeight.SemiBold)
+                    INLINE_EXIT_OK_REGEX.matches(trimmedCode) ->
+                        Triple(tokens.successSoftBg, tokens.successAccent, FontWeight.SemiBold)
+                    INLINE_EXIT_ERR_REGEX.matches(trimmedCode) ->
+                        Triple(tokens.errorSoftBg, tokens.errorAccent, FontWeight.SemiBold)
+                    else ->
+                        Triple(tokens.inlineCodeBg, tokens.inlineCodeText, FontWeight.Medium)
+                }
                 builder.pushStyle(
                     SpanStyle(
                         fontFamily = FontFamily.Monospace,
-                        background = Color(0x24D97706),
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isDark) Color(0xFFE8E5DF) else Color(0xFF92400E),
-                        fontSize = 12.5.sp
+                        background = pillBg,
+                        fontWeight = pillWeight,
+                        color = pillFg,
+                        fontSize = if (compact) 11.5.sp else 12.5.sp
                     )
                 )
-                builder.append(" $codeContent ")
+                builder.append("\u00A0$codeContent\u00A0")
                 builder.pop()
             }
         } else if ((fullMatch.startsWith("$") && fullMatch.endsWith("$") && fullMatch.length > 2) || (fullMatch.startsWith("\\(") && fullMatch.endsWith("\\)"))) {
@@ -2959,23 +3088,24 @@ private fun buildRichAnnotatedString(
             builder.pop()
         } else if (fullMatch.startsWith("<s", ignoreCase = true) || fullMatch.startsWith("<del", ignoreCase = true) || fullMatch.startsWith("<strike", ignoreCase = true)) {
             // HTML Strikethrough <s>, <del>, <strike>
-            val content = fullMatch.replace(Regex("<[^>]+>"), "")
+            val content = fullMatch.replace(HTML_TAG_STRIP_REGEX, "")
             builder.pushStyle(SpanStyle(textDecoration = TextDecoration.LineThrough, color = Color.Gray))
-            appendFormattedContent(builder, content, isDark, density, fileLinkHandler, inlineContentMap, depth)
+            appendFormattedContent(builder, content, isDark, density, fileLinkHandler, inlineContentMap, depth, compact)
             builder.pop()
         } else if (fullMatch.startsWith("<kbd", ignoreCase = true)) {
             // HTML Keyboard Key <kbd>key</kbd>
-            val content = fullMatch.replace(Regex("<[^>]+>"), "").trim()
+            val content = fullMatch.replace(HTML_TAG_STRIP_REGEX, "").trim()
+            val tokens = if (isDark) DarkGraventTokens else LightGraventTokens
             builder.pushStyle(
                 SpanStyle(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    background = if (isDark) Color(0xFF2A2B36) else Color(0xFFE2E8F0),
-                    color = if (isDark) Color(0xFFF1F1F4) else Color(0xFF1E293B)
+                    background = tokens.elevatedBg,
+                    color = tokens.textPrimary
                 )
             )
-            builder.append(" $content ")
+            builder.append("\u00A0$content\u00A0")
             builder.pop()
         } else {
             builder.append(fullMatch)
@@ -3054,6 +3184,20 @@ private fun parseErrorPayloadToBlock(raw: String): MarkdownBlock.AgentError {
     )
 }
 
+private val THOUGHT_DURATION_REGEX = Regex("""(?:duration=|:)([0-9]+)""", RegexOption.IGNORE_CASE)
+private val SUMMARY_TAG_REGEX = Regex("</?summary>", RegexOption.IGNORE_CASE)
+private val LINKED_IMAGE_REGEX = Regex("""^\s*\[!\[(.*?)\]\((.*?)\)\]\((.*?)\)\s*$""", RegexOption.IGNORE_CASE)
+private val VIDEO_LINK_REGEX = Regex("^\\s*!?\\[(.*?)\\]\\(([^\\s)]+\\.(?:mp4|webm|mov|m4v|3gp)(?:\\?[^\\s)]*)?)\\)\\s*$", RegexOption.IGNORE_CASE)
+private val STANDALONE_IMAGE_REGEX = Regex("""^\s*!\[(.*?)\]\(((?:https?://|file://|content://|data:image/)[^\s)]+)\)\s*$""", RegexOption.IGNORE_CASE)
+private val LINK_IMG_REGEX = Regex("^\\s*!?\\[(.*?)\\]\\(([^\\s)]+\\.(?:png|jpe?g|webp|gif|svg)(?:\\?[^\\s)]*)?)\\)\\s*$", RegexOption.IGNORE_CASE)
+private val BARE_IMAGE_REGEX = Regex("^\\s*((?:https?://|file://)\\S+\\.(?:png|jpe?g|webp|gif|svg)(?:\\?\\S*)?)\\s*$", RegexOption.IGNORE_CASE)
+private val HEADER_REGEX = Regex("^(#{1,6})\\s+(.*)")
+private val TASK_LINE_REGEX = Regex("^[-*]\\s+\\[([ xX])\\]\\s+(.*)")
+private val ALERT_QUOTE_REGEX = Regex("^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|INFO)\\](.*)", RegexOption.IGNORE_CASE)
+private val BULLET_START_REGEX = Regex("^[-*]\\s+.*")
+private val NUMBERED_MATCH_REGEX = Regex("^(\\d+\\.)\\s+(.*)")
+private val NUMBERED_START_REGEX = Regex("^\\d+\\.\\s+.*")
+
 fun parseMarkdownBlocks(
     rawText: String,
     toolCalls: List<com.example.gemini.domain.model.ToolCall> = emptyList()
@@ -3067,6 +3211,7 @@ fun parseMarkdownBlocks(
 
     val lines = cleanedText.lines()
     var i = 0
+    var lastParagraphLineIndex = -2
 
     while (i < lines.size) {
         val line = lines[i]
@@ -3113,7 +3258,7 @@ fun parseMarkdownBlocks(
             val thoughtStartMatch = THOUGHT_START_REGEX.find(line)
             if (thoughtStartMatch != null) {
                 val isExplicitStreaming = line.contains(":streaming", ignoreCase = true) || line.contains(" streaming", ignoreCase = true)
-                val durationMs = Regex("""(?:duration=|:)([0-9]+)""", RegexOption.IGNORE_CASE).find(line)?.groupValues?.getOrNull(1)?.toLongOrNull()
+                val durationMs = THOUGHT_DURATION_REGEX.find(line)?.groupValues?.getOrNull(1)?.toLongOrNull()
                     ?: thoughtStartMatch.groupValues.getOrNull(2)?.toLongOrNull()
                 val thoughtLines = mutableListOf<String>()
 
@@ -3330,7 +3475,7 @@ fun parseMarkdownBlocks(
             while (i < lines.size && !lines[i].trimStart().startsWith("</details>", ignoreCase = true)) {
                 val currLine = lines[i]
                 if (currLine.trimStart().startsWith("<summary>", ignoreCase = true)) {
-                    summary = currLine.replace(Regex("</?summary>", RegexOption.IGNORE_CASE), "").trim()
+                    summary = currLine.replace(SUMMARY_TAG_REGEX, "").trim()
                 } else {
                     bodyLines.add(currLine)
                 }
@@ -3360,7 +3505,7 @@ fun parseMarkdownBlocks(
         }
 
         // 5a. Linked Markdown Images: [![alt](imgUrl)](linkUrl)
-        val linkedImageMatch = Regex("""^\s*\[!\[(.*?)\]\((.*?)\)\]\((.*?)\)\s*$""", RegexOption.IGNORE_CASE).find(line)
+        val linkedImageMatch = LINKED_IMAGE_REGEX.find(line)
         if (linkedImageMatch != null) {
             val alt = linkedImageMatch.groupValues[1]
             val imgUrl = linkedImageMatch.groupValues[2]
@@ -3383,7 +3528,7 @@ fun parseMarkdownBlocks(
         }
 
         // 5a-2. Video files: ![alt](path.mp4) or [alt](path.mp4)
-        val videoMatch = Regex("^\\s*!?\\[(.*?)\\]\\(([^\\s)]+\\.(?:mp4|webm|mov|m4v|3gp)(?:\\?[^\\s)]*)?)\\)\\s*$", RegexOption.IGNORE_CASE).find(line)
+        val videoMatch = VIDEO_LINK_REGEX.find(line)
         if (videoMatch != null) {
             result.add(MarkdownBlock.Video(alt = videoMatch.groupValues[1], url = videoMatch.groupValues[2]))
             i++
@@ -3391,7 +3536,7 @@ fun parseMarkdownBlocks(
         }
 
         // 5b. Standalone Markdown Images: ![alt](url)
-        val imageMatch = Regex("""^\s*!\[(.*?)\]\(((?:https?://|file://|content://|data:image/)[^\s)]+)\)\s*$""", RegexOption.IGNORE_CASE).find(line)
+        val imageMatch = STANDALONE_IMAGE_REGEX.find(line)
         if (imageMatch != null) {
             val alt = imageMatch.groupValues[1]
             val url = imageMatch.groupValues[2]
@@ -3413,7 +3558,7 @@ fun parseMarkdownBlocks(
         }
 
         // 5b. Standalone file or image links: [alt](path.jpg/png) or ![alt](path.jpg)
-        val linkImgMatch = Regex("^\\s*!?\\[(.*?)\\]\\(([^\\s)]+\\.(?:png|jpe?g|webp|gif|svg)(?:\\?[^\\s)]*)?)\\)\\s*$", RegexOption.IGNORE_CASE).find(line)
+        val linkImgMatch = LINK_IMG_REGEX.find(line)
         if (linkImgMatch != null) {
             val alt = linkImgMatch.groupValues[1]
             val url = linkImgMatch.groupValues[2]
@@ -3423,7 +3568,7 @@ fun parseMarkdownBlocks(
         }
 
         // 5c. Bare image URLs on a single line
-        val bareImageMatch = Regex("^\\s*((?:https?://|file://)\\S+\\.(?:png|jpe?g|webp|gif|svg)(?:\\?\\S*)?)\\s*$", RegexOption.IGNORE_CASE).find(line)
+        val bareImageMatch = BARE_IMAGE_REGEX.find(line)
         if (bareImageMatch != null) {
             val url = bareImageMatch.groupValues[1]
             result.add(MarkdownBlock.Image(alt = "", url = url))
@@ -3441,28 +3586,36 @@ fun parseMarkdownBlocks(
             }
         }
 
+        val trimmedStartLine = line.trimStart()
+        val headerMatch = HEADER_REGEX.find(trimmedStartLine)
+        val taskMatch = if (headerMatch == null) TASK_LINE_REGEX.find(trimmedStartLine) else null
+        val standaloneAlertMatch = if (headerMatch == null && taskMatch == null && !trimmedStartLine.startsWith(">")) {
+            ALERT_QUOTE_REGEX.find(trimmedStartLine)
+        } else {
+            null
+        }
+        val numberedMatch = if (headerMatch == null && taskMatch == null && standaloneAlertMatch == null && !trimmedStartLine.startsWith(">")) {
+            NUMBERED_MATCH_REGEX.find(trimmedStartLine)
+        } else {
+            null
+        }
+
         // 7. Headers: # to ######
-        val headerMatch = Regex("^(#{1,6})\\s+(.*)").find(line.trimStart())
         if (headerMatch != null) {
             val level = headerMatch.groupValues[1].length
             val title = headerMatch.groupValues[2].trim()
             result.add(MarkdownBlock.Header(level, title))
         }
         // 8. Task List: - [ ] or - [x]
-        else if (line.trimStart().matches(Regex("^[-*]\\s+\\[([ xX])\\]\\s+.*"))) {
-            val taskMatch = Regex("^[-*]\\s+\\[([ xX])\\]\\s+(.*)").find(line.trimStart())
-            if (taskMatch != null) {
-                val isChecked = taskMatch.groupValues[1].trim().lowercase() == "x"
-                val taskText = taskMatch.groupValues[2].trim()
-                result.add(MarkdownBlock.Task(isChecked, taskText))
-            } else {
-                result.add(MarkdownBlock.Paragraph(line))
-            }
+        else if (taskMatch != null) {
+            val isChecked = taskMatch.groupValues[1].trim().equals("x", ignoreCase = true)
+            val taskText = taskMatch.groupValues[2].trim()
+            result.add(MarkdownBlock.Task(isChecked, taskText))
         }
         // 9. Blockquotes & Callout Alerts: >
-        else if (line.trimStart().startsWith(">")) {
+        else if (trimmedStartLine.startsWith(">")) {
             val quoteLines = mutableListOf<String>()
-            val rawFirst = line.trimStart().removePrefix(">").trim()
+            val rawFirst = trimmedStartLine.removePrefix(">").trim()
             quoteLines.add(rawFirst)
             i++
             while (i < lines.size && lines[i].trimStart().startsWith(">")) {
@@ -3472,7 +3625,7 @@ fun parseMarkdownBlocks(
 
             // Check if first line starts with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION], [!INFO]
             val firstLine = quoteLines.firstOrNull() ?: ""
-            val alertMatch = Regex("^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|INFO)\\](.*)", RegexOption.IGNORE_CASE).find(firstLine)
+            val alertMatch = ALERT_QUOTE_REGEX.find(firstLine)
             if (alertMatch != null) {
                 val tag = alertMatch.groupValues[1].uppercase()
                 val customTitleOrInline = alertMatch.groupValues[2].trim()
@@ -3498,56 +3651,56 @@ fun parseMarkdownBlocks(
             continue
         }
         // 9b. Standalone Alert Callout: [!NOTE], [!TIP], etc. without >
-        else if (line.trimStart().matches(Regex("^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|INFO)\\](\\s+.*)?", RegexOption.IGNORE_CASE))) {
-            val alertMatch = Regex("^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|INFO)\\](.*)", RegexOption.IGNORE_CASE).find(line.trimStart())
-            if (alertMatch != null) {
-                val tag = alertMatch.groupValues[1].uppercase()
-                val customTitleOrInline = alertMatch.groupValues[2].trim()
-                val alertType = when (tag) {
-                    "TIP" -> AlertType.TIP
-                    "IMPORTANT" -> AlertType.IMPORTANT
-                    "WARNING" -> AlertType.WARNING
-                    "CAUTION" -> AlertType.CAUTION
-                    else -> AlertType.NOTE
-                }
-                val bodyLines = mutableListOf<String>()
-                if (customTitleOrInline.isNotBlank()) {
-                    bodyLines.add(customTitleOrInline)
-                }
-                i++
-                while (i < lines.size && lines[i].isNotBlank() && !lines[i].startsWith("#") && !lines[i].startsWith("```") && !lines[i].startsWith(">") && !lines[i].startsWith("<") && !lines[i].matches(Regex("^[-*]\\s+.*")) && !lines[i].matches(Regex("^\\d+\\.\\s+.*"))) {
-                    bodyLines.add(lines[i].trim())
-                    i++
-                }
-                result.add(MarkdownBlock.Alert(type = alertType, text = bodyLines.joinToString("\n").trim()))
-                continue
+        else if (standaloneAlertMatch != null) {
+            val tag = standaloneAlertMatch.groupValues[1].uppercase()
+            val customTitleOrInline = standaloneAlertMatch.groupValues[2].trim()
+            val alertType = when (tag) {
+                "TIP" -> AlertType.TIP
+                "IMPORTANT" -> AlertType.IMPORTANT
+                "WARNING" -> AlertType.WARNING
+                "CAUTION" -> AlertType.CAUTION
+                else -> AlertType.NOTE
             }
+            val bodyLines = mutableListOf<String>()
+            if (customTitleOrInline.isNotBlank()) {
+                bodyLines.add(customTitleOrInline)
+            }
+            i++
+            while (i < lines.size && lines[i].isNotBlank() && !lines[i].startsWith("#") && !lines[i].startsWith("```") && !lines[i].startsWith(">") && !lines[i].startsWith("<") && !lines[i].matches(BULLET_START_REGEX) && !lines[i].matches(NUMBERED_START_REGEX)) {
+                bodyLines.add(lines[i].trim())
+                i++
+            }
+            result.add(MarkdownBlock.Alert(type = alertType, text = bodyLines.joinToString("\n").trim()))
+            continue
         }
         // 10. Horizontal Rules: ---, ***, ___
         else if (line.trim() == "---" || line.trim() == "***" || line.trim() == "___") {
             result.add(MarkdownBlock.HorizontalRule)
         }
-        // 11. Numbered Lists: 1. , 2. 
-        else if (line.trimStart().matches(Regex("^\\d+\\.\\s+.*"))) {
-            val match = Regex("^(\\d+\\.)\\s+(.*)").find(line.trimStart())
-            if (match != null) {
-                val num = match.groupValues[1]
-                val content = match.groupValues[2]
-                result.add(MarkdownBlock.Numbered(num, content))
+        // 11. Numbered Lists: 1. , 2.  (with nested indentation)
+        else if (numberedMatch != null) {
+            val leadingSpaces = line.takeWhile { it == ' ' || it == '\t' }.length
+            val indentLevel = (leadingSpaces / 2).coerceIn(0, 3)
+            val num = numberedMatch.groupValues[1]
+            val content = numberedMatch.groupValues[2]
+            result.add(MarkdownBlock.Numbered(num, content, indent = indentLevel))
+        }
+        // 12. Bullet Lists (with nested indentation support)
+        else if (trimmedStartLine.startsWith("- ") || trimmedStartLine.startsWith("* ") || trimmedStartLine.startsWith("+ ")) {
+            val leadingSpaces = line.takeWhile { it == ' ' || it == '\t' }.length
+            val indentLevel = (leadingSpaces / 2).coerceIn(0, 3)
+            val bulletContent = trimmedStartLine.substring(2).trim()
+            result.add(MarkdownBlock.Bullet(indent = indentLevel, text = bulletContent))
+        }
+        // 13. Regular Paragraphs (coalesce adjacent non-blank prose lines into one text block)
+        else if (line.isNotBlank()) {
+            val prev = result.lastOrNull()
+            if (lastParagraphLineIndex == i - 1 && prev is MarkdownBlock.Paragraph) {
+                result[result.lastIndex] = MarkdownBlock.Paragraph(prev.text + "\n" + line)
             } else {
                 result.add(MarkdownBlock.Paragraph(line))
             }
-        }
-        // 12. Bullet Lists (with nested indentation support)
-        else if (line.trimStart().startsWith("- ") || line.trimStart().startsWith("* ") || line.trimStart().startsWith("+ ")) {
-            val leadingSpaces = line.takeWhile { it == ' ' || it == '\t' }.length
-            val indentLevel = (leadingSpaces / 2).coerceIn(0, 3)
-            val bulletContent = line.trimStart().substring(2).trim()
-            result.add(MarkdownBlock.Bullet(indent = indentLevel, text = bulletContent))
-        }
-        // 13. Regular Paragraphs
-        else if (line.isNotBlank()) {
-            result.add(MarkdownBlock.Paragraph(line))
+            lastParagraphLineIndex = i
         }
 
         i++

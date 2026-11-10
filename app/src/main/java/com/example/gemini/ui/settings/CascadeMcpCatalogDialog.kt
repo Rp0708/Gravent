@@ -29,6 +29,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.data.remote.dto.AvailableCascadePluginDto
 import com.example.gemini.domain.model.McpServerState
 import com.example.gemini.theme.*
+import com.example.gemini.ui.components.GraventEmptyState
 import com.example.gemini.ui.components.MarkdownContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +47,7 @@ fun CascadeMcpCatalogDialog(
     onInstallPlugin: (AvailableCascadePluginDto) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val tCat = graventTokens()
     var searchQuery by remember { mutableStateOf("") }
     var selectedReadmeUrl by remember { mutableStateOf<Pair<String, String>?>(null) } // Pair(Title, URL)
 
@@ -84,13 +86,13 @@ fun CascadeMcpCatalogDialog(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(ClaudeTerracotta.copy(alpha = 0.12f)),
+                                .background(tCat.accentSoftBg),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Storefront,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = tCat.accent,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -147,13 +149,17 @@ fun CascadeMcpCatalogDialog(
                 if (isLoading && availablePlugins.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            CircularProgressIndicator(color = ClaudeTerracotta, modifier = Modifier.size(32.dp))
+                            CircularProgressIndicator(color = tCat.accent, modifier = Modifier.size(32.dp))
                             Text("Loading available MCP catalog...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                         }
                     }
                 } else if (availablePlugins.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("No MCP packages found matching '$searchQuery'", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                        GraventEmptyState(
+                            icon = Icons.Outlined.Extension,
+                            title = "No MCP packages found",
+                            subtitle = if (searchQuery.isBlank()) "No catalog items available right now." else "Nothing matches \"$searchQuery\"."
+                        )
                     }
                 } else {
                     LazyColumn(
@@ -425,7 +431,7 @@ fun ReadmePreviewDialog(
                 ) {
                     if (isLoading) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = ClaudeTerracotta)
+                            CircularProgressIndicator(color = graventTokens().accent)
                         }
                     } else if (error != null) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

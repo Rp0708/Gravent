@@ -286,7 +286,18 @@ class AgyChatBackend(
     }
 
     private var loginPollJob: Job? = null
+    private var authCheckJob: Job? = null
     private var lastAuthCheckTimeMs = 0L
+
+    companion object {
+        private val CHAT_TITLE_EXTRACT_REGEX = Regex("<chat_title>([\\s\\S]*?)</chat_title>", RegexOption.IGNORE_CASE)
+        private val ISO_QUOTA_FORMAT_TL = object : ThreadLocal<java.text.SimpleDateFormat>() {
+            override fun initialValue(): java.text.SimpleDateFormat =
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }
+        }
+    }
 
     fun onDrawerOpened() {
         val isLoggedIn = _agyAuthInfo.value.isLoggedIn
@@ -314,7 +325,11 @@ class AgyChatBackend(
     }
 
     fun checkAgyAuthStatus(userInitiated: Boolean = false) {
-        backendScope.launch {
+        if (authCheckJob?.isActive == true) {
+            if (!userInitiated) return
+            authCheckJob?.cancel()
+        }
+        authCheckJob = backendScope.launch {
             agyBridgeService.updateAuthChecking(true)
             if (!isNetworkConnected()) {
                 android.util.Log.d("ChatViewModel", "Skipping auth status check: device is offline.")
@@ -814,6 +829,7 @@ class AgyChatBackend(
         syncJob?.cancel()
         syncJob = backendScope.launch {
             _isConversationsLoading.value = true
+            var initialDaemonProjectsLoaded = false
             while (currentCoroutineContext().isActive) {
                 try {
                     val hubUrl = AuthPreferences.currentHubUrl
@@ -837,7 +853,13 @@ class AgyChatBackend(
 
                         val sortedConvs = currentMap.values.sortedByDescending { it.updatedAt }
                         _conversations.value = sortedConvs
-                        com.example.gemini.data.daemon.TermuxDaemonManager.loadProjects(sortedConvs)
+                        com.example.gemini.data.daemon.TermuxDaemonManager.syncProjectsFromConversations(sortedConvs)
+                        if (!initialDaemonProjectsLoaded) {
+                            initialDaemonProjectsLoaded = true
+                            backendScope.launch(Dispatchers.IO) {
+                                com.example.gemini.data.daemon.TermuxDaemonManager.loadProjects(sortedConvs)
+                            }
+                        }
 
                         // Automatically synchronize active conversation title and metadata from daemon
                         if (activeId != null) {
@@ -887,7 +909,7 @@ class AgyChatBackend(
                         }
                         _conversationError.value = null
                         _isConversationsLoading.value = false
-                        if (!_agyAuthInfo.value.isLoggedIn || _agyAuthInfo.value.status == com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE || _agyAuthInfo.value.status == com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.CHECKING) {
+                        if (!_agyAuthInfo.value.isLoggedIn || _agyAuthInfo.value.status == com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE) {
                             checkAgyAuthStatus(userInitiated = false)
                         }
                     }
@@ -967,7 +989,7 @@ class AgyChatBackend(
                 startPersistentStream(conv.id)
             }
             refreshQuotas()
-            if (!_agyAuthInfo.value.isLoggedIn || _agyAuthInfo.value.status == com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.CHECKING) {
+            if (!_agyAuthInfo.value.isLoggedIn || _agyAuthInfo.value.status == com.example.gemini.data.remote.AgyHubClient.AgyAuthStatus.OFFLINE) {
                 checkAgyAuthStatus(userInitiated = false)
             }
             com.example.gemini.data.daemon.TermuxDaemonManager.checkHealthAndReconnect(isSilent = true)
@@ -1157,14 +1179,16 @@ class AgyChatBackend(
                         backendScope.launch(Dispatchers.Default) {
                             com.example.gemini.ui.chat.ChatFeedCache.prewarm(msgs)
                         }
-                        msgs.flatMap { it.toolCalls }.filter {
-                            it.toolType == com.example.gemini.domain.model.ToolType.GENERATE_IMAGE && it.output.isNotBlank()
-                        }.forEach { tc ->
-                            com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, tc.output, agyHubClient, hubUrl)
-                        }
-                        msgs.flatMap { it.attachments }.filter { it.isImage && it.path.isNotBlank() }.forEach { att ->
-                            val rawUri = if (att.path.startsWith("file://") || att.path.startsWith("http")) att.path else "file://${att.path}"
-                            com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, rawUri, agyHubClient, hubUrl)
+                        backendScope.launch(Dispatchers.IO) {
+                            msgs.flatMap { it.toolCalls }.filter {
+                                it.toolType == com.example.gemini.domain.model.ToolType.GENERATE_IMAGE && it.output.isNotBlank()
+                            }.forEach { tc ->
+                                com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, tc.output, agyHubClient, hubUrl)
+                            }
+                            msgs.flatMap { it.attachments }.filter { it.isImage && it.path.isNotBlank() }.forEach { att ->
+                                val rawUri = if (att.path.startsWith("file://") || att.path.startsWith("http")) att.path else "file://${att.path}"
+                                com.example.gemini.data.remote.HubMediaResolver.resolveMediaUri(application, rawUri, agyHubClient, hubUrl)
+                            }
                         }
                     }
                 }
@@ -1210,10 +1234,17 @@ class AgyChatBackend(
                         } else {
                             if (pendingFlushJob == null) {
                                 pendingFlushJob = backendScope.launch {
-                                    delay(STREAM_THROTTLE_MS)
-                                    if (activeStreamConversationId == conversationId) {
-                                        lastUiDispatchTime = System.currentTimeMillis()
-                                        flushUiUpdate(forceTerminal = false)
+                                    val selfJob = currentCoroutineContext()[Job]
+                                    try {
+                                        delay(STREAM_THROTTLE_MS)
+                                        if (activeStreamConversationId == conversationId) {
+                                            lastUiDispatchTime = System.currentTimeMillis()
+                                            flushUiUpdate(forceTerminal = false)
+                                        }
+                                    } finally {
+                                        if (pendingFlushJob === selfJob) {
+                                            pendingFlushJob = null
+                                        }
                                     }
                                 }
                             }
@@ -1319,7 +1350,9 @@ class AgyChatBackend(
         }
         if (updated) {
             _messages.value = list
-            com.example.gemini.ui.chat.ChatFeedCache.prewarm(list)
+            backendScope.launch(Dispatchers.Default) {
+                com.example.gemini.ui.chat.ChatFeedCache.prewarm(list)
+            }
         }
     }
 
@@ -1444,7 +1477,9 @@ class AgyChatBackend(
         trajectoryEngine.submitUserPrompt(finalPrompt, currentAtts, conv.id)
         val updatedList = trajectoryEngine.toChatMessages(conv.id)
         _messages.value = updatedList
-        com.example.gemini.ui.chat.ChatFeedCache.prewarm(updatedList)
+        backendScope.launch(Dispatchers.Default) {
+            com.example.gemini.ui.chat.ChatFeedCache.prewarm(updatedList)
+        }
 
         backendScope.launch {
             val exists = _conversations.value.any { it.id == updatedConv.id }
@@ -1947,7 +1982,7 @@ class AgyChatBackend(
         lastStreamUpdateTime = now
         // Auto-extract chat title if present
         if (content.contains("<chat_title>", ignoreCase = true)) {
-            val titleMatch = Regex("<chat_title>([\\s\\S]*?)</chat_title>", RegexOption.IGNORE_CASE).find(content)
+            val titleMatch = CHAT_TITLE_EXTRACT_REGEX.find(content)
             if (titleMatch != null) {
                 val extractedTitle = titleMatch.groupValues[1].trim().replace("\"", "").replace("'", "")
                 val conv = _currentConversation.value
@@ -1991,7 +2026,10 @@ class AgyChatBackend(
             }
         }
         if (!isStreaming) {
-            com.example.gemini.ui.chat.ChatFeedCache.prewarm(_messages.value)
+            val snapshot = _messages.value
+            backendScope.launch(Dispatchers.Default) {
+                com.example.gemini.ui.chat.ChatFeedCache.prewarm(snapshot)
+            }
         }
     }
 
@@ -2041,7 +2079,7 @@ class AgyChatBackend(
     private fun hasExpiredQuotaWindow(): Boolean {
         val summary = _quotaSummary.value ?: return false
         val now = System.currentTimeMillis()
-        val iso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+        val iso = ISO_QUOTA_FORMAT_TL.get() ?: java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
             timeZone = java.util.TimeZone.getTimeZone("UTC")
         }
         fun isPast(resetTime: String?): Boolean {

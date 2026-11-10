@@ -47,7 +47,11 @@ enum class TabDiskUpdateResult {
 object TermuxDaemonManager {
 
     private const val TAG = "TermuxDaemonManager"
-    private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    private val timeFormatThreadLocal = ThreadLocal.withInitial {
+        SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    }
+    @Volatile
+    private var lastLoadedDaemonProjects: List<ProjectItem> = emptyList()
 
     private val _status = MutableStateFlow(DaemonStatus.STOPPED)
     val status: StateFlow<DaemonStatus> = _status.asStateFlow()
@@ -73,16 +77,27 @@ object TermuxDaemonManager {
     private val _openTabs = MutableStateFlow<List<OpenTab>>(emptyList())
     val openTabs: StateFlow<List<OpenTab>> = _openTabs.asStateFlow()
 
+    fun syncProjectsFromConversations(conversations: List<com.example.gemini.domain.model.Conversation>) {
+        val merged = mergeProjects(conversations, lastLoadedDaemonProjects, _activeProject.value)
+        _projects.value = merged
+        if (_activeProject.value == null && merged.isNotEmpty()) {
+            _activeProject.value = merged.first()
+        }
+    }
+
     suspend fun loadProjects(conversations: List<com.example.gemini.domain.model.Conversation> = emptyList()): List<ProjectItem> = withContext(Dispatchers.IO) {
         var daemonList = IdeApiClient.getProjects()
         if (daemonList.isEmpty()) {
             val httpUrl = AuthPreferences.currentBridgeHttpUrl
-            val res = com.example.gemini.data.remote.AgyBridgeService().fetchProjects(httpUrl)
+            val res = com.example.gemini.data.remote.AgyBridgeService.instance.fetchProjects(httpUrl)
             if (res.isSuccess) {
                 daemonList = res.getOrThrow().map { ProjectItem(it.name, it.path) }
             }
         }
-        val merged = mergeProjects(conversations, daemonList, _activeProject.value)
+        if (daemonList.isNotEmpty()) {
+            lastLoadedDaemonProjects = daemonList
+        }
+        val merged = mergeProjects(conversations, daemonList.ifEmpty { lastLoadedDaemonProjects }, _activeProject.value)
         _projects.value = merged
         if (_activeProject.value == null && merged.isNotEmpty()) {
             _activeProject.value = merged.first()
@@ -297,9 +312,11 @@ object TermuxDaemonManager {
     }
 
     private fun log(message: String) {
-        val timestamped = "[${timeFormat.format(Date())}] $message"
+        val fmt = timeFormatThreadLocal.get() ?: SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val timestamped = "[${fmt.format(Date())}] $message"
         Log.d(TAG, message)
-        _logs.value = _logs.value + timestamped
+        val current = _logs.value
+        _logs.value = (if (current.size >= 300) current.takeLast(299) else current) + timestamped
     }
 
     fun clearLogs() {

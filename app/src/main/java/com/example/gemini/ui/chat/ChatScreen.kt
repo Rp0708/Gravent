@@ -747,7 +747,7 @@ fun ChatScreen(
 
 
 
-    var userSentMessageTrigger by remember { mutableStateOf(0) }
+    var userSentMessageTrigger by remember { mutableIntStateOf(0) }
 
     val isDarkTheme = com.example.gemini.theme.isAppInDarkTheme()
     val t = graventTokens()
@@ -978,21 +978,25 @@ fun ChatScreen(
                     val isMd = cleanPath.endsWith(".md", ignoreCase = true) || cleanPath.endsWith(".markdown", ignoreCase = true)
                     if (isMd) {
                         scope.launch {
-                            val content = try {
-                                val f = File(cleanPath)
-                                if (f.exists()) f.readText() else (IdeApiClient.readFile(cleanPath) ?: "")
-                            } catch (e: Exception) {
-                                IdeApiClient.readFile(cleanPath) ?: ""
+                            val content = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                try {
+                                    val f = File(cleanPath)
+                                    if (f.exists()) f.readText() else (IdeApiClient.readFile(cleanPath) ?: "")
+                                } catch (e: Exception) {
+                                    IdeApiClient.readFile(cleanPath) ?: ""
+                                }
                             }
                             activeMarkdownDoc = cleanPath to content
                         }
                     } else {
                         scope.launch {
-                            val content = try {
-                                val f = File(cleanPath)
-                                if (f.exists()) f.readText() else (IdeApiClient.readFile(cleanPath) ?: "")
-                            } catch (e: Exception) {
-                                IdeApiClient.readFile(cleanPath) ?: ""
+                            val content = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                try {
+                                    val f = File(cleanPath)
+                                    if (f.exists()) f.readText() else (IdeApiClient.readFile(cleanPath) ?: "")
+                                } catch (e: Exception) {
+                                    IdeApiClient.readFile(cleanPath) ?: ""
+                                }
                             }
                             val fileName = File(cleanPath).name.ifBlank { "file" }
                             TermuxDaemonManager.openOrSelectTab(cleanPath, fileName, content)
@@ -1928,7 +1932,7 @@ fun ChatScreen(
                                                     text = "RECENT CONVERSATIONS",
                                                     fontSize = 10.5.sp,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = Color(0xFF71717A),
+                                                    color = t.textMuted,
                                                     letterSpacing = 0.5.sp
                                                 )
                                             }
@@ -1975,6 +1979,9 @@ fun ChatScreen(
                             )
                         }
 
+                        val messageIndexById = remember(messages) {
+                            messages.withIndex().associate { it.value.id to it.index }
+                        }
                         CompositionLocalProvider(
                             androidx.compose.ui.platform.LocalDensity provides customDensity,
                             com.example.gemini.ui.components.LocalQuestionPanelActive provides true
@@ -2012,7 +2019,7 @@ fun ChatScreen(
                                         }
                                         is ChatFeedItem.Divider -> com.example.gemini.ui.components.WaveDivider(label = feedItem.label)
                                         is ChatFeedItem.User -> {
-                                            val msgIndex = messages.indexOfFirst { it.id == feedItem.message.id }
+                                            val msgIndex = messageIndexById[feedItem.message.id] ?: -1
                                             val willDeleteOutput = msgIndex < messages.lastIndex
                                             UserMessageBubble(
                                                 message = feedItem.message,
@@ -2221,10 +2228,10 @@ fun ChatScreen(
                                     }
                                 },
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 6.dp,
+                            color = t.elevatedBg,
+                            tonalElevation = 4.dp,
                             shadowElevation = 6.dp,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                            border = BorderStroke(1.dp, t.border)
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -2233,7 +2240,7 @@ fun ChatScreen(
                                 Icon(
                                     imageVector = if (showUpArrow) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                     contentDescription = if (showUpArrow) "Jump to Top" else "Jump to Bottom",
-                                    tint = ClaudeTerracotta,
+                                    tint = t.accent,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -2367,7 +2374,7 @@ fun ChatScreen(
                                         Icon(
                                             imageVector = Icons.Default.Description,
                                             contentDescription = null,
-                                            tint = ClaudeTerracotta,
+                                            tint = t.accent,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -2403,8 +2410,8 @@ fun ChatScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 14.dp, vertical = 3.dp),
                         shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
-                        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f))
+                        color = t.elevatedBg,
+                        border = BorderStroke(1.dp, t.accent.copy(alpha = 0.35f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -2413,7 +2420,7 @@ fun ChatScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(13.dp),
                                 strokeWidth = 2.dp,
-                                color = ClaudeTerracotta
+                                color = t.accent
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
@@ -3030,7 +3037,7 @@ fun ChatScreen(
                             action.type == MessageActionType.EDIT -> "Edit & Delete"
                             else -> "Regenerate"
                         },
-                        color = ClaudeTerracotta,
+                        color = t.accent,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -3612,27 +3619,24 @@ fun ChatToastBanner(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = when (toast.type) {
-        ChatToastType.SUCCESS -> Color(0xFF143324)
-        ChatToastType.ERROR -> Color(0xFF381919)
-        ChatToastType.INFO -> Color(0xFF1F222A)
-    }
-    val borderColor = when (toast.type) {
-        ChatToastType.SUCCESS -> Color(0xFF34D399).copy(alpha = 0.7f)
-        ChatToastType.ERROR -> Color(0xFFF87171).copy(alpha = 0.7f)
-        ChatToastType.INFO -> ClaudeTerracotta.copy(alpha = 0.7f)
-    }
+    val t = graventTokens()
     val iconColor = when (toast.type) {
-        ChatToastType.SUCCESS -> Color(0xFF34D399)
-        ChatToastType.ERROR -> Color(0xFFF87171)
-        ChatToastType.INFO -> ClaudeTerracotta
+        ChatToastType.SUCCESS -> t.successAccent
+        ChatToastType.ERROR -> t.errorAccent
+        ChatToastType.INFO -> t.accent
     }
+    val bgColor = when (toast.type) {
+        ChatToastType.SUCCESS -> if (t.isDark) Color(0xFF142A1E) else t.elevatedBg
+        ChatToastType.ERROR -> if (t.isDark) Color(0xFF311618) else t.elevatedBg
+        ChatToastType.INFO -> t.elevatedBg
+    }
+    val borderColor = iconColor.copy(alpha = if (t.isDark) 0.55f else 0.45f)
     val icon = when (toast.type) {
         ChatToastType.SUCCESS -> Icons.Outlined.CheckCircle
         ChatToastType.ERROR -> Icons.Outlined.ErrorOutline
         ChatToastType.INFO -> Icons.Outlined.Info
     }
-    val textColor = Color(0xFFF9FAFB)
+    val textColor = t.textPrimary
 
     Surface(
         modifier = modifier

@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.daemon.*
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.theme.graventCheckboxColors
 import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.theme.graventTokens
@@ -262,7 +262,7 @@ fun GitSourceControlView(
                             Icon(
                                 imageVector = Icons.Default.CloudUpload,
                                 contentDescription = "Push",
-                                tint = if (unpushedCount > 0) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                                tint = if (unpushedCount > 0) graventTokens().accent else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -424,22 +424,23 @@ fun GitSourceControlView(
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), color = graventTokens().onAccent, strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(8.dp))
                             } else {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text("Initialize Git Repository", fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text("Initialize Git Repository", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         } else {
             // --- 2. Commit Message Box ---
+            val tCommit = graventTokens()
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    if (commitMessage.isNotBlank()) ClaudeTerracotta.copy(alpha = 0.6f)
+                    if (commitMessage.isNotBlank()) tCommit.accent.copy(alpha = 0.6f)
                     else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                 ),
                 modifier = Modifier.fillMaxWidth()
@@ -452,7 +453,7 @@ fun GitSourceControlView(
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(ClaudeTerracotta),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(tCommit.accent),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 54.dp, max = 90.dp)
@@ -765,7 +766,7 @@ fun GitSourceControlView(
                 showConfigDialog = false
                 configPromptReason = null
             },
-            icon = { Icon(Icons.Default.Tune, contentDescription = null, tint = ClaudeTerracotta) },
+            icon = { Icon(Icons.Default.Tune, contentDescription = null, tint = graventTokens().accent) },
             title = {
                 Text(
                     text = if (configPromptReason != null) "Git Author Setup" else "Git Configuration",
@@ -1027,7 +1028,7 @@ fun GitSourceControlView(
                             fontSize = 13.5.sp,
                             lineHeight = 18.sp
                         ),
-                        cursorBrush = androidx.compose.ui.graphics.SolidColor(ClaudeTerracotta),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(graventTokens().accent),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -1100,7 +1101,7 @@ fun GitSourceControlView(
                             fontSize = 13.5.sp,
                             lineHeight = 18.sp
                         ),
-                        cursorBrush = androidx.compose.ui.graphics.SolidColor(ClaudeTerracotta),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(graventTokens().accent),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 10.dp),

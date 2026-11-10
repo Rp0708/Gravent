@@ -48,7 +48,7 @@ import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.OpenTab
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.data.daemon.TermuxDaemonManager
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.ui.components.FileManagerDialog
 import com.example.gemini.ui.components.LocalTerminalContent
 import com.example.gemini.data.local.LocalPtySession
@@ -447,7 +447,7 @@ fun IdeScreen(
                     },
                     title = {
                         Text(
-                            text = activeProject?.name ?: "antiGem IDE",
+                            text = activeProject?.name ?: "Gravent IDE",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -934,7 +934,7 @@ fun IdeScreen(
                                     Icon(
                                         imageVector = Icons.Default.Difference,
                                         contentDescription = null,
-                                        tint = ClaudeTerracotta,
+                                        tint = com.example.gemini.theme.DarkGraventTokens.infoAccent,
                                         modifier = Modifier.size(13.dp)
                                     )
                                     Spacer(modifier = Modifier.width(5.dp))
@@ -950,7 +950,7 @@ fun IdeScreen(
                                 Text(
                                     text = if (tab.isModified) "${tab.name} *" else tab.name,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (isSelected) (if (tab.isDiff) ClaudeTerracotta else if (tab.isReadOnly) Color(0xFFFDE68A) else Color.White) else (if (tab.isReadOnly) Color(0xFF9CA3AF) else Color.LightGray),
+                                    color = if (isSelected) (if (tab.isDiff) com.example.gemini.theme.DarkGraventTokens.infoAccent else if (tab.isReadOnly) Color(0xFFFDE68A) else Color.White) else (if (tab.isReadOnly) Color(0xFF9CA3AF) else Color.LightGray),
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -1441,7 +1441,7 @@ fun IdeScreen(
                 val closingTarget = tabToClose!!
                 AlertDialog(
                     onDismissRequest = { tabToClose = null },
-                    icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = ClaudeTerracotta) },
+                    icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = graventTokens().warnAccent) },
                     title = { Text("Unsaved Changes", fontWeight = FontWeight.Bold) },
                     text = { Text("Do you want to save the changes made to '${closingTarget.name}' before closing?") },
                     confirmButton = {
