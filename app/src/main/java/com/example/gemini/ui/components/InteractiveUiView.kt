@@ -167,7 +167,7 @@ fun InteractiveUiView(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(tokens.surfaceBg)
+                            .background(tokens.cardBg)
                             .padding(2.dp)
                     ) {
                         Box(

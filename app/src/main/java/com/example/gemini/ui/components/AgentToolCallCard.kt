@@ -162,7 +162,7 @@ fun AgentToolCallCard(
 
     val t = graventTokens()
     val actionColor = when {
-        isPendingApproval -> t.warnAccent
+        isPendingApproval -> t.warnAmber
         isRunning -> t.accent
         isSuccess -> MaterialTheme.colorScheme.onSurface
         isTerminated || isFailed -> t.errorAccent
@@ -222,7 +222,7 @@ fun AgentToolCallCard(
                 Icon(
                     imageVector = Icons.Default.HourglassEmpty,
                     contentDescription = "Pending Approval",
-                    tint = t.warnAccent,
+                    tint = t.warnAmber,
                     modifier = Modifier.size(14.dp)
                 )
             } else if (isRunning) {
@@ -636,7 +636,7 @@ private fun formatToolOutputAnnotated(
                 trimmed.startsWith("error:", ignoreCase = true) || trimmed.contains("exception", ignoreCase = true) || trimmed.startsWith("fatal:", ignoreCase = true) ->
                     androidx.compose.ui.text.SpanStyle(color = t.errorAccent)
                 trimmed.startsWith("warn", ignoreCase = true) || trimmed.startsWith("w:", ignoreCase = true) ->
-                    androidx.compose.ui.text.SpanStyle(color = t.warnAccent)
+                    androidx.compose.ui.text.SpanStyle(color = t.warnAmber)
                 trimmed.startsWith("✓") || trimmed.startsWith("success", ignoreCase = true) || trimmed.contains("build successful", ignoreCase = true) ->
                     androidx.compose.ui.text.SpanStyle(color = t.successAccent)
                 else ->

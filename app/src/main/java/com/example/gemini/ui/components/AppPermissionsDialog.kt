@@ -172,7 +172,7 @@ fun AppPermissionsDialog(
     }
 
     val t = graventTokens()
-    val screenBg = t.pageBg
+    val screenBg = t.canvasBg
     val textPrimary = t.textPrimary
     val textSecondary = t.textSecondary
 

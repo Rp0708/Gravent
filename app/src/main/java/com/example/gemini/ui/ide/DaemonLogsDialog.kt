@@ -45,7 +45,7 @@ fun DaemonLogsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = t.dialogBg,
+        containerColor = t.cardBg,
         shape = RoundedCornerShape(18.dp),
         title = {
             Row(

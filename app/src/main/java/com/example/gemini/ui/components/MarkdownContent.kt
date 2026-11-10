@@ -509,7 +509,7 @@ fun MarkdownAlertView(
             icon = Icons.Outlined.PriorityHigh
         )
         AlertType.WARNING -> AlertStyle(
-            accentColor = t.warnAccent,
+            accentColor = t.warnAmber,
             lightBg = t.warnSoftBg,
             darkBg = t.warnSoftBg,
             defaultTitle = "Warning",

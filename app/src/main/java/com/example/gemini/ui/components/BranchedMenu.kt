@@ -1012,7 +1012,7 @@ sealed class BranchedChildEntry {
             Icon(
                 imageVector = vec,
                 contentDescription = null,
-                tint = if (isActive) tokens.accent else resolveUnifiedFileAccent(file.extension, tokens),
+                tint = if (isActive) tokens.accent else resolveUnifiedFileAccent(file.name, tokens.isDark),
                 modifier = Modifier.size(15.dp)
             )
         }
@@ -1341,7 +1341,7 @@ fun BranchedChildrenTree(
             entries.forEach { entry ->
                 val isAct = entry.isActive
                 val effectiveBadgeColor = when (entry) {
-                    is BranchedChildEntry.FileEntry -> resolveUnifiedFileAccent(entry.file.extension, tokens)
+                    is BranchedChildEntry.FileEntry -> resolveUnifiedFileAccent(entry.file.name, tokens.isDark)
                     is BranchedChildEntry.DirectoryEntry -> if (entry.folder.isProjectRoot) accentColor else GeminiBlue
                     else -> entry.badgeColor
                 }

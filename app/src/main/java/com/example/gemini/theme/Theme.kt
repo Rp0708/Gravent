@@ -128,7 +128,7 @@ data class GraventUiTokens(
     val inlineCodeBorder: Color = Color(0xFF2E303B)
 )
 
-private val DarkGraventTokens = GraventUiTokens(
+val DarkGraventTokens = GraventUiTokens(
     isDark = true,
     canvasBg = Color(0xFF09090B),
     cardBg = Color(0xFF141417),
@@ -165,7 +165,7 @@ private val DarkGraventTokens = GraventUiTokens(
     inlineCodeBorder = Color(0xFF2F313D)
 )
 
-private val LightGraventTokens = GraventUiTokens(
+val LightGraventTokens = GraventUiTokens(
     isDark = false,
     canvasBg = Color(0xFFF6F6F8),
     cardBg = Color(0xFFFFFFFF),

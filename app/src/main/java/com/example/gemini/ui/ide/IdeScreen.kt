@@ -1441,7 +1441,7 @@ fun IdeScreen(
                 val closingTarget = tabToClose!!
                 AlertDialog(
                     onDismissRequest = { tabToClose = null },
-                    icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = graventTokens().warnAccent) },
+                    icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = graventTokens().warnAmber) },
                     title = { Text("Unsaved Changes", fontWeight = FontWeight.Bold) },
                     text = { Text("Do you want to save the changes made to '${closingTarget.name}' before closing?") },
                     confirmButton = {
