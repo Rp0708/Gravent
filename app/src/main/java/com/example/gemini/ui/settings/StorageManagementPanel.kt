@@ -1562,7 +1562,7 @@ private fun ConfirmStorageActionDialog(
 ) {
     val context = LocalContext.current
     val (title, body, confirmText, isDanger) = when (action) {
-        is PendingConfirmAction.CleanDevCaches -> Quad(
+        is PendingConfirmAction.CleanDevCaches -> StorageConfirmDialogData(
             "Clean Developer & Package Caches?",
             "Clears ${Formatter.formatFileSize(context, action.bytes)} across ${action.count} package caches (npm, pnpm, pip, Go modules, Cargo, Gradle & APT index lists).\n\nYour projects, chats, binaries & installed packages are untouched. Package managers will re-fetch dependencies on demand.",
             "Clean Caches",
@@ -1574,26 +1574,26 @@ private fun ConfirmStorageActionDialog(
             } else {
                 "Target: ${action.bucket.pathHint}\n\n${action.bucket.subtitle}."
             }
-            Quad(
+            StorageConfirmDialogData(
                 "Clear ${action.bucket.title}?",
                 "Reclaims ${Formatter.formatFileSize(context, action.bucket.bytes)}.\n\n$extraNote",
                 "Clear",
                 action.bucket.clearability == CacheClearability.CONFIRM_DATA
             )
         }
-        is PendingConfirmAction.DeleteArtifact -> Quad(
+        is PendingConfirmAction.DeleteArtifact -> StorageConfirmDialogData(
             "Remove ${action.artifact.kind}?",
             "Permanently deletes ${action.artifact.path} (${Formatter.formatFileSize(context, action.artifact.bytes)}).\n\nYou can reinstall or rebuild it later inside your workspace.",
             "Remove",
             true
         )
-        is PendingConfirmAction.DeleteLargeFile -> Quad(
+        is PendingConfirmAction.DeleteLargeFile -> StorageConfirmDialogData(
             "Delete ${action.entry.name}?",
             "Permanently deletes this ${Formatter.formatFileSize(context, action.entry.bytes)} cache/temp file at:\n${action.entry.relativePath}",
             "Delete",
             false
         )
-        is PendingConfirmAction.DeleteExternalBackup -> Quad(
+        is PendingConfirmAction.DeleteExternalBackup -> StorageConfirmDialogData(
             "Delete ${action.item.name}?",
             "Permanently deletes this ${Formatter.formatFileSize(context, action.item.bytes)} file from shared storage:\n${action.item.path}",
             "Delete",
@@ -1625,7 +1625,7 @@ private fun ConfirmStorageActionDialog(
     )
 }
 
-private data class Quad(
+private data class StorageConfirmDialogData(
     val title: String,
     val body: String,
     val confirmText: String,

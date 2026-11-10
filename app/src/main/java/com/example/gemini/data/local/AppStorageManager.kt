@@ -1370,8 +1370,8 @@ object AppStorageManager {
         val installerState = LocalEnvironmentManager.installerState.value
         val installerActive = installerState is LocalInstallerState.Downloading ||
             installerState is LocalInstallerState.Extracting ||
-            installerState is LocalInstallerState.InstallingPackages ||
-            installerState is LocalInstallerState.InstallingTools
+            installerState is LocalInstallerState.Configuring ||
+            installerState is LocalInstallerState.Verifying
 
         val counters = CleanCounters()
         var ranWebViewHttpClear = false
