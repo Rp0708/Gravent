@@ -66,6 +66,8 @@ import com.example.gemini.domain.model.AgentKind
 import com.example.gemini.ui.agents.AgentSheetHeader
 import com.example.gemini.ui.agents.SegmentedSelector
 import com.example.gemini.ui.agents.SheetSectionLabel
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventSwitchColors
 import com.example.gemini.ui.components.ClaudeAccent
 import kotlinx.coroutines.delay
 
@@ -473,7 +475,7 @@ fun ClaudeModelSheet(
                             Text("Thinking", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                             Text("Reason before answering (shown as a summary)", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
                         }
-                        Switch(checked = thinking, onCheckedChange = { backend.setThinking(it) }, colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent))
+                        Switch(checked = thinking, onCheckedChange = { backend.setThinking(it) }, colors = graventSwitchColors())
                     }
                     if (info?.supportsFastMode == true) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
@@ -654,7 +656,7 @@ fun ClaudeProviderSwitchDialog(backend: ClaudeChatBackend) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Button(
                     onClick = { backend.startNewChatWithPendingModel() },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)
+                    colors = graventPrimaryButtonColors()
                 ) { Text("Start a new chat with it") }
                 TextButton(onClick = { backend.cancelProviderSwitch() }) { Text("Cancel") }
                 TextButton(onClick = { backend.confirmProviderSwitch() }, enabled = wait == 0) {

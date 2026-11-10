@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.gemini.domain.model.AiModel
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventRadioColors
+import com.example.gemini.theme.graventTokens
 
 @Composable
 fun SummaryModelPickerDialog(
@@ -31,6 +33,7 @@ fun SummaryModelPickerDialog(
     onSelectModel: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val t = graventTokens()
     var selectedModelId by remember {
         mutableStateOf(
             if (currentChatModelId.isNotBlank() && availableModels.any { it.id == currentChatModelId }) {
@@ -46,7 +49,8 @@ fun SummaryModelPickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = t.cardBg,
+            border = BorderStroke(1.dp, t.border),
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.65f)
@@ -61,7 +65,7 @@ fun SummaryModelPickerDialog(
                     Icon(
                         imageVector = Icons.Outlined.AutoAwesome,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = t.accent,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -69,7 +73,7 @@ fun SummaryModelPickerDialog(
                         text = "Summarize Conversation",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = t.textPrimary
                     )
                 }
 
@@ -125,10 +129,10 @@ fun SummaryModelPickerDialog(
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { selectedModelId = model.id },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            color = if (isSelected) t.accentSoftBg else t.elevatedBg,
                             border = BorderStroke(
                                 1.dp,
-                                if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                if (isSelected) t.accent else t.subtleBorder
                             )
                         ) {
                             Row(
@@ -140,14 +144,14 @@ fun SummaryModelPickerDialog(
                                 RadioButton(
                                     selected = isSelected,
                                     onClick = { selectedModelId = model.id },
-                                    colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                    colors = graventRadioColors()
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = model.displayName,
                                     fontSize = 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = t.textPrimary
                                 )
                             }
                         }
@@ -166,10 +170,10 @@ fun SummaryModelPickerDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onSelectModel(selectedModelId) },
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        colors = graventPrimaryButtonColors(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Start Summarize", fontSize = 13.sp, color = Color.Black)
+                        Text("Start Summarize", fontSize = 13.sp)
                     }
                 }
             }

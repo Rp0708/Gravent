@@ -971,7 +971,7 @@ fun LocalTerminalContent(
                             sessionToClose = null
                             LocalTerminalManager.closeSession(idToClose)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350), contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {

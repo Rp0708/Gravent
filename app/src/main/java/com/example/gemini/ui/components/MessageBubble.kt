@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import com.example.gemini.domain.model.ChatMessage
 import com.example.gemini.domain.model.MessageRole
 import com.example.gemini.domain.model.TurnDiffStats
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.Locale
@@ -197,7 +197,7 @@ fun MessageBubble(
                             Icon(
                                 imageVector = Icons.Outlined.Edit,
                                 contentDescription = "Edit prompt",
-                                tint = ClaudeTerracotta,
+                                tint = graventTokens().accent,
                                 modifier = Modifier.size(15.dp)
                             )
                         }
@@ -352,7 +352,7 @@ fun MessageBubble(
                                     Icon(
                                         imageVector = Icons.Outlined.Layers,
                                         contentDescription = "View Artifacts ($artifactsCount)",
-                                        tint = ClaudeTerracotta,
+                                        tint = graventTokens().accent,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -460,12 +460,13 @@ fun UserMessageBubble(
                 // Slash commands that expanded (plugins, custom commands) stand out from the typed text
                 val styledContent = remember(displayContent) {
                     val ranges = com.example.gemini.data.remote.PromptExpansion.commandRanges(displayContent)
+                    val highlightAccent = graventTokens().accent
                     androidx.compose.ui.text.buildAnnotatedString {
                         append(displayContent)
                         ranges.forEach {
                             addStyle(
                                 androidx.compose.ui.text.SpanStyle(
-                                    color = ClaudeTerracotta,
+                                    color = highlightAccent,
                                     fontWeight = FontWeight.SemiBold
                                 ),
                                 it.first, it.last + 1
@@ -502,7 +503,7 @@ fun UserMessageBubble(
                                     text = if (isTextExpanded) "Show less ▲" else "Show more (${lineCount} lines) ▼",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ClaudeTerracotta
+                                    color = graventTokens().accent
                                 )
                             }
                         }
@@ -553,7 +554,7 @@ fun UserMessageBubble(
                     Icon(
                         imageVector = Icons.Outlined.Edit,
                         contentDescription = "Undo and edit prompt",
-                        tint = ClaudeTerracotta,
+                        tint = graventTokens().accent,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -732,7 +733,7 @@ fun AssistantMessageFooter(
                         TextButton(onClick = {
                             confirmRetry = false
                             onRetry(message)
-                        }) { Text("Regenerate", color = ClaudeTerracotta, fontWeight = FontWeight.Bold) }
+                        }) { Text("Regenerate", color = graventTokens().accent, fontWeight = FontWeight.Bold) }
                     },
                     dismissButton = { TextButton(onClick = { confirmRetry = false }) { Text("Cancel") } }
                 )
@@ -763,7 +764,7 @@ fun AssistantMessageFooter(
                     Icon(
                         imageVector = Icons.Outlined.Layers,
                         contentDescription = "View Artifacts ($artifactsCount)",
-                        tint = ClaudeTerracotta,
+                        tint = graventTokens().accent,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -801,11 +802,12 @@ fun ModelTypingIndicator(
 
     val phrase = WAITING_PHRASES.getOrElse(phraseIndex) { WAITING_PHRASES[0] }
 
+    val typingAccent = graventTokens().accent
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = ClaudeTerracotta.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.22f))
+        color = typingAccent.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, typingAccent.copy(alpha = 0.22f))
     ) {
         Box(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
@@ -831,7 +833,7 @@ private fun WaitingDotsText(phrase: String) {
         text = "$phrase$dots",
         fontSize = 12.5.sp,
         fontWeight = FontWeight.SemiBold,
-        color = ClaudeTerracotta,
+        color = graventTokens().accent,
         letterSpacing = 0.2.sp
     )
 }
@@ -972,7 +974,7 @@ fun ContextSummaryCheckpointBanner(
             .clickable { expanded = !expanded },
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, graventTokens().accent.copy(alpha = 0.35f))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -983,7 +985,7 @@ fun ContextSummaryCheckpointBanner(
                     text = "🧠 Context Compacted (History Summarized)",
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = ClaudeTerracotta,
+                    color = graventTokens().accent,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
@@ -1258,7 +1260,7 @@ private fun UserMessageDocumentItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
                 contentDescription = null,
-                tint = ClaudeTerracotta,
+                tint = graventTokens().accent,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))

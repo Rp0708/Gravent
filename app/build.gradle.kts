@@ -16,6 +16,7 @@ plugins {
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.wire)
+  alias(libs.plugins.detekt)
 }
 
 android {
@@ -209,6 +210,22 @@ dependencies {
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+
+  // Static analysis (Compose rules)
+  detektPlugins(libs.compose.rules.detekt)
+}
+
+detekt {
+  toolVersion.set(libs.versions.detekt.get())
+  config.setFrom(rootProject.layout.projectDirectory.file("config/detekt/detekt.yml"))
+  buildUponDefaultConfig.set(true)
+  disableDefaultRuleSets.set(true)
+  parallel.set(true)
+  ignoreFailures.set(true)
+}
+
+tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+  exclude("**/build/**", "**/generated/**")
 }
 
 configurations.all {

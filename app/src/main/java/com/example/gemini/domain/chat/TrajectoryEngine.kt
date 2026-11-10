@@ -50,12 +50,18 @@ class TrajectoryEngine {
 
     val userRespondedStepIndices = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
 
+    private val stateLock = Any()
+
+    @Volatile
     var trajectoryId: String = ""
         private set
+    @Volatile
     var conversationId: String = ""
         private set
+    @Volatile
     var isRunning: Boolean = false
         private set
+    @Volatile
     var isWaitingInteraction: Boolean = false
         private set
 
@@ -65,7 +71,7 @@ class TrajectoryEngine {
     /**
      * Resets state when switching conversations.
      */
-    fun reset(newConversationId: String = "", force: Boolean = false) {
+    fun reset(newConversationId: String = "", force: Boolean = false) = synchronized(stateLock) {
         if (!force && pendingUserTurn != null && (conversationId.isBlank() || conversationId == newConversationId)) {
             if (newConversationId.isNotBlank()) {
                 conversationId = newConversationId
@@ -73,7 +79,7 @@ class TrajectoryEngine {
             trajectoryId = ""
             userRespondedStepIndices.clear()
             activeStepsMap.clear()
-            return
+            return@synchronized
         }
         conversationId = newConversationId
         trajectoryId = ""
@@ -92,7 +98,7 @@ class TrajectoryEngine {
      * Optimistically registers user prompt so UI feed never flickers or drops the user message
      * during the few milliseconds between sending and wire frame receipt.
      */
-    fun submitUserPrompt(text: String, attachments: List<ChatAttachment> = emptyList(), convId: String = "") {
+    fun submitUserPrompt(text: String, attachments: List<ChatAttachment> = emptyList(), convId: String = "") = synchronized(stateLock) {
         if (convId.isNotBlank()) {
             conversationId = convId
         }
@@ -103,10 +109,10 @@ class TrajectoryEngine {
             attachments = attachments,
             createdAt = System.currentTimeMillis()
         )
-        _turns.value = getTurns()
+        _turns.value = getTurnsLocked()
     }
 
-    fun cancelRunning() {
+    fun cancelRunning() = synchronized(stateLock) {
         isRunning = false
         pendingUserTurn?.let { pending ->
             val alreadyPresent = completedTurns.any { it is ChatTurn.User && it.stepIndex == pending.stepIndex }
@@ -115,7 +121,26 @@ class TrajectoryEngine {
             }
         }
         pendingUserTurn = null
-        _turns.value = getTurns()
+        _turns.value = getTurnsLocked()
+    }
+
+    /**
+     * Marks the active turn idle when an authoritative backend signal (e.g. sidebar summary)
+     * confirms the agent stopped running, while preserving [activeStepsMap] so late final deltas
+     * or token usage still merge cleanly into the finished turn.
+     */
+    fun markTurnIdle() = synchronized(stateLock) {
+        if (!isRunning && pendingUserTurn == null && !isWaitingInteraction) return@synchronized
+        isRunning = false
+        isWaitingInteraction = false
+        pendingUserTurn?.let { pending ->
+            val alreadyPresent = completedTurns.any { it is ChatTurn.User && it.stepIndex == pending.stepIndex }
+            if (!alreadyPresent) {
+                completedTurns.add(pending)
+            }
+        }
+        pendingUserTurn = null
+        _turns.value = getTurnsLocked()
     }
 
     fun markStepResponded(stepIndex: Int) {
@@ -126,7 +151,7 @@ class TrajectoryEngine {
         userRespondedStepIndices.remove(stepIndex)
     }
 
-    fun optimisticUpdateStepStatus(stepIndex: Int, status: String, output: String? = null) {
+    fun optimisticUpdateStepStatus(stepIndex: Int, status: String, output: String? = null) = synchronized(stateLock) {
         val existing = activeStepsMap[stepIndex]
         if (existing != null) {
             val protoStatus = when (status.uppercase()) {
@@ -142,14 +167,15 @@ class TrajectoryEngine {
                 run_command = if (output != null) existing.run_command?.copy(stdout = output) ?: existing.run_command else existing.run_command
             )
             activeStepsMap[stepIndex] = updated
-            _turns.value = getTurns()
+            _turns.value = getTurnsLocked()
         }
     }
 
     /**
      * Ingests typed protobuf updates directly from Square Wire StreamAgentStateUpdates.
+     * [allowRunning] lets the authoritative summary stream gate stale RUNNING frames after a turn ends.
      */
-    fun ingestAgentStateUpdate(update: AgentStateUpdate): List<ChatTurn> {
+    fun ingestAgentStateUpdate(update: AgentStateUpdate, allowRunning: Boolean = true): List<ChatTurn> = synchronized(stateLock) {
         val convId = update.conversation_id.takeIf { it.isNotBlank() }
         val trajId = update.trajectory_id.takeIf { it.isNotBlank() }
         val status = update.status
@@ -163,8 +189,14 @@ class TrajectoryEngine {
         val isTerminated = liveTerminationReason != null &&
                 liveTerminationReason != ExecutorTerminationReason.EXECUTOR_TERMINATION_REASON_UNSPECIFIED
 
-        val daemonRunning = (status == CascadeRunStatus.CASCADE_RUN_STATUS_RUNNING) && !isTerminated
-        val daemonIdle = status == CascadeRunStatus.CASCADE_RUN_STATUS_IDLE || update.fully_idle || isTerminated
+        val daemonRunning = allowRunning &&
+                (status == CascadeRunStatus.CASCADE_RUN_STATUS_RUNNING) &&
+                !isTerminated &&
+                !update.fully_idle
+        val daemonIdle = !allowRunning ||
+                status == CascadeRunStatus.CASCADE_RUN_STATUS_IDLE ||
+                update.fully_idle ||
+                isTerminated
 
         val stepsUpdate = update.main_trajectory_update?.steps_update
 
@@ -291,16 +323,16 @@ class TrajectoryEngine {
             }
         }
 
-        val result = getTurns()
+        val result = getTurnsLocked()
         _turns.value = result
-        return result
+        result
     }
 
     /**
      * Directly parses an array of Steps (e.g. for offline export or trajectory inspections)
      * and returns the resulting list of ChatMessages.
      */
-    fun ingestStepsDirect(steps: List<Step>, convId: String = ""): List<ChatMessage> {
+    fun ingestStepsDirect(steps: List<Step>, convId: String = ""): List<ChatMessage> = synchronized(stateLock) {
         reset(convId, force = true)
         ingestInitialFullSync(
             indices = steps.indices.toList(),
@@ -308,7 +340,7 @@ class TrajectoryEngine {
             cascadeRunning = false
         )
         finalizeActiveTurn()
-        return toChatMessages(convId)
+        toChatMessages(convId)
     }
 
     /**
@@ -494,7 +526,9 @@ class TrajectoryEngine {
     /**
      * Returns the full conversational feed: Completed Turns (cached) + Active Turn (lightweight).
      */
-    fun getTurns(): List<ChatTurn> {
+    fun getTurns(): List<ChatTurn> = synchronized(stateLock) { getTurnsLocked() }
+
+    private fun getTurnsLocked(): List<ChatTurn> {
         val baseTurns = if (pendingUserTurn != null && completedTurns.none { it is ChatTurn.User && it.stepIndex == pendingUserTurn!!.stepIndex }) {
             completedTurns + pendingUserTurn!!
         } else {
@@ -579,8 +613,8 @@ class TrajectoryEngine {
     /**
      * Converts current turns to [ChatMessage]s for UI consumption.
      */
-    fun toChatMessages(convId: String = conversationId): List<ChatMessage> {
-        val currentTurns = getTurns()
+    fun toChatMessages(convId: String = conversationId): List<ChatMessage> = synchronized(stateLock) {
+        val currentTurns = getTurnsLocked()
         val messages = mutableListOf<ChatMessage>()
         val seenMsgIds = mutableSetOf<String>()
 
@@ -713,7 +747,7 @@ class TrajectoryEngine {
             }
         }
         Log.d("CHAT_OPEN_DEBUG", "📋 [TrajectoryEngine.toChatMessages] convId=$convId produced ${messages.size} messages from ${currentTurns.size} turns (roles: ${messages.map { it.role }})")
-        return messages
+        messages
     }
 
     /**

@@ -32,6 +32,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
+import com.example.gemini.theme.graventPrimaryButtonColors
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -227,7 +228,7 @@ fun FileDetailsDialog(
                             onOpenInIde(details.fullPath)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = graventPrimaryButtonColors()
                 ) {
                     Icon(
                         imageVector = if (details.isMarkdown) Icons.Outlined.Visibility else Icons.Outlined.Code,

@@ -20,13 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.theme.isAppInDarkTheme
 import androidx.compose.ui.graphics.Color
 import com.example.gemini.domain.model.ThinkingLevel
 import com.example.gemini.domain.model.ThinkingPreference
-import com.example.gemini.theme.ClaudeDarkBorder
-import com.example.gemini.theme.ClaudeDarkSurface
-import com.example.gemini.theme.ClaudeTerracotta
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +34,7 @@ fun ThinkingSelectorBottomSheet(
     onPreferenceSelected: (ThinkingPreference) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val t = graventTokens()
     var selectedLevel by remember { mutableStateOf(currentPreference.level) }
     var customTokensText by remember { mutableStateOf(currentPreference.customTokens.toString()) }
 
@@ -59,7 +59,7 @@ fun ThinkingSelectorBottomSheet(
                 Icon(
                     imageVector = Icons.Outlined.Psychology,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = t.accent,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -68,12 +68,12 @@ fun ThinkingSelectorBottomSheet(
                         text = "Thinking & Reasoning Level",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = t.textPrimary
                     )
                     Text(
                         text = "Configure reasoning depth and token budget",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = t.textSecondary
                     )
                 }
             }
@@ -83,9 +83,8 @@ fun ThinkingSelectorBottomSheet(
             // Level Options
             ThinkingLevel.values().forEach { level ->
                 val isSelected = selectedLevel == level
-                val borderColor = if (isSelected) ClaudeTerracotta else ClaudeDarkBorder
-                val unselectedBg = ClaudeDarkSurface
-                val bgColor = if (isSelected) ClaudeTerracotta.copy(alpha = 0.08f) else unselectedBg
+                val borderColor = if (isSelected) t.accent else t.border
+                val bgColor = if (isSelected) t.accentSoftBg else t.cardBg
 
                 Card(
                     modifier = Modifier
@@ -116,7 +115,7 @@ fun ThinkingSelectorBottomSheet(
                                 text = level.label,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                                color = if (isSelected) t.accent else t.textPrimary
                             )
 
                             if (level == ThinkingLevel.MEDIUM) {
@@ -124,14 +123,14 @@ fun ThinkingSelectorBottomSheet(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(ClaudeTerracotta.copy(alpha = 0.15f))
+                                        .background(t.accentSoftBg)
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "DEFAULT",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ClaudeTerracotta
+                                        color = t.accent
                                     )
                                 }
                             }
@@ -142,7 +141,7 @@ fun ThinkingSelectorBottomSheet(
                                 Icon(
                                     imageVector = Icons.Outlined.Check,
                                     contentDescription = "Selected",
-                                    tint = ClaudeTerracotta,
+                                    tint = t.accent,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -153,7 +152,7 @@ fun ThinkingSelectorBottomSheet(
                         Text(
                             text = level.description,
                             fontSize = 12.5.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                            color = t.textSecondary
                         )
 
                         // Custom Token Input Field
@@ -183,10 +182,10 @@ fun ThinkingSelectorBottomSheet(
                                     onDismiss()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                                colors = graventPrimaryButtonColors(),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Text("Apply Custom Budget", fontWeight = FontWeight.Bold, color = Color.Black)
+                                Text("Apply Custom Budget", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

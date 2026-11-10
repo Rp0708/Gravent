@@ -98,6 +98,8 @@ import com.example.gemini.theme.GeminiPurple
 import com.example.gemini.theme.QuotaAmber
 import com.example.gemini.theme.QuotaGreen
 import com.example.gemini.theme.QuotaRed
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventSwitchColors
 import com.example.gemini.ui.components.ClaudeAccent
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -300,7 +302,7 @@ private fun AccountPage(deps: ClaudeSettingsDeps) {
             val running = job?.running == true
             if (state == ClaudeStatus.NOT_INSTALLED) {
                 Button(onClick = { deps.config.startCliJob("install") }, enabled = !running,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) { Text("Install Claude Code") }
+                    colors = graventPrimaryButtonColors()) { Text("Install Claude Code") }
             } else if (status?.installed == true) {
                 OutlinedButton(onClick = { deps.config.startCliJob("update") }, enabled = !running) { Text("Check for updates") }
             }
@@ -344,7 +346,7 @@ private fun AccountPage(deps: ClaudeSettingsDeps) {
             Hint("Sign in with your Claude subscription or an Anthropic Console account.")
             Spacer(Modifier.height(8.dp))
             Button(onClick = { showLogin = true }, enabled = !state.isBlocking && state != ClaudeStatus.CHECKING && (!busy || state == ClaudeStatus.SIGNING_IN),
-                colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) {
+                colors = graventPrimaryButtonColors()) {
                 Text(if (state == ClaudeStatus.SIGNING_IN) "Signing in…" else "Sign in")
             }
         }
@@ -447,7 +449,7 @@ private fun DefaultsPage(deps: ClaudeSettingsDeps) {
                 Hint("Reason before answering")
             }
             Switch(checked = thinking, onCheckedChange = { deps.config.setValue("alwaysThinkingEnabled", JsonPrimitive(it)) },
-                colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent))
+                colors = graventSwitchColors())
         }
     }
 
@@ -492,7 +494,7 @@ private fun DefaultsPage(deps: ClaudeSettingsDeps) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(lang, { lang = it.trim() }, singleLine = true, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            Button(onClick = { deps.prefs.setVoiceLanguage(lang.ifBlank { "en" }) }, colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) { Text("Save") }
+            Button(onClick = { deps.prefs.setVoiceLanguage(lang.ifBlank { "en" }) }, colors = graventPrimaryButtonColors()) { Text("Save") }
         }
     }
 }
@@ -526,7 +528,7 @@ private fun PermissionsPage(deps: ClaudeSettingsDeps) {
                 checked = sandbox?.enabled == true,
                 enabled = sandbox?.available == true,
                 onCheckedChange = { deps.config.setSandboxEnabled(it) },
-                colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent)
+                colors = graventSwitchColors()
             )
         }
     }
@@ -545,7 +547,7 @@ private fun PermissionsPage(deps: ClaudeSettingsDeps) {
             Button(onClick = {
                 deps.config.addRule(behavior, newRule)
                 newRule = ""
-            }, enabled = newRule.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) { Text("Add") }
+            }, enabled = newRule.isNotBlank(), colors = graventPrimaryButtonColors()) { Text("Add") }
         }
     }
     listOf("allow" to "Allowed without asking", "ask" to "Always ask", "deny" to "Never allowed").forEach { (b, title) ->
@@ -598,7 +600,7 @@ private fun McpPage(deps: ClaudeSettingsDeps) {
     fun local(name: String, path: String) =
         ClaudeMcpAddRequest(name = name, transport = "http", url = "http://127.0.0.1:${bridge.DEFAULT_PORT}$path", headers = deviceHeaders)
     val presets = listOf(
-        ClaudeMcpPreset("Plugin Developer", "Build & test AntiGem plugins", Icons.Outlined.DeveloperMode, GeminiPurple, local(bridge.DEVELOPER_MCP_NAME, "/extension_developer")),
+        ClaudeMcpPreset("Plugin Developer", "Build & test Gravent plugins", Icons.Outlined.DeveloperMode, GeminiPurple, local(bridge.DEVELOPER_MCP_NAME, "/extension_developer")),
         ClaudeMcpPreset("Browser", "Control the in-app browser", Icons.Outlined.Language, GeminiBlue, local("browser_mcp", "/browser")),
         ClaudeMcpPreset("Terminal", "Run commands in the terminal", Icons.Outlined.Terminal, QuotaGreen, local("terminal_mcp", "/terminal")),
         ClaudeMcpPreset("Android", "Tap, type & read this phone", Icons.Outlined.PhoneAndroid, Color(0xFF14B8A6), local(bridge.ANDROID_AUTOMATION_MCP_NAME, "/android")),
@@ -889,7 +891,7 @@ private fun AddMcpDialog(
                     )
                 )
             }, enabled = name.isNotBlank() && (if (transport == "stdio") command.isNotBlank() else url.isNotBlank()),
-                colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) { Text("Add") }
+                colors = graventPrimaryButtonColors()) { Text("Add") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
@@ -963,7 +965,7 @@ private fun PluginsPage(deps: ClaudeSettingsDeps) {
                                 else if (p.enabled != null) Switch(
                                     checked = p.enabled,
                                     onCheckedChange = { deps.config.pluginAction(if (it) "enable" else "disable", ClaudePluginAction(plugin = p.key, scope = p.scope)) },
-                                    colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent)
+                                    colors = graventSwitchColors()
                                 )
                             }
                             if (p.description.isNotBlank()) Text(p.description, fontSize = 11.5.sp, maxLines = 3, overflow = TextOverflow.Ellipsis,
@@ -1000,7 +1002,7 @@ private fun PluginsPage(deps: ClaudeSettingsDeps) {
                                     op != null -> PluginProgress(op)
                                     p.key in installedIds -> Text("Installed", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = QuotaGreen)
                                     else -> Button(onClick = { deps.config.pluginAction("install", ClaudePluginAction(plugin = p.key, scope = "user")) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) { Text("Install", fontSize = 12.sp) }
+                                        colors = graventPrimaryButtonColors()) { Text("Install", fontSize = 12.sp) }
                                 }
                             }
                             if (p.description.isNotBlank()) Text(p.description, fontSize = 11.5.sp, maxLines = 3, overflow = TextOverflow.Ellipsis,
@@ -1024,8 +1026,8 @@ private fun PluginsPage(deps: ClaudeSettingsDeps) {
                                 Button(onClick = {
                                     addingMarket = marketSource
                                     deps.config.pluginAction("marketplace-add", ClaudePluginAction(source = marketSource))
-                                }, enabled = marketSource.isNotBlank() && !adding, colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent, contentColor = Color.Black)) {
-                                    if (adding) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.Black) else Text("Add", color = Color.Black)
+                                }, enabled = marketSource.isNotBlank() && !adding, colors = graventPrimaryButtonColors()) {
+                                    if (adding) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = com.example.gemini.theme.graventTokens().onAccent) else Text("Add")
                                 }
                             }
                         }
@@ -1125,7 +1127,7 @@ private fun MemoryPage(deps: ClaudeSettingsDeps) {
             Button(
                 onClick = { deps.config.saveMemory(scope, if (scope == "project") cwd else null, text) },
                 enabled = text != m.content,
-                colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)
+                colors = graventPrimaryButtonColors()
             ) { Text("Save") }
         }
     }
@@ -1223,7 +1225,7 @@ private fun AdvancedPage(deps: ClaudeSettingsDeps) {
                 is JsonObject -> deps.config.saveSettings(parsed, "settings.json saved")
                 else -> parseError = "settings.json must be a JSON object"
             }
-        }, colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)) { Text("Validate & save") }
+        }, colors = graventPrimaryButtonColors()) { Text("Validate & save") }
     }
 }
 

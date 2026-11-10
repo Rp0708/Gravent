@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.remote.PromptExpansion
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.ui.components.formatTelemetryShortTime
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -230,13 +230,12 @@ fun ChatPromptSlider(
         label = "tooltip_y"
     )
 
-    val capsuleBg = if (isDark) {
-        Color(0xFF14141A).copy(alpha = 0.92f * capsuleBackdropAlpha)
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f * capsuleBackdropAlpha)
-    }
+    val tokens = graventTokens()
+    val isDark = tokens.isDark
+    val accentColor = tokens.accent
+    val capsuleBg = tokens.cardBg.copy(alpha = (if (isDark) 0.92f else 0.96f) * capsuleBackdropAlpha)
     val capsuleBorder = if (capsuleBackdropAlpha > 0.05f) {
-        BorderStroke(0.7.dp, ClaudeTerracotta.copy(alpha = 0.42f * capsuleBackdropAlpha))
+        BorderStroke(0.7.dp, accentColor.copy(alpha = 0.42f * capsuleBackdropAlpha))
     } else null
 
     val dotSpacing = if (visibleSlots.size <= 4) 8.dp else 5.dp
@@ -317,10 +316,10 @@ fun ChatPromptSlider(
                         )
                         val dotWidth = if (isActive && isEngaged) 4.5.dp else 3.2.dp
                         val dotColor = when {
-                            isActive && isEngaged -> ClaudeTerracotta
-                            isActive -> if (isDark) Color(0xFFE8E5DF) else MaterialTheme.colorScheme.primary
-                            isEngaged -> if (isDark) Color(0xFF71717D) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            else -> if (isDark) Color(0xFF52525C) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                            isActive && isEngaged -> accentColor
+                            isActive -> accentColor
+                            isEngaged -> tokens.textSecondary.copy(alpha = 0.78f)
+                            else -> tokens.textMuted.copy(alpha = if (isDark) 0.75f else 0.52f)
                         }
                         Box(
                             modifier = Modifier
@@ -345,8 +344,8 @@ fun ChatPromptSlider(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (isDark) Color(0xFF141419) else MaterialTheme.colorScheme.surface,
-                border = BorderStroke(0.8.dp, if (isDark) Color(0xFF282832) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+                color = tokens.cardBg,
+                border = BorderStroke(0.8.dp, tokens.border),
                 shadowElevation = 6.dp,
                 modifier = Modifier.widthIn(min = 148.dp, max = 232.dp)
             ) {
@@ -360,14 +359,14 @@ fun ChatPromptSlider(
                             fontSize = 10.5.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.SemiBold,
-                            color = ClaudeTerracotta
+                            color = accentColor
                         )
                         val timeText = formatTelemetryShortTime(currentAnchor.timestampMs)
                         if (timeText.isNotEmpty()) {
                             Text(
                                 text = "· $timeText",
                                 fontSize = 10.5.sp,
-                                color = if (isDark) Color(0xFF8E8E98) else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = tokens.textSecondary
                             )
                         }
                     }
@@ -377,7 +376,7 @@ fun ChatPromptSlider(
                         fontSize = 12.sp,
                         lineHeight = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFFF4F4F5) else MaterialTheme.colorScheme.onSurface,
+                        color = tokens.textPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )

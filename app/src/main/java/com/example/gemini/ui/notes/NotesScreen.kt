@@ -41,7 +41,7 @@ import com.example.gemini.data.notes.Note
 import com.example.gemini.data.notes.NoteKind
 import com.example.gemini.data.notes.NotesRepository
 import com.example.gemini.data.notes.TodoItem
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventCheckboxColors
 import kotlinx.coroutines.launch
 
 private enum class NotesFilter(val label: String) { ALL("All"), NOTES("Notes"), TODOS("To-dos") }
@@ -525,7 +525,7 @@ private fun TodoRow(
             onCheckedChange = { checked ->
                 NotesRepository.update(noteId) { n -> n.copy(items = n.items.map { if (it.id == item.id) it.copy(done = checked) else it }) }
             },
-            colors = CheckboxDefaults.colors(checkedColor = ClaudeTerracotta)
+            colors = graventCheckboxColors()
         )
         SyncedField(
             key = item.id,

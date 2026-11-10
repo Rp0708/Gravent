@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.domain.model.ChatAttachment
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -228,17 +229,18 @@ fun ChatAudioPlayer(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Play / Pause Circle Button
+            val t = graventTokens()
             Surface(
                 onClick = { playOrPauseAudio() },
                 shape = CircleShape,
-                color = ClaudeTerracotta,
+                color = t.accent,
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (isBuffering) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = Color.White,
+                            color = t.onAccent,
                             strokeWidth = 2.dp
                         )
                     } else {
@@ -250,7 +252,7 @@ fun ChatAudioPlayer(
                             Icon(
                                 imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = if (playing) "Pause" else "Play",
-                                tint = Color.White,
+                                tint = t.onAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                         }

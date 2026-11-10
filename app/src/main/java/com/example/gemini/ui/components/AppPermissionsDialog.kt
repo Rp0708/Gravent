@@ -84,7 +84,7 @@ fun AppPermissionsDialog(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val isDark = isAppInDarkTheme() || isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     var hasNotification by remember { mutableStateOf(PermissionUtils.hasNotificationPermission(context)) }
     var hasStorage by remember { mutableStateOf(PermissionUtils.hasStoragePermission(context)) }
@@ -213,7 +213,7 @@ fun AppPermissionsDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Welcome to AntiGem",
+                    text = "Welcome to Gravent",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimary,
@@ -266,7 +266,7 @@ fun AppPermissionsDialog(
                     badgeText = "Optional",
                     badgeColor = GeminiBlue,
                     accentColor = GeminiBlue,
-                    description = "Allows AntiGem to access /sdcard to import local bootstrap packages, inspect files, and manage external code workspaces.",
+                    description = "Allows Gravent to access /sdcard to import local bootstrap packages, inspect files, and manage external code workspaces.",
                     isGranted = hasStorage,
                     onGrantClick = { requestStorage() }
                 )
@@ -311,17 +311,11 @@ fun AppPermissionsDialog(
                         .fillMaxWidth()
                         .height(52.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ClaudeTerracotta,
-                        contentColor = Color.Black,
-                        disabledContainerColor = if (isDark) Color(0xFF282724) else Color(0xFFE5E7EB),
-                        disabledContentColor = if (isDark) Color(0xFF6B7280) else Color(0xFF9CA3AF)
-                    )
+                    colors = graventPrimaryButtonColors()
                 ) {
                     Text(
                         text = if (hasNotification) "Continue to Gravent 🚀" else "Notifications Required to Proceed",
                         fontWeight = FontWeight.Bold,
-                        color = if (hasNotification) Color.Black else Color.Unspecified,
                         fontSize = 15.sp
                     )
                 }

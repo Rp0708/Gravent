@@ -191,6 +191,57 @@ class AgyChatBackend(
     private var hasSeenTurnActivity = false
     @Volatile
     private var hasStartedRunning = false
+    @Volatile
+    private var pendingPromptStartConvId: String? = null
+    @Volatile
+    private var pendingPromptStartAtMs: Long = 0L
+
+    private fun markAwaitingDaemonStart(convId: String) {
+        pendingPromptStartConvId = convId
+        pendingPromptStartAtMs = System.currentTimeMillis()
+    }
+
+    private fun clearAwaitingDaemonStart(convId: String? = null) {
+        if (convId == null || pendingPromptStartConvId == convId) {
+            pendingPromptStartConvId = null
+            pendingPromptStartAtMs = 0L
+        }
+    }
+
+    private fun isAwaitingDaemonStart(convId: String): Boolean {
+        if (isPromptInFlight) return true
+        return pendingPromptStartConvId == convId &&
+            (System.currentTimeMillis() - pendingPromptStartAtMs) < 6_000L
+    }
+
+    private suspend fun reconcileTurnFinishedOnMain(convId: String) {
+        if (activeStreamConversationId != convId && _currentConversation.value?.id != convId) return
+        hasStartedRunning = false
+        clearAwaitingDaemonStart(convId)
+        val hadActiveState = trajectoryEngine.isRunning ||
+            _isStreaming.value ||
+            _messages.value.any { it.isStreaming }
+        if (!hadActiveState) return
+
+        trajectoryEngine.markTurnIdle()
+        val refreshed = trajectoryEngine.toChatMessages(convId)
+            .map { if (it.isStreaming) it.copy(isStreaming = false) else it }
+        withContext(Dispatchers.Main) {
+            if (activeStreamConversationId != convId && _currentConversation.value?.id != convId) return@withContext
+            _isStreaming.value = false
+            val nextMessages = if (refreshed.isNotEmpty()) {
+                refreshed
+            } else {
+                _messages.value.map { if (it.isStreaming) it.copy(isStreaming = false) else it }
+            }
+            if (nextMessages != _messages.value) {
+                _messages.value = nextMessages
+                backendScope.launch(Dispatchers.Default) {
+                    com.example.gemini.ui.chat.ChatFeedCache.prewarm(nextMessages)
+                }
+            }
+        }
+    }
 
     private val _isServerOnline = MutableStateFlow<Boolean?>(null)
     val isServerOnline: StateFlow<Boolean?> = _isServerOnline.asStateFlow()
@@ -651,6 +702,24 @@ class AgyChatBackend(
             }
         }
 
+        // Reconcile TrajectoryEngine / message streaming whenever the authoritative active-run state stops
+        backendScope.launch {
+            var wasRunning = false
+            var prevConvId: String? = null
+            isCurrentChatActivelyRunning.collect { running ->
+                val curId = _currentConversation.value?.id
+                if (prevConvId != curId) {
+                    wasRunning = running
+                    prevConvId = curId
+                    return@collect
+                }
+                if (wasRunning && !running && curId != null) {
+                    reconcileTurnFinishedOnMain(curId)
+                }
+                wasRunning = running
+            }
+        }
+
         backendScope.launch {
             val savedId = authPrefs.preferredModelId.firstOrNull()
             val savedKey = authPrefs.preferredModelKey.firstOrNull()
@@ -799,6 +868,16 @@ class AgyChatBackend(
                                         hasActivity = activeInMap.hasActivity
                                     )
                                 }
+                                if (activeId == activeStreamConversationId) {
+                                    if (activeInMap.isRunning) {
+                                        hasStartedRunning = true
+                                        clearAwaitingDaemonStart(activeId)
+                                    } else if (!isAwaitingDaemonStart(activeId) &&
+                                        (trajectoryEngine.isRunning || _isStreaming.value || _messages.value.any { it.isStreaming })
+                                    ) {
+                                        reconcileTurnFinishedOnMain(activeId)
+                                    }
+                                }
                             }
                         }
                         _hasReceivedInitialSync.value = true
@@ -932,6 +1011,7 @@ class AgyChatBackend(
         currentTurnStartStep = 0
         totalStepsCount = 0
         isPromptInFlight = false
+        clearAwaitingDaemonStart()
         hasStartedRunning = false
         hasSeenTurnActivity = false
         _isStreaming.value = false
@@ -976,6 +1056,7 @@ class AgyChatBackend(
         currentTurnStartStep = 0
         totalStepsCount = 0
         isPromptInFlight = false
+        clearAwaitingDaemonStart()
         hasStartedRunning = false
         hasSeenTurnActivity = false
         trajectoryEngine.reset(id, force = true)
@@ -1040,11 +1121,28 @@ class AgyChatBackend(
             val STREAM_THROTTLE_MS = 24L // ~40 fps cadence for rapid, butter-smooth streaming
             var pendingFlushJob: Job? = null
 
+            fun isAllowingStreamRunning(): Boolean {
+                val knownConv = _conversations.value.find { it.id == conversationId }
+                return if (knownConv != null) {
+                    knownConv.isRunning || isAwaitingDaemonStart(conversationId)
+                } else {
+                    true
+                }
+            }
+
             suspend fun flushUiUpdate(forceTerminal: Boolean = false) {
                 if (activeStreamConversationId != conversationId) return
-                val isRunning = trajectoryEngine.isRunning
+                val allowRunningNow = isAllowingStreamRunning()
+                if (!allowRunningNow && trajectoryEngine.isRunning) {
+                    trajectoryEngine.markTurnIdle()
+                }
+                val isRunning = trajectoryEngine.isRunning && allowRunningNow
                 val isWaiting = trajectoryEngine.isWaitingInteraction
-                val msgs = trajectoryEngine.toChatMessages(conversationId)
+                val msgs = trajectoryEngine.toChatMessages(conversationId).let { list ->
+                    if (!allowRunningNow) {
+                        list.map { if (it.isStreaming) it.copy(isStreaming = false) else it }
+                    } else list
+                }
 
                 withContext(Dispatchers.Main) {
                     if (activeStreamConversationId != conversationId) return@withContext
@@ -1091,11 +1189,12 @@ class AgyChatBackend(
                         val stepsCount = update?.main_trajectory_update?.steps_update?.steps?.size ?: 0
                         Log.d("CHAT_OPEN_DEBUG", "📥 [ChatViewModel Stream Frame] convId=$conversationId, isFirstChunk=$isFirstChunk, status=$statusStr, stepsCount=$stepsCount")
 
+                        val allowRunningNow = isAllowingStreamRunning()
                         if (update != null) {
-                            trajectoryEngine.ingestAgentStateUpdate(update)
+                            trajectoryEngine.ingestAgentStateUpdate(update, allowRunning = allowRunningNow)
                         }
 
-                        val isRunning = trajectoryEngine.isRunning
+                        val isRunning = trajectoryEngine.isRunning && allowRunningNow
                         val isWaiting = trajectoryEngine.isWaitingInteraction
                         val isTerminalFrame = !isRunning || isWaiting ||
                                 update?.status == CascadeRunStatus.CASCADE_RUN_STATUS_IDLE ||
@@ -1145,7 +1244,8 @@ class AgyChatBackend(
                         break
                     } else {
                         // Check if conversation is still actively running on the daemon
-                        val isTurnActive = isCurrentChatActivelyRunning.value || isPromptInFlight || trajectoryEngine.isRunning
+                        val isTurnActive = isCurrentChatActivelyRunning.value || isAwaitingDaemonStart(conversationId) ||
+                            (isAllowingStreamRunning() && trajectoryEngine.isRunning)
                         if (isTurnActive && activeStreamConversationId == conversationId) {
                             Log.d("CHAT_OPEN_DEBUG", "🔄 [ChatViewModel Stream Loop] Stream channel completed while turn is active on daemon. Reconnecting stream for $conversationId...")
                             delay(150)
@@ -1173,7 +1273,8 @@ class AgyChatBackend(
                         "Error loading conversation: $rawErr"
                     }
 
-                    val isTurnActive = isCurrentChatActivelyRunning.value || isPromptInFlight || trajectoryEngine.isRunning
+                    val isTurnActive = isCurrentChatActivelyRunning.value || isAwaitingDaemonStart(conversationId) ||
+                        (isAllowingStreamRunning() && trajectoryEngine.isRunning)
                     if (isTurnActive && activeStreamConversationId == conversationId && !rawErr.contains("Cancel", ignoreCase = true)) {
                         Log.w("CHAT_OPEN_DEBUG", "🔄 [ChatViewModel Stream Loop] Stream error during active turn; retrying connection in 300ms...")
                         delay(300)
@@ -1184,6 +1285,7 @@ class AgyChatBackend(
                         _isServerOnline.value = false
                         _isReconnecting.value = false
                         _isLoadingConversation.value = false
+                        clearAwaitingDaemonStart(conversationId)
                         if (_messages.value.isEmpty()) {
                             _conversationError.value = helpfulMsg
                         }
@@ -1503,6 +1605,7 @@ class AgyChatBackend(
         persistentStreamJob = null
         _isStreaming.value = false
         isPromptInFlight = false
+        clearAwaitingDaemonStart(conv.id)
 
         val truncated = current.take(index)
         _messages.value = truncated
@@ -1633,6 +1736,8 @@ class AgyChatBackend(
                 (totalStepsCount > 0 && conv.title != "New Chat" && conv.title != "Antigravity Chat" && conv.title.isNotBlank())
 
         backendScope.launch(Dispatchers.IO) {
+            isPromptInFlight = true
+            markAwaitingDaemonStart(conv.id)
             try {
                 // If brand new conversation not yet on daemon, call startCascade FIRST and await it!
                 if (!isKnownOnDaemon) {
@@ -1652,6 +1757,7 @@ class AgyChatBackend(
                         )
                         withContext(Dispatchers.Main) {
                             isPromptInFlight = false
+                            clearAwaitingDaemonStart(conv.id)
                             _isStreaming.value = false
                             hasSeenTurnActivity = false
                             trajectoryEngine.cancelRunning()
@@ -1733,6 +1839,16 @@ class AgyChatBackend(
 
                 if (sendRes.isSuccess) {
                     isPromptInFlight = false
+                    markAwaitingDaemonStart(conv.id)
+                    backendScope.launch {
+                        kotlinx.coroutines.delay(6_500L)
+                        if (activeStreamConversationId == conv.id && !isAwaitingDaemonStart(conv.id)) {
+                            val latestConv = _conversations.value.find { it.id == conv.id }
+                            if (latestConv != null && !latestConv.isRunning) {
+                                reconcileTurnFinishedOnMain(conv.id)
+                            }
+                        }
+                    }
                 } else {
                     val err = sendRes.exceptionOrNull()?.message ?: "Failed to send message"
                     Log.e("ChatViewModel", "sendUserPrompt final error: $err")
@@ -1750,6 +1866,7 @@ class AgyChatBackend(
                     withContext(Dispatchers.Main) {
                         _isServerOnline.value = false
                         isPromptInFlight = false
+                        clearAwaitingDaemonStart(conv.id)
                         _isStreaming.value = false
                         hasSeenTurnActivity = false
                         trajectoryEngine.cancelRunning()
@@ -1772,6 +1889,7 @@ class AgyChatBackend(
                 withContext(Dispatchers.Main) {
                     _isServerOnline.value = false
                     isPromptInFlight = false
+                    clearAwaitingDaemonStart(conv.id)
                     _isStreaming.value = false
                     hasSeenTurnActivity = false
                     trajectoryEngine.cancelRunning()
@@ -1881,6 +1999,7 @@ class AgyChatBackend(
         val conv = _currentConversation.value
         streamingJob?.cancel()
         isPromptInFlight = false
+        clearAwaitingDaemonStart(conv?.id)
         _isStreaming.value = false
         hasStartedRunning = false
         hasSeenTurnActivity = false
@@ -2111,6 +2230,7 @@ class AgyChatBackend(
         val trajectoryId = toolCall.trajectoryId?.takeIf { it.isNotBlank() }
             ?: trajectoryEngine.trajectoryId
 
+        markAwaitingDaemonStart(conv.id)
         trajectoryEngine.markStepResponded(stepIndex)
         trajectoryEngine.optimisticUpdateStepStatus(stepIndex, com.example.gemini.data.remote.dto.CortexStepStatuses.RUNNING)
         _messages.value = trajectoryEngine.toChatMessages(conv.id)
@@ -2150,6 +2270,7 @@ class AgyChatBackend(
             ?: trajectoryEngine.trajectoryId
 
         val denyInstruction = reason ?: "User rejected this command."
+        markAwaitingDaemonStart(conv.id)
         trajectoryEngine.markStepResponded(stepIndex)
         trajectoryEngine.optimisticUpdateStepStatus(stepIndex, com.example.gemini.data.remote.dto.CortexStepStatuses.CANCELED, output = denyInstruction)
         _messages.value = trajectoryEngine.toChatMessages(conv.id)
@@ -2260,6 +2381,7 @@ class AgyChatBackend(
         val stepIndex = toolCall.stepIndex
 
         if (stepIndex != null) {
+            markAwaitingDaemonStart(conv.id)
             trajectoryEngine.markStepResponded(stepIndex)
             trajectoryEngine.optimisticUpdateStepStatus(
                 stepIndex = stepIndex,
@@ -2313,6 +2435,7 @@ class AgyChatBackend(
         val skipSummary = "Skipped by user"
 
         if (stepIndex != null) {
+            markAwaitingDaemonStart(conv.id)
             trajectoryEngine.markStepResponded(stepIndex)
             trajectoryEngine.optimisticUpdateStepStatus(
                 stepIndex = stepIndex,
@@ -2422,6 +2545,7 @@ class AgyChatBackend(
         activeStreamConversationId = null
         currentAssistantMsgId = null
         isPromptInFlight = false
+        clearAwaitingDaemonStart()
         hasStartedRunning = false
         hasSeenTurnActivity = false
         _isStreaming.value = false

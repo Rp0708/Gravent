@@ -750,6 +750,7 @@ fun ChatScreen(
     var userSentMessageTrigger by remember { mutableStateOf(0) }
 
     val isDarkTheme = com.example.gemini.theme.isAppInDarkTheme()
+    val t = graventTokens()
 
     // Background prewarm to ensure zero UI-thread lag during scroll (recent window of 12 messages)
     LaunchedEffect(messages.size, isDarkTheme) {
@@ -1217,7 +1218,7 @@ fun ChatScreen(
                             }
                             viewModel.clearPendingLoginUrl()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        colors = graventPrimaryButtonColors()
                     ) {
                         Text("Open Browser", fontWeight = FontWeight.SemiBold)
                     }
@@ -1259,7 +1260,7 @@ fun ChatScreen(
                             }
                             viewModel.clearAgyLoginIssue()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                        colors = graventPrimaryButtonColors()
                     ) {
                         Text("Verify Account", fontWeight = FontWeight.SemiBold)
                     }
@@ -1310,7 +1311,7 @@ fun ChatScreen(
                                 text = displayedChatTitle,
                                 fontSize = 15.5.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFFFAFAFA),
+                                color = t.textPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1322,8 +1323,8 @@ fun ChatScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = Color(0xFF141417),
-                                    border = BorderStroke(1.dp, Color(0xFF27272A))
+                                    color = t.cardBg,
+                                    border = BorderStroke(1.dp, t.border)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -1342,7 +1343,7 @@ fun ChatScreen(
                                         Icon(
                                             painter = painterResource(id = logoRes),
                                             contentDescription = activeAgentName,
-                                            tint = Color(0xFFFAFAFA),
+                                            tint = t.textPrimary,
                                             modifier = Modifier.size(11.5.dp)
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
@@ -1350,28 +1351,28 @@ fun ChatScreen(
                                             text = activeAgentName,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color(0xFFE4E4E7),
+                                            color = t.textPrimary,
                                             maxLines = 1
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = "/",
                                             fontSize = 11.sp,
-                                            color = Color(0xFF52525B)
+                                            color = t.textMuted
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Icon(
                                             imageVector = Icons.Outlined.Folder,
                                             contentDescription = null,
                                             modifier = Modifier.size(11.dp),
-                                            tint = Color(0xFFA1A1AA)
+                                            tint = t.textSecondary
                                         )
                                         Spacer(modifier = Modifier.width(3.5.dp))
                                         Text(
                                             text = displayedProjectName,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Normal,
-                                            color = Color(0xFFA1A1AA),
+                                            color = t.textSecondary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -1381,7 +1382,7 @@ fun ChatScreen(
                                                 imageVector = Icons.Default.ArrowDropDown,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(13.dp),
-                                                tint = Color(0xFF71717A)
+                                                tint = t.textMuted
                                             )
                                         }
                                     }
@@ -1396,10 +1397,10 @@ fun ChatScreen(
                                         (topGit.totalAdditions > 0 || topGit.totalDeletions > 0 || topGit.totalChangesCount > 0)
                                     Surface(
                                         shape = RoundedCornerShape(10.dp),
-                                        color = Color(0xFF141417),
+                                        color = t.cardBg,
                                         border = BorderStroke(
                                             1.dp,
-                                            if (isDirty) Color(0xFF4ADE80).copy(alpha = 0.28f) else Color(0xFF27272A)
+                                            if (isDirty) t.gitAdd.copy(alpha = 0.35f) else t.border
                                         )
                                     ) {
                                         Row(
@@ -1414,26 +1415,26 @@ fun ChatScreen(
                                                 CircularProgressIndicator(
                                                     modifier = Modifier.size(10.dp),
                                                     strokeWidth = 1.4.dp,
-                                                    color = Color(0xFF71717A)
+                                                    color = t.textMuted
                                                 )
                                                 Text(
                                                     text = "git",
                                                     fontSize = 10.5.sp,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = Color(0xFFA1A1AA)
+                                                    color = t.textSecondary
                                                 )
                                             } else if (topGit != null) {
                                                 Icon(
                                                     imageVector = Icons.Default.AltRoute,
                                                     contentDescription = "Repository Git Status",
-                                                    tint = if (isDirty) Color(0xFF4ADE80) else Color(0xFFA1A1AA),
+                                                    tint = if (isDirty) t.gitAdd else t.textSecondary,
                                                     modifier = Modifier.size(10.5.dp)
                                                 )
                                                 Text(
                                                     text = topGit.branch.ifBlank { "HEAD" }.take(12),
                                                     fontSize = 10.5.sp,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = Color(0xFFE4E4E7),
+                                                    color = t.textPrimary,
                                                     maxLines = 1
                                                 )
                                                 if (topGit.totalAdditions > 0) {
@@ -1442,7 +1443,7 @@ fun ChatScreen(
                                                         fontSize = 10.sp,
                                                         fontFamily = FontFamily.Monospace,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = Color(0xFF4ADE80),
+                                                        color = t.gitAdd,
                                                         maxLines = 1
                                                     )
                                                 }
@@ -1452,7 +1453,7 @@ fun ChatScreen(
                                                         fontSize = 10.sp,
                                                         fontFamily = FontFamily.Monospace,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = Color(0xFFF87171),
+                                                        color = t.gitDel,
                                                         maxLines = 1
                                                     )
                                                 }
@@ -1463,7 +1464,7 @@ fun ChatScreen(
                                                             fontSize = 10.sp,
                                                             fontFamily = FontFamily.Monospace,
                                                             fontWeight = FontWeight.Medium,
-                                                            color = Color(0xFFFBBF24),
+                                                            color = t.warnAmber,
                                                             maxLines = 1
                                                         )
                                                     } else {
@@ -1471,7 +1472,7 @@ fun ChatScreen(
                                                             modifier = Modifier
                                                                 .size(5.dp)
                                                                 .clip(CircleShape)
-                                                                .background(Color(0xFF4ADE80))
+                                                                .background(t.gitAdd)
                                                         )
                                                     }
                                                 }
@@ -1492,8 +1493,8 @@ fun ChatScreen(
                                 }
                             },
                             shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFF141417),
-                            border = BorderStroke(1.dp, Color(0xFF27272A)),
+                            color = t.cardBg,
+                            border = BorderStroke(1.dp, t.border),
                             modifier = Modifier
                                 .padding(start = 12.dp)
                                 .size(36.dp)
@@ -1502,7 +1503,7 @@ fun ChatScreen(
                                 Icon(
                                     imageVector = if (conversationBackStack.isNotEmpty()) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
                                     contentDescription = if (conversationBackStack.isNotEmpty()) "Back" else "Open Drawer",
-                                    tint = Color(0xFFFAFAFA),
+                                    tint = t.textPrimary,
                                     modifier = Modifier.size(17.dp)
                                 )
                             }
@@ -1525,22 +1526,22 @@ fun ChatScreen(
                                 )
                             }
                         }
-                        val gooeyTools = remember(useSshTerminal, isLocalToolsInstalled, isLocalToolsEnabled) {
+                        val gooeyTools = remember(useSshTerminal, isLocalToolsInstalled, isLocalToolsEnabled, isDarkTheme) {
                             listOf(
                                 GooeyNavItem(
                                     id = "browser",
                                     icon = Icons.Outlined.Language,
                                     contentDescription = "Web Browser Preview",
-                                    activeTint = Color(0xFFFAFAFA),
-                                    inactiveTint = Color(0xFFA1A1AA),
+                                    activeTint = t.textPrimary,
+                                    inactiveTint = t.textSecondary,
                                     onClick = onNavigateToBrowser
                                 ),
                                 GooeyNavItem(
                                     id = "terminal",
                                     icon = Icons.Outlined.Terminal,
                                     contentDescription = "Terminal",
-                                    activeTint = Color(0xFFFAFAFA),
-                                    inactiveTint = Color(0xFFA1A1AA),
+                                    activeTint = t.textPrimary,
+                                    inactiveTint = t.textSecondary,
                                     onClick = {
                                         if (useSshTerminal || (isLocalToolsInstalled && isLocalToolsEnabled)) {
                                             onNavigateToTerminal()
@@ -1556,8 +1557,8 @@ fun ChatScreen(
                                     id = "ide",
                                     icon = Icons.Default.Code,
                                     contentDescription = "Code Editor IDE",
-                                    activeTint = Color(0xFFFAFAFA),
-                                    inactiveTint = Color(0xFFA1A1AA),
+                                    activeTint = t.textPrimary,
+                                    inactiveTint = t.textSecondary,
                                     onClick = onNavigateToIde
                                 )
                             )
@@ -1565,9 +1566,9 @@ fun ChatScreen(
                         GooeyNav(
                             items = gooeyTools,
                             modifier = Modifier.padding(end = 6.dp),
-                            bubbleColor = Color(0xFF27272A),
-                            containerColor = Color(0xFF141417),
-                            borderColor = Color(0xFF27272A),
+                            bubbleColor = t.elevatedBg,
+                            containerColor = t.cardBg,
+                            borderColor = t.border,
                             cornerRadius = 10.dp
                         )
                         if (isDevModeEnabled) {
@@ -1580,7 +1581,7 @@ fun ChatScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Analytics,
                                     contentDescription = "Chat Telemetry & Tokens",
-                                    tint = ClaudeTerracotta
+                                    tint = t.accent
                                 )
                             }
                         }
@@ -1714,7 +1715,7 @@ fun ChatScreen(
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     letterSpacing = (-0.3).sp,
-                                    color = Color(0xFFFAFAFA),
+                                    color = t.textPrimary,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -2165,9 +2166,9 @@ fun ChatScreen(
                         }
                     }
 
-                    // Codex-style Prompt Navigation Dot Slider (glides across user prompts)
+                    // Codex-style Prompt Navigation Dot Slider (sits cleanly on the right edge so it never overlaps left bullets/text)
                     if (messages.isNotEmpty() && promptAnchors.size >= 2) {
-                        val sliderOnLeft = !(isFloatingSwitcherEnabled && floatingSwitcherPosX < 0.35f)
+                        val sliderOnLeft = false
                         ChatPromptSlider(
                             anchors = promptAnchors,
                             listState = listState,
@@ -3130,7 +3131,8 @@ fun ChatScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF0D0E15),
+                        color = t.elevatedBg,
+                        border = BorderStroke(1.dp, t.border),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
@@ -3138,7 +3140,7 @@ fun ChatScreen(
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = ClaudeTerracotta,
+                            color = t.accent,
                             modifier = Modifier.padding(10.dp)
                         )
                     }
@@ -3165,7 +3167,7 @@ fun ChatScreen(
                     onClick = {
                         viewModel.proceedAfterTermination(toolCall, msgId, userFeedback)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = graventPrimaryButtonColors(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(text = "Send to AI & Proceed", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
@@ -3283,6 +3285,7 @@ fun ChatScreen(
             focusedMessage = focusedMsg,
             focusedTurnDiffStats = focusedMsg?.let { perMessageDiffs[it.id] ?: it.diffStats },
             conversationDiffStats = currentConv?.id?.let { perConversationDiffs[it] },
+            modelDisplayName = modelNameOf,
             onViewRawPayload = { payloadJson ->
                 showRawPayloadDialog = payloadJson
             },
@@ -3587,8 +3590,8 @@ fun ChatScreen(
             shape = RoundedCornerShape(12.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            actionColor = ClaudeTerracotta,
-            actionContentColor = ClaudeTerracotta,
+            actionColor = t.accent,
+            actionContentColor = t.accent,
             dismissActionContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -3700,11 +3703,12 @@ private fun HomePromptStarterChip(
     desc: String,
     onClick: () -> Unit
 ) {
+    val t = graventTokens()
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF141417),
-        border = BorderStroke(1.dp, Color(0xFF27272A))
+        color = t.cardBg,
+        border = BorderStroke(1.dp, t.border)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
@@ -3715,14 +3719,14 @@ private fun HomePromptStarterChip(
                 fontSize = 12.sp,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFFAFAFA)
+                color = t.textPrimary
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
                 text = desc,
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color(0xFF71717A)
+                color = t.textMuted
             )
         }
     }
@@ -3754,6 +3758,7 @@ private fun HomeRecentConversationItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val t = graventTokens()
     val logoRes = when (conversation.agent) {
         AgentKind.CLAUDE -> R.drawable.ic_claude_logo
         AgentKind.COPILOT -> R.drawable.ic_copilot_logo
@@ -3762,8 +3767,8 @@ private fun HomeRecentConversationItem(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(11.dp),
-        color = Color(0xFF141417),
-        border = BorderStroke(1.dp, Color(0xFF27272A)),
+        color = t.cardBg,
+        border = BorderStroke(1.dp, t.border),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -3773,7 +3778,7 @@ private fun HomeRecentConversationItem(
             Icon(
                 painter = painterResource(id = logoRes),
                 contentDescription = conversation.agent.name,
-                tint = Color(0xFFA1A1AA),
+                tint = t.textSecondary,
                 modifier = Modifier.size(13.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -3781,7 +3786,7 @@ private fun HomeRecentConversationItem(
                 text = conversation.title.ifBlank { "Untitled Chat" },
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFFE4E4E7),
+                color = t.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -3796,14 +3801,14 @@ private fun HomeRecentConversationItem(
                 Text(
                     text = relTime,
                     fontSize = 11.sp,
-                    color = Color(0xFF71717A)
+                    color = t.textMuted
                 )
             }
             Spacer(modifier = Modifier.width(6.dp))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color(0xFF52525B),
+                tint = t.textMuted,
                 modifier = Modifier.size(14.dp)
             )
         }

@@ -41,7 +41,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.data.daemon.ProjectItem
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import java.io.File
 
 @Composable
@@ -165,11 +166,13 @@ fun ProjectPickerDialog(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
+                        val pickerAccent = graventTokens().accent
+
                         // "+ Start New Chat in [Project]" Card
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = ClaudeTerracotta.copy(alpha = 0.14f),
-                            border = BorderStroke(1.2.dp, ClaudeTerracotta.copy(alpha = 0.45f)),
+                            color = pickerAccent.copy(alpha = 0.14f),
+                            border = BorderStroke(1.2.dp, pickerAccent.copy(alpha = 0.45f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
@@ -190,13 +193,13 @@ fun ProjectPickerDialog(
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(ClaudeTerracotta.copy(alpha = 0.22f)),
+                                        .background(pickerAccent.copy(alpha = 0.22f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
-                                        tint = ClaudeTerracotta,
+                                        tint = pickerAccent,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -206,7 +209,7 @@ fun ProjectPickerDialog(
                                         text = "+ Start New Chat in ${targetProj.name}",
                                         fontSize = 13.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ClaudeTerracotta
+                                        color = pickerAccent
                                     )
                                     Text(
                                         text = "Clean LLM context & dedicated subagent scope",
@@ -239,10 +242,10 @@ fun ProjectPickerDialog(
                                 val isCurrent = conv.id == currentConversationId
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
-                                    color = if (isCurrent) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+                                    color = if (isCurrent) pickerAccent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
                                     border = BorderStroke(
                                         1.dp,
-                                        if (isCurrent) ClaudeTerracotta.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                                        if (isCurrent) pickerAccent.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -264,13 +267,13 @@ fun ProjectPickerDialog(
                                             modifier = Modifier
                                                 .size(32.dp)
                                                 .clip(CircleShape)
-                                                .background(if (isCurrent) ClaudeTerracotta.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                                                .background(if (isCurrent) pickerAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Outlined.ChatBubbleOutline,
                                                 contentDescription = null,
-                                                tint = if (isCurrent) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                tint = if (isCurrent) pickerAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -289,13 +292,13 @@ fun ProjectPickerDialog(
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Surface(
                                                         shape = RoundedCornerShape(4.dp),
-                                                        color = ClaudeTerracotta.copy(alpha = 0.2f)
+                                                        color = pickerAccent.copy(alpha = 0.2f)
                                                     ) {
                                                         Text(
                                                             text = "Active",
                                                             fontSize = 9.5.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = ClaudeTerracotta,
+                                                            color = pickerAccent,
                                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                                         )
                                                     }
@@ -329,17 +332,18 @@ fun ProjectPickerDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val headerAccent = graventTokens().accent
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(ClaudeTerracotta.copy(alpha = 0.14f)),
+                                .background(headerAccent.copy(alpha = 0.14f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.FolderSpecial,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = headerAccent,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -401,12 +405,13 @@ fun ProjectPickerDialog(
                     // Option 1: General / No Workspace
                     item {
                         val isSelected = activeProject == null || activeProject.path.isBlank()
+                        val t = graventTokens()
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+                            color = if (isSelected) t.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isSelected) ClaudeTerracotta.copy(alpha = 0.7f) else Color.Transparent
+                                if (isSelected) t.accent.copy(alpha = 0.7f) else Color.Transparent
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -424,13 +429,13 @@ fun ProjectPickerDialog(
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(if (isSelected) ClaudeTerracotta.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)),
+                                        .background(if (isSelected) t.accent.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Public,
                                         contentDescription = null,
-                                        tint = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (isSelected) t.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -447,13 +452,13 @@ fun ProjectPickerDialog(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Surface(
                                                 shape = RoundedCornerShape(6.dp),
-                                                color = ClaudeTerracotta.copy(alpha = 0.2f)
+                                                color = t.accent.copy(alpha = 0.2f)
                                             ) {
                                                 Text(
                                                     text = "Active",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = ClaudeTerracotta,
+                                                    color = t.accent,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
@@ -470,13 +475,13 @@ fun ProjectPickerDialog(
                                         modifier = Modifier
                                             .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(ClaudeTerracotta),
+                                            .background(t.accent),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Check,
                                             contentDescription = "Selected",
-                                            tint = Color.White,
+                                            tint = t.onAccent,
                                             modifier = Modifier.size(15.dp)
                                         )
                                     }
@@ -488,6 +493,7 @@ fun ProjectPickerDialog(
                     // Existing Workspaces / Projects
                     itemsIndexed(projects, key = { _, it -> it.path }) { _, proj ->
                         val isSelected = activeProject?.path == proj.path
+                        val t = graventTokens()
                         val folderName = proj.name.ifBlank { File(proj.path).name.ifBlank { "Workspace" } }
                         val matchingChats = remember(proj.path, conversations) {
                             conversations.filter {
@@ -498,10 +504,10 @@ fun ProjectPickerDialog(
 
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+                            color = if (isSelected) t.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isSelected) ClaudeTerracotta.copy(alpha = 0.7f) else Color.Transparent
+                                if (isSelected) t.accent.copy(alpha = 0.7f) else Color.Transparent
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -523,13 +529,13 @@ fun ProjectPickerDialog(
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSelected) ClaudeTerracotta.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)),
+                                        .background(if (isSelected) t.accent.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Folder,
                                         contentDescription = null,
-                                        tint = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.primary,
+                                        tint = if (isSelected) t.accent else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -548,13 +554,13 @@ fun ProjectPickerDialog(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Surface(
                                                 shape = RoundedCornerShape(6.dp),
-                                                color = ClaudeTerracotta.copy(alpha = 0.2f)
+                                                color = t.accent.copy(alpha = 0.2f)
                                             ) {
                                                 Text(
                                                     text = "Active",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = ClaudeTerracotta,
+                                                    color = t.accent,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
@@ -588,13 +594,13 @@ fun ProjectPickerDialog(
                                         modifier = Modifier
                                             .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(ClaudeTerracotta),
+                                            .background(t.accent),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Check,
                                             contentDescription = "Selected",
-                                            tint = Color.White,
+                                            tint = t.onAccent,
                                             modifier = Modifier.size(15.dp)
                                         )
                                     }
@@ -608,6 +614,7 @@ fun ProjectPickerDialog(
 
                 // Bottom Action: Clone a public git repository into home
                 if (onCloneRepo != null) {
+                    val repoAccent = graventTokens().accent
                     OutlinedButton(
                         onClick = {
                             onDismiss()
@@ -617,12 +624,12 @@ fun ProjectPickerDialog(
                             .fillMaxWidth()
                             .height(46.dp),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.6f))
+                        border = BorderStroke(1.dp, repoAccent.copy(alpha = 0.6f))
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.CloudDownload,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = repoAccent,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -630,7 +637,7 @@ fun ProjectPickerDialog(
                             text = "Use Git Repository...",
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ClaudeTerracotta
+                            color = repoAccent
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -646,20 +653,18 @@ fun ProjectPickerDialog(
                         .fillMaxWidth()
                         .height(46.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
                     Icon(
                         imageVector = Icons.Default.FolderOpen,
                         contentDescription = null,
-                        tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Browse or Open Other Folder...",
                         fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

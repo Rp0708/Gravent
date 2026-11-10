@@ -77,6 +77,17 @@ jobs:
           chmod +x gradlew scripts/build_all_apks.sh
           ./scripts/build_all_apks.sh --release
 
+      - name: Run Compose Static Analysis (Detekt)
+        run: ./gradlew :app:detektTermuxSharedRelease --no-daemon
+
+      - name: Upload Detekt Compose Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detekt-compose-report
+          path: app/build/reports/detekt/
+          if-no-files-found: warn
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:

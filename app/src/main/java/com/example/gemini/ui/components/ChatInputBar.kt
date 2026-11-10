@@ -25,7 +25,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
-import com.example.gemini.theme.isAppInDarkTheme
+import com.example.gemini.theme.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -205,6 +205,7 @@ fun ChatInputBar(
     val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val isDark = isAppInDarkTheme()
+    val t = graventTokens()
 
     // React Bits Prompt Bar Popover States
     var showActionsMenu by remember { mutableStateOf(false) }
@@ -637,8 +638,8 @@ fun ChatInputBar(
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF161619),
-                    border = BorderStroke(1.dp, Color(0xFF27272A)),
+                    color = t.cardBg,
+                    border = BorderStroke(1.dp, t.border),
                     shadowElevation = 8.dp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -754,10 +755,10 @@ fun ChatInputBar(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = Color(0xFF161619),
+                color = t.cardBg,
                 border = BorderStroke(
                     1.dp,
-                    Color(0xFF26262B)
+                    t.border
                 )
             ) {
                 if (isRecordingAudio) {
@@ -1003,8 +1004,8 @@ fun ChatInputBar(
                         if (isTranscribingAudio) {
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = ClaudeTerracotta.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.4f)),
+                                color = t.accentSoftBg,
+                                border = BorderStroke(1.dp, t.accent.copy(alpha = 0.4f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 4.dp, vertical = 4.dp)
@@ -1016,13 +1017,13 @@ fun ChatInputBar(
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(13.dp),
                                         strokeWidth = 2.dp,
-                                        color = ClaudeTerracotta
+                                        color = t.accent
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "Transcribing audio via AGY Hub...",
                                         fontSize = 12.sp,
-                                        color = ClaudeTerracotta,
+                                        color = t.accent,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -1048,17 +1049,17 @@ fun ChatInputBar(
                                 textStyle = TextStyle(
                                     fontSize = 15.sp,
                                     lineHeight = 22.sp,
-                                    color = Color(0xFFFAFAFA),
+                                    color = t.textPrimary,
                                     fontWeight = FontWeight.Normal
                                 ),
-                                cursorBrush = SolidColor(Color(0xFFFAFAFA)),
+                                cursorBrush = SolidColor(t.accent),
                                 decorationBox = { innerTextField ->
                                     Box {
                                         if (textFieldValue.text.isEmpty()) {
                                             Text(
                                                 text = "Ask anything...",
                                                 fontSize = 15.sp,
-                                                color = Color(0xFF71717A),
+                                                color = t.textMuted,
                                                 fontWeight = FontWeight.Normal
                                             )
                                         }
@@ -1252,15 +1253,15 @@ fun ChatInputBar(
                                 showEffortMenu = false
                             },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (showActionsMenu) Color(0xFF27272A) else Color.Transparent,
-                            border = if (showActionsMenu) BorderStroke(1.dp, Color(0xFF3F3F46)) else null,
+                            color = if (showActionsMenu) t.chipBg else Color.Transparent,
+                            border = if (showActionsMenu) BorderStroke(1.dp, t.border) else null,
                             modifier = Modifier.size(32.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Outlined.Add,
                                     contentDescription = "Actions menu",
-                                    tint = if (showActionsMenu) Color(0xFFFAFAFA) else Color(0xFFA1A1AA),
+                                    tint = if (showActionsMenu) t.textPrimary else t.textSecondary,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -1278,8 +1279,8 @@ fun ChatInputBar(
                                 onOpenModelSelector()
                             },
                             shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF1E1E22),
-                            border = BorderStroke(1.dp, Color(0xFF2E2E34)),
+                            color = t.elevatedBg,
+                            border = BorderStroke(1.dp, t.border),
                             modifier = Modifier.height(32.dp)
                         ) {
                             Row(
@@ -1290,7 +1291,7 @@ fun ChatInputBar(
                                     text = selectedModel.displayName,
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFE4E4E7),
+                                    color = t.textPrimary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.widthIn(max = 130.dp)
@@ -1319,7 +1320,7 @@ fun ChatInputBar(
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowDown,
                                     contentDescription = "Switch Model",
-                                    tint = Color(0xFF71717A),
+                                    tint = t.textMuted,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -1341,8 +1342,8 @@ fun ChatInputBar(
                                 showActionsMenu = false
                             },
                             shape = RoundedCornerShape(12.dp),
-                            color = if (showEffortMenu) Color(0xFF27272A) else Color(0xFF1E1E22),
-                            border = BorderStroke(1.dp, if (showEffortMenu) Color(0xFF3F3F46) else Color(0xFF2E2E34)),
+                            color = if (showEffortMenu) t.chipBg else t.elevatedBg,
+                            border = BorderStroke(1.dp, if (showEffortMenu) t.accent.copy(alpha = 0.45f) else t.border),
                             modifier = Modifier.height(32.dp)
                         ) {
                             Row(
@@ -1352,7 +1353,7 @@ fun ChatInputBar(
                                 Icon(
                                     imageVector = Icons.Outlined.AutoAwesome,
                                     contentDescription = null,
-                                    tint = if (thinkingPreference.isEnabled) Color(0xFFFAFAFA) else Color(0xFF71717A),
+                                    tint = if (thinkingPreference.isEnabled) t.textPrimary else t.textMuted,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
@@ -1360,7 +1361,7 @@ fun ChatInputBar(
                                     text = effortLabel,
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (thinkingPreference.isEnabled) Color(0xFFFAFAFA) else Color(0xFF71717A)
+                                    color = if (thinkingPreference.isEnabled) t.textPrimary else t.textMuted
                                 )
                             }
                         }
@@ -1388,7 +1389,7 @@ fun ChatInputBar(
                                     Icon(
                                         imageVector = Icons.Rounded.Mic,
                                         contentDescription = if (isLiveDictating) "Stop dictation" else "Dictation",
-                                        tint = if (isLiveDictating) GeminiBlue else Color(0xFFA1A1AA),
+                                        tint = if (isLiveDictating) GeminiBlue else t.textSecondary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -1422,10 +1423,11 @@ fun ChatInputBar(
                             },
                             shape = RoundedCornerShape(8.dp),
                             color = when {
-                                isStreaming -> Color(0xFFFAFAFA)
-                                canSend -> Color(0xFFFAFAFA)
-                                else -> Color(0xFF222226)
+                                isStreaming -> t.accent
+                                canSend -> t.accent
+                                else -> t.elevatedBg
                             },
+                            border = if (isStreaming || canSend) null else BorderStroke(1.dp, t.border),
                             modifier = Modifier.size(32.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -1433,14 +1435,14 @@ fun ChatInputBar(
                                     Icon(
                                         imageVector = Icons.Default.Stop,
                                         contentDescription = "Stop",
-                                        tint = Color(0xFF09090B),
+                                        tint = t.onAccent,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.ArrowUpward,
                                         contentDescription = "Send",
-                                        tint = if (canSend) Color(0xFF09090B) else Color(0xFF52525B),
+                                        tint = if (canSend) t.onAccent else t.textMuted,
                                         modifier = Modifier.size(17.dp)
                                     )
                                 }
@@ -1462,6 +1464,7 @@ private fun PromptActionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val t = graventTokens()
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
@@ -1477,7 +1480,7 @@ private fun PromptActionItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color(0xFFA1A1AA),
+                tint = t.textSecondary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -1485,14 +1488,14 @@ private fun PromptActionItem(
                 text = title,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFFAFAFA)
+                color = t.textPrimary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color(0xFF71717A),
+                color = t.textMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1507,10 +1510,11 @@ private fun EffortPopover(
     onOpenAdvanced: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val t = graventTokens()
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF161619),
-        border = BorderStroke(1.dp, Color(0xFF27272A)),
+        color = t.cardBg,
+        border = BorderStroke(1.dp, t.border),
         shadowElevation = 8.dp,
         modifier = modifier.widthIn(max = 260.dp)
     ) {
@@ -1530,7 +1534,7 @@ private fun EffortPopover(
                         text = "Effort",
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Normal,
-                        color = Color(0xFFA1A1AA)
+                        color = t.textSecondary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
@@ -1543,18 +1547,18 @@ private fun EffortPopover(
                         },
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFAFAFA)
+                        color = t.textPrimary
                     )
                 }
 
                 IconButton(
                     onClick = onOpenAdvanced,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = "Thinking details",
-                        tint = Color(0xFF71717A),
+                        tint = t.textMuted,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -1571,13 +1575,13 @@ private fun EffortPopover(
                     text = "Faster",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF71717A)
+                    color = t.textMuted
                 )
                 Text(
                     text = "Smarter",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF71717A)
+                    color = t.textMuted
                 )
             }
 
@@ -1598,6 +1602,7 @@ private fun EffortStepSlider(
     onLevelSelected: (ThinkingLevel) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val t = graventTokens()
     val levels = listOf(ThinkingLevel.OFF, ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH)
     val currentIndex = when (currentLevel) {
         ThinkingLevel.OFF -> 0
@@ -1612,7 +1617,7 @@ private fun EffortStepSlider(
             .fillMaxWidth()
             .height(28.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF27272A))
+            .background(t.elevatedBg)
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
                     val fraction = (offset.x / size.width).coerceIn(0f, 1f)
@@ -1650,7 +1655,7 @@ private fun EffortStepSlider(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF52525B))
+                        .background(t.textMuted.copy(alpha = 0.65f))
                 )
             }
         }
@@ -1669,7 +1674,7 @@ private fun EffortStepSlider(
                 .offset(x = animatedOffsetDp)
                 .size(width = thumbWidthDp, height = thumbHeightDp),
             shape = RoundedCornerShape(11.dp),
-            color = Color(0xFFFAFAFA),
+            color = t.accent,
             shadowElevation = 2.dp
         ) {}
     }

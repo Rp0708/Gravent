@@ -589,9 +589,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private fun resolveGitProjectPath(explicitPath: String? = null): String? {
         val explicit = explicitPath?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
         if (explicit != null) return explicit
-        val convPath = _currentConversation.value?.workspaceUri
+        val activeConv = _currentConversation.value
+        val convPath = activeConv?.workspaceUri
             ?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
         if (convPath != null) return convPath
+        if (activeConv != null && messages.value.isNotEmpty()) return null
         return com.example.gemini.data.daemon.TermuxDaemonManager.activeProject.value?.path
             ?.removePrefix("file://")?.trimEnd('/')?.takeIf { it.isNotBlank() }
     }
@@ -1385,7 +1387,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 if (!wasRunning && running) {
                     activeConvIdAtTurnStart = _currentConversation.value?.id
                     val proj = resolveGitProjectPath(null)
-                    if (proj != null && (turnBaselineProjectPath != proj || turnBaselineStatus == null)) {
+                    if (proj == null) {
+                        turnBaselineStatus = null
+                        turnBaselineProjectPath = null
+                        turnBaselineConvId = null
+                    } else if (turnBaselineProjectPath != proj || turnBaselineStatus == null) {
                         capturePreTurnBaseline()
                     }
                 } else if (wasRunning && !running) {

@@ -35,6 +35,7 @@ import com.example.gemini.data.local.LocalEnvironmentManager
 import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
 import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventPrimaryButtonColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -260,11 +261,11 @@ fun GitCloneDialog(
                             .fillMaxWidth()
                             .height(46.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                        colors = graventPrimaryButtonColors()
                     ) {
-                        Icon(Icons.Outlined.CloudDownload, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Clone", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text("Clone", fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
                     }
                 } else {
                     // Terminal output container
@@ -317,7 +318,7 @@ fun GitCloneDialog(
                                     logs.add("🛑 Clone cancelled by user.")
                                 },
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE11D48))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE11D48), contentColor = Color.White)
                             ) {
                                 Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))

@@ -43,16 +43,20 @@ import androidx.compose.ui.unit.sp
 import com.example.gemini.data.remote.SlashCommandItem
 import com.example.gemini.theme.QuotaGreen
 import com.example.gemini.ui.components.AgyAccent
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 
 private data class SlashGroup(val title: String, val icon: ImageVector, val color: Color)
 
-private fun groupOf(type: String): SlashGroup = when (type) {
-    "app" -> SlashGroup("Opens in the app", Icons.AutoMirrored.Outlined.OpenInNew, AgyAccent)
-    "command" -> SlashGroup("Commands", Icons.Outlined.Terminal, ClaudeTerracotta)
-    "custom" -> SlashGroup("Custom commands", Icons.Outlined.AutoAwesome, ClaudeTerracotta)
-    "plugin" -> SlashGroup("Custom AntiGem plugins", Icons.Outlined.Extension, AgyAccent)
-    else -> SlashGroup("Skills & plugins", Icons.Outlined.Extension, QuotaGreen)
+@Composable
+private fun groupOf(type: String): SlashGroup {
+    val accent = graventTokens().accent
+    return when (type) {
+        "app" -> SlashGroup("Opens in the app", Icons.AutoMirrored.Outlined.OpenInNew, AgyAccent)
+        "command" -> SlashGroup("Commands", Icons.Outlined.Terminal, accent)
+        "custom" -> SlashGroup("Custom commands", Icons.Outlined.AutoAwesome, accent)
+        "plugin" -> SlashGroup("Custom Gravent plugins", Icons.Outlined.Extension, AgyAccent)
+        else -> SlashGroup("Skills & plugins", Icons.Outlined.Extension, QuotaGreen)
+    }
 }
 
 /**

@@ -1,12 +1,12 @@
 {
-  "version_code": 152,
-  "version_name": "1.0.52",
+  "version_code": 153,
+  "version_name": "1.0.53",
   "min_supported_version_code": 1,
   "changelog": [
-    "In-Chat Git & Per-Prompt Diff Inspector: Added live branch and +/- status pill in the active chat top bar (opening the shared Repo Git Hub dialog), per-response +additions/-deletions [i] chips with a detailed per-turn Git modal (operations count, modified files, inline diffs, IDE deep-links), and conversation diff badges in the history drawer",
-    "Smoother Prompt Slider Navigation: Whisper-quiet blended dot rail that wakes gently on scroll, expands smoothly on touch, and glides a thumb-tracking preview tooltip with spring motion",
-    "Storage Manager Obsidian Polish: Unified typography, neutral card hierarchy, rounded square icons, and terracotta/warm highlights aligned with Settings",
-    "Performance Optimizations: Debounced off-main TurnDiffStore persistence on Dispatchers.IO, single-flight quota refresh deduplication, hoisted prompt anchors in ChatScreen, and shared Home/In-Chat Git UI components"
+    "Full Dark & Light Mode Theme Support: Introduced GraventUiTokens reactive theme palette across Chat, Settings, Accounts, IDE, File Manager, Terminal, and Dialogs, fixing Light Mode contrast and white-on-white action buttons",
+    "Working Indicator Fix on Long Responses: Synchronized Antigravity TrajectoryEngine turn completion with the authoritative daemon summary stream so Generating animation cleanly settles into the response footer after long multi-tool turns",
+    "UI Polish & Fixes: Right-edge Prompt Slider alignment, clean model display names and multi-hour active duration formatting in response telemetry, accurate Outside chat git attribution, softened Close buttons, and Gravent UI branding",
+    "Automated Compose Rules CI Integration: Wired Detekt 2.0 + io.nlopez.compose.rules into Gradle and the release CI workflow"
   ],
   "is_critical": false
 }

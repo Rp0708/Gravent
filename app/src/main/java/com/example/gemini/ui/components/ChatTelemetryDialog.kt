@@ -70,6 +70,8 @@ import com.example.gemini.domain.model.Conversation
 import com.example.gemini.domain.model.MessageRole
 import com.example.gemini.domain.model.TurnDiffStats
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventNeutralButtonColors
+import com.example.gemini.theme.graventTokens
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -80,22 +82,24 @@ fun ChatTelemetryDialog(
     focusedMessage: ChatMessage? = null,
     focusedTurnDiffStats: TurnDiffStats? = focusedMessage?.diffStats,
     conversationDiffStats: TurnDiffStats? = null,
+    modelDisplayName: ((String) -> String)? = null,
     onViewRawPayload: ((String) -> Unit)? = null,
     onOpenSystemPrompt: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.US) }
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val tokens = graventTokens()
+    val isDark = tokens.isDark
 
     val inputColor = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8)
-    val outputColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
-    val cacheColor = if (isDark) Color(0xFFFBBF24) else Color(0xFFB45309)
+    val outputColor = tokens.gitAdd
+    val cacheColor = tokens.warnAmber
     val cacheWriteColor = if (isDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
-    val delColor = if (isDark) Color(0xFFF87171) else Color(0xFFB91C1C)
-    val surfaceBg = if (isDark) Color(0xFF111114) else MaterialTheme.colorScheme.surface
-    val cardBg = if (isDark) Color(0xFF18181D) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f)
-    val subtleBorder = if (isDark) Color(0xFF27272D) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.11f)
-    val mutedText = if (isDark) Color(0xFF8A8A96) else MaterialTheme.colorScheme.onSurfaceVariant
+    val delColor = tokens.gitDel
+    val surfaceBg = tokens.canvasBg
+    val cardBg = tokens.cardBg
+    val subtleBorder = tokens.border
+    val mutedText = tokens.textSecondary
 
     // Aggregate token statistics across all messages in the chat
     val turnsWithUsage = remember(messages) { messages.mapNotNull { it.tokenUsage } }
@@ -154,13 +158,13 @@ fun ChatTelemetryDialog(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(ClaudeTerracotta.copy(alpha = 0.14f)),
+                            .background(tokens.accentSoftBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Analytics,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = tokens.accent,
                             modifier = Modifier.size(19.dp)
                         )
                     }
@@ -175,7 +179,7 @@ fun ChatTelemetryDialog(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "$agentLabel · ${conversation?.modelId?.ifBlank { "Default model" } ?: "Current Chat"}",
+                            text = "$agentLabel · ${formatFriendlyModelName(conversation?.modelId, modelDisplayName)}",
                             fontSize = 11.5.sp,
                             color = mutedText,
                             maxLines = 1,
@@ -234,7 +238,7 @@ fun ChatTelemetryDialog(
                             } else {
                                 "THIS RESPONSE"
                             }
-                            SectionHeadingLabel(text = heading, color = ClaudeTerracotta)
+                            SectionHeadingLabel(text = heading, color = tokens.accent)
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -279,7 +283,7 @@ fun ChatTelemetryDialog(
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = cardBg,
-                            border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.28f)),
+                            border = BorderStroke(1.dp, tokens.border),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -387,7 +391,7 @@ fun ChatTelemetryDialog(
                                                 append(numberFormat.format(u.promptTokens + u.outputTokens))
                                                 if (turnCostStr != null) append(" · $turnCostStr")
                                             },
-                                            dotColor = ClaudeTerracotta,
+                                            dotColor = tokens.accent,
                                             surfaceBg = surfaceBg,
                                             borderColor = subtleBorder,
                                             mutedText = mutedText,
@@ -400,7 +404,11 @@ fun ChatTelemetryDialog(
                                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     val turnModel = focusedMessage.modelId ?: u?.model ?: conversation?.modelId
                                     if (!turnModel.isNullOrBlank()) {
-                                        TelemetryRow(label = "Response Model", value = turnModel, mutedText = mutedText)
+                                        TelemetryRow(
+                                            label = "Response Model",
+                                            value = formatFriendlyModelName(turnModel, modelDisplayName),
+                                            mutedText = mutedText
+                                        )
                                     }
                                     if (u != null && u.cacheCreationTokens > 0) {
                                         TelemetryRow(
@@ -522,7 +530,7 @@ fun ChatTelemetryDialog(
                             value = numberFormat.format(totalCombinedTokens),
                             subtitle = formatUsdEstimate(totalCostUsd)?.let { "Est. cost $it" },
                             icon = Icons.Outlined.Functions,
-                            iconColor = ClaudeTerracotta,
+                            iconColor = tokens.accent,
                             cardBg = cardBg,
                             borderColor = subtleBorder,
                             mutedText = mutedText,
@@ -611,7 +619,7 @@ fun ChatTelemetryDialog(
                             TelemetryRow(label = "Agent", value = agentLabel, mutedText = mutedText)
                             TelemetryRow(
                                 label = "Active Model",
-                                value = conversation?.modelId?.ifBlank { "Default" } ?: "Default",
+                                value = formatFriendlyModelName(conversation?.modelId, modelDisplayName),
                                 mutedText = mutedText
                             )
                             if (shortWorkspace.isNotBlank()) {
@@ -656,7 +664,7 @@ fun ChatTelemetryDialog(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp)),
                             color = cardBg,
-                            border = BorderStroke(0.8.dp, ClaudeTerracotta.copy(alpha = 0.28f))
+                            border = BorderStroke(0.8.dp, tokens.border)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -667,7 +675,7 @@ fun ChatTelemetryDialog(
                                 Icon(
                                     imageVector = Icons.Outlined.Psychology,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = tokens.accent,
                                     modifier = Modifier.size(19.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -690,7 +698,7 @@ fun ChatTelemetryDialog(
                                         onOpenSystemPrompt()
                                     }
                                 ) {
-                                    Text("Edit", fontSize = 12.5.sp, color = ClaudeTerracotta, fontWeight = FontWeight.SemiBold)
+                                    Text("Edit", fontSize = 12.5.sp, color = tokens.accent, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -702,10 +710,11 @@ fun ChatTelemetryDialog(
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                    colors = graventNeutralButtonColors(),
+                    border = BorderStroke(1.dp, tokens.neutralBtnBorder),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Close", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Close", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

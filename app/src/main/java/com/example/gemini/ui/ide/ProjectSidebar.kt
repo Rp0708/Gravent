@@ -35,6 +35,7 @@ import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.ui.components.AppToastHelper
 import com.example.gemini.ui.components.ChatToastType
 import java.io.File
@@ -517,9 +518,9 @@ fun ProjectSidebar(
                         }
                     },
                     enabled = newItemName.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Create", color = Color.Black)
+                    Text("Create")
                 }
             },
             dismissButton = {
@@ -570,9 +571,9 @@ fun ProjectSidebar(
                         }
                     },
                     enabled = renameInput.trim().isNotBlank() && renameInput.trim() != node.name,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Rename", color = Color.Black)
+                    Text("Rename")
                 }
             },
             dismissButton = {

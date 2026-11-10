@@ -69,6 +69,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.R
 import com.example.gemini.data.preferences.TerminalLauncherManager
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventRadioColors
+import com.example.gemini.theme.graventSwitchColors
+import com.example.gemini.theme.graventTokens
 
 @Composable
 fun TerminalLauncherOnboardingDialog(
@@ -194,13 +198,13 @@ fun TerminalLauncherOnboardingDialog(
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.splash_logo),
-                                        contentDescription = "AntiGem",
+                                        contentDescription = "Gravent",
                                         modifier = Modifier.size(42.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "AntiGem",
+                                    text = "Gravent",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -308,10 +312,7 @@ fun TerminalLauncherOnboardingDialog(
                         Switch(
                             checked = isEnabled,
                             onCheckedChange = { isEnabled = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = ClaudeTerracotta
-                            )
+                            colors = graventSwitchColors()
                         )
                     }
                 }
@@ -374,13 +375,13 @@ fun TerminalLauncherOnboardingDialog(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "AntiTerm",
+                                        text = "GraventTerm",
                                         fontSize = 13.5.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Modern unified icon matching AntiGem",
+                                        text = "Modern unified icon matching Gravent",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
@@ -389,7 +390,7 @@ fun TerminalLauncherOnboardingDialog(
                                 RadioButton(
                                     selected = isAntiTermSelected,
                                     onClick = { selectedStyle = TerminalLauncherManager.STYLE_ANTITERM },
-                                    colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                    colors = graventRadioColors()
                                 )
                             }
                         }
@@ -398,12 +399,13 @@ fun TerminalLauncherOnboardingDialog(
 
                         // Option 2: Termux (Classic)
                         val isTermuxSelected = selectedStyle == TerminalLauncherManager.STYLE_TERMUX
+                        val onboardingTokens = graventTokens()
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isTermuxSelected) ClaudeTerracotta.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                            color = if (isTermuxSelected) onboardingTokens.accentSoftBg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isTermuxSelected) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                if (isTermuxSelected) onboardingTokens.accent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -449,7 +451,7 @@ fun TerminalLauncherOnboardingDialog(
                                 RadioButton(
                                     selected = isTermuxSelected,
                                     onClick = { selectedStyle = TerminalLauncherManager.STYLE_TERMUX },
-                                    colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                    colors = graventRadioColors()
                                 )
                             }
                         }
@@ -464,7 +466,7 @@ fun TerminalLauncherOnboardingDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(46.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                    colors = graventPrimaryButtonColors(),
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(

@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -144,7 +145,7 @@ fun ModelSelectorBottomSheet(
                     // Sub-Sheet: Models inside the chosen category
                     val (categoryTitle, brandColor, categoryModels) = when (currentCategory) {
                         CategoryType.GEMINI -> Triple("Google Gemini", GeminiBlue, geminiModels)
-                        CategoryType.CLAUDE -> Triple("Anthropic Claude", ClaudeTerracotta, claudeModels)
+                        CategoryType.CLAUDE -> Triple("Anthropic Claude", graventTokens().accent, claudeModels)
                     }
 
                     CategoryModelsSubView(
@@ -404,7 +405,7 @@ private fun MainCategoryListView(
                     line2 = line2,
                     fraction2 = weeklyFraction,
                     count = claudeModelsCount,
-                    brandColor = ClaudeTerracotta,
+                    brandColor = graventTokens().accent,
                     onClick = { onSelectCategory(CategoryType.CLAUDE) }
                 )
             }
@@ -582,16 +583,18 @@ private fun TieredModelGroupCard(
             quotas.find { it.modelId == m.id || (m.key.isNotBlank() && it.modelId == m.key) }?.percentage
         }
     }
+    val t = graventTokens()
     val brandColor = when (group.family) {
-        ModelFamily.CLAUDE -> ClaudeTerracotta
-        ModelFamily.GEMINI -> GeminiBlue
-        ModelFamily.OTHER -> MaterialTheme.colorScheme.primary
+        ModelFamily.CLAUDE -> t.accent
+        ModelFamily.GEMINI -> if (t.isDark) GeminiBlue else Color(0xFF0284C7)
+        ModelFamily.OTHER -> t.accent
     }
+    val onBrandColor = if (brandColor.luminance() > 0.5f) Color(0xFF0E0E11) else Color.White
 
     val cardBg = if (isAnyVariantSelected) {
-        ClaudeDarkSurface
+        t.cardBg
     } else {
-        ClaudeDarkSurface.copy(alpha = 0.65f)
+        t.cardBg.copy(alpha = if (t.isDark) 0.72f else 0.96f)
     }
 
     Surface(
@@ -600,6 +603,7 @@ private fun TieredModelGroupCard(
             .defaultMinSize(minHeight = 60.dp)
             .clip(RoundedCornerShape(12.dp)),
         color = cardBg,
+        border = BorderStroke(1.dp, if (isAnyVariantSelected) t.border else t.subtleBorder),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -613,7 +617,7 @@ private fun TieredModelGroupCard(
                     text = group.baseName,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = t.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -654,7 +658,8 @@ private fun TieredModelGroupCard(
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { onSelectModel(variant.model.id) },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) brandColor else brandColor.copy(alpha = 0.12f)
+                        color = if (isSelected) brandColor else t.chipBg,
+                        border = if (!isSelected) BorderStroke(0.8.dp, t.border) else null
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -664,7 +669,7 @@ private fun TieredModelGroupCard(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = onBrandColor,
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
@@ -673,7 +678,7 @@ private fun TieredModelGroupCard(
                                 text = variant.tierLabel.ifBlank { variant.model.displayName },
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                color = if (isSelected) onBrandColor else t.textPrimary
                             )
                         }
                     }
@@ -699,7 +704,8 @@ private fun CategoryNavigationTile(
     brandColor: Color,
     onClick: () -> Unit
 ) {
-    val isDark = isAppInDarkTheme()
+    val t = graventTokens()
+    val isDark = t.isDark
 
     Surface(
         modifier = Modifier
@@ -707,7 +713,8 @@ private fun CategoryNavigationTile(
             .defaultMinSize(minHeight = 88.dp)
             .clip(RoundedCornerShape(14.dp))
             .clickable { onClick() },
-        color = ClaudeDarkSurface,
+        color = t.cardBg,
+        border = BorderStroke(1.dp, t.border),
         shape = RoundedCornerShape(14.dp)
     ) {
         Row(
@@ -807,12 +814,15 @@ private fun ModelRowItem(
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
-    val brandColor = if (model.family == ModelFamily.CLAUDE) ClaudeTerracotta else GeminiBlue
+    val t = graventTokens()
+    val brandColor = if (model.family == ModelFamily.CLAUDE) {
+        t.accent
+    } else if (t.isDark) GeminiBlue else Color(0xFF0284C7)
 
     val cardBg = if (isSelected) {
-        ClaudeDarkSurface
+        t.cardBg
     } else {
-        ClaudeDarkSurface.copy(alpha = 0.65f)
+        t.cardBg.copy(alpha = if (t.isDark) 0.72f else 0.96f)
     }
 
     Surface(
@@ -822,6 +832,7 @@ private fun ModelRowItem(
             .clip(RoundedCornerShape(12.dp))
             .clickable { onSelect() },
         color = cardBg,
+        border = BorderStroke(1.dp, if (isSelected) t.border else t.subtleBorder),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(

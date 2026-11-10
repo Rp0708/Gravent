@@ -953,21 +953,24 @@ fun IdeScreen(
                                     color = if (isSelected) (if (tab.isDiff) ClaudeTerracotta else if (tab.isReadOnly) Color(0xFFFDE68A) else Color.White) else (if (tab.isReadOnly) Color(0xFF9CA3AF) else Color.LightGray),
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close Tab",
-                                    tint = Color.Gray,
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clickable {
-                                            if (tab.isModified) {
-                                                tabToClose = tab
-                                            } else {
-                                                TermuxDaemonManager.closeTab(tab.path)
-                                            }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = {
+                                        if (tab.isModified) {
+                                            tabToClose = tab
+                                        } else {
+                                            TermuxDaemonManager.closeTab(tab.path)
                                         }
-                                )
+                                    },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close Tab",
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(1.dp))
                         }
@@ -1463,9 +1466,9 @@ fun IdeScreen(
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                            colors = com.example.gemini.theme.graventPrimaryButtonColors()
                         ) {
-                            Text("Save & Close", color = Color.Black)
+                            Text("Save & Close")
                         }
                     },
                     dismissButton = {
@@ -1519,9 +1522,9 @@ fun IdeScreen(
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                            colors = com.example.gemini.theme.graventPrimaryButtonColors()
                         ) {
-                            Text("Overwrite Disk (Keep Mine)", color = Color.Black)
+                            Text("Overwrite Disk (Keep Mine)")
                         }
                     },
                     dismissButton = {
@@ -1665,7 +1668,10 @@ fun IdeScreen(
                                 binaryWarningDialog = null
                                 coroutineScope.launch { drawerState.close() }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF59E0B),
+                                contentColor = Color.Black
+                            )
                         ) {
                             Text("Open Anyway", color = Color.Black, fontWeight = FontWeight.Bold)
                         }
@@ -1888,7 +1894,7 @@ private fun AddRunProfileDialog(
                     )
                     onSaveProfile(config)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D), contentColor = Color.White)
             ) {
                 Text("Save Profile", fontWeight = FontWeight.Bold)
             }

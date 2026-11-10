@@ -117,21 +117,17 @@ fun DaemonLogsDialog(
                                     TermuxDaemonManager.ensureDaemonStarted()
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ClaudeTerracotta,
-                                contentColor = Color.Black
-                            ),
+                            colors = com.example.gemini.theme.graventPrimaryButtonColors(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             modifier = Modifier.height(32.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Retry",
-                                tint = Color.Black,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Retry", fontSize = 12.sp, color = Color.Black)
+                            Text("Retry", fontSize = 12.sp)
                         }
                     }
                 }

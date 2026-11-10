@@ -814,7 +814,10 @@ private fun GoogleCatalogPluginCard(
                         onClick = onInstall,
                         enabled = !isInstalling,
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GeminiBlue),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GeminiBlue,
+                            contentColor = Color.White
+                        ),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(32.dp)
                     ) {

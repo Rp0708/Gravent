@@ -28,6 +28,7 @@ import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.ClaudeThinkingDark
 import com.example.gemini.theme.ClaudeThinkingLight
 import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventPrimaryButtonColors
 
 /**
  * Collapsible & Editable Summary Card shown at the top of the chat
@@ -43,15 +44,15 @@ fun ActiveContextSummaryCard(
     var isExpanded by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
 
-    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
-    val bgColor = if (isDark) ClaudeThinkingDark else ClaudeThinkingLight
+    val t = com.example.gemini.theme.graventTokens()
+    val bgColor = if (t.isDark) ClaudeThinkingDark else ClaudeThinkingLight
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.25f)),
+        border = BorderStroke(1.dp, t.accent.copy(alpha = 0.25f)),
         colors = CardDefaults.cardColors(containerColor = bgColor)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -66,13 +67,13 @@ fun ActiveContextSummaryCard(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                        .background(t.accent.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.PsychologyAlt,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = t.accent,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -200,14 +201,14 @@ fun ContextSummarizeAlertBanner(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
-        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, com.example.gemini.theme.graventTokens().accent.copy(alpha = 0.4f))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.Compress,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = com.example.gemini.theme.graventTokens().accent,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -281,7 +282,7 @@ fun ContextSummarizeAlertBanner(
 
                 Button(
                     onClick = onSummarizeNow,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                    colors = graventPrimaryButtonColors(),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.height(32.dp)
@@ -314,29 +315,30 @@ fun LiveSummarizingCard(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-        border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.5f))
+        border = BorderStroke(1.dp, com.example.gemini.theme.graventTokens().accent.copy(alpha = 0.5f))
     ) {
+        val summaryAccent = com.example.gemini.theme.graventTokens().accent
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta)
+                        .background(summaryAccent)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Box(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = 0.8f))
+                        .background(summaryAccent.copy(alpha = 0.8f))
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Box(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = 0.6f))
+                        .background(summaryAccent.copy(alpha = 0.6f))
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -368,6 +370,7 @@ fun EditSummaryDialog(
     onSave: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val dialogAccent = com.example.gemini.theme.graventTokens().accent
     var editedText by remember { mutableStateOf(initialText) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -388,7 +391,7 @@ fun EditSummaryDialog(
                     Icon(
                         imageVector = Icons.Outlined.EditNote,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = dialogAccent,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -418,7 +421,7 @@ fun EditSummaryDialog(
                     shape = RoundedCornerShape(10.dp),
                     textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 18.sp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ClaudeTerracotta,
+                        focusedBorderColor = dialogAccent,
                         unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                     )
                 )
@@ -435,7 +438,7 @@ fun EditSummaryDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onSave(editedText.trim()) },
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                        colors = graventPrimaryButtonColors(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("Save Summary")

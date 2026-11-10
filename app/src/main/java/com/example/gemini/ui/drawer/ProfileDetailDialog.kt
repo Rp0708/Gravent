@@ -33,8 +33,8 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.gemini.data.remote.AgyHubClient
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventTokens
 
 /**
  * Safely parses base64 data URIs ("data:image/jpeg;base64,...") into ByteArray for Coil,
@@ -61,6 +61,7 @@ fun ProfileDetailDialog(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
+    val t = graventTokens()
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -106,13 +107,13 @@ fun ProfileDetailDialog(
                     modifier = Modifier
                         .size(76.dp)
                         .clip(CircleShape)
-                        .border(2.5.dp, ClaudeTerracotta, CircleShape),
+                        .border(2.5.dp, t.accent, CircleShape),
                     contentScale = ContentScale.Crop,
                     loading = {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(ClaudeTerracotta),
+                                .background(t.accent),
                             contentAlignment = Alignment.Center
                         ) {
                             val initial = authInfo.displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "A"
@@ -120,7 +121,7 @@ fun ProfileDetailDialog(
                                 text = initial,
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = t.onAccent
                             )
                         }
                     },
@@ -128,7 +129,7 @@ fun ProfileDetailDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(ClaudeTerracotta),
+                                .background(t.accent),
                             contentAlignment = Alignment.Center
                         ) {
                             val initial = authInfo.displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "A"
@@ -136,7 +137,7 @@ fun ProfileDetailDialog(
                                 text = initial,
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = t.onAccent
                             )
                         }
                     }
@@ -171,8 +172,8 @@ fun ProfileDetailDialog(
                     Spacer(modifier = Modifier.height(10.dp))
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = ClaudeTerracotta.copy(alpha = 0.12f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f))
+                        color = t.accent.copy(alpha = 0.12f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, t.accent.copy(alpha = 0.35f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
@@ -181,7 +182,7 @@ fun ProfileDetailDialog(
                             Icon(
                                 imageVector = Icons.Outlined.WorkspacePremium,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = t.accent,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -189,7 +190,7 @@ fun ProfileDetailDialog(
                                 text = tierName,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ClaudeTerracotta
+                                color = t.accent
                             )
                             if (authInfo.planName.isNotBlank() && authInfo.planName != tierName) {
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -197,7 +198,7 @@ fun ProfileDetailDialog(
                                     text = "•  ${authInfo.planName}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = ClaudeTerracotta.copy(alpha = 0.8f)
+                                    color = t.accent.copy(alpha = 0.8f)
                                 )
                             }
                         }
@@ -261,7 +262,7 @@ fun ProfileDetailDialog(
                                         Icon(
                                             imageVector = Icons.Outlined.Speed,
                                             contentDescription = null,
-                                            tint = ClaudeTerracotta,
+                                            tint = t.accent,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -331,7 +332,7 @@ fun ProfileDetailDialog(
                     Icon(
                         imageVector = Icons.Outlined.VerifiedUser,
                         contentDescription = "Status",
-                        tint = ClaudeTerracotta,
+                        tint = t.accent,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -369,7 +370,7 @@ fun ProfileDetailDialog(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                             contentDescription = "Upgrade",
-                            tint = ClaudeTerracotta,
+                            tint = t.accent,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -382,7 +383,7 @@ fun ProfileDetailDialog(
                             Text(
                                 text = if (authInfo.upgradeSubscriptionText.isNotBlank()) authInfo.upgradeSubscriptionText else "Manage / Upgrade Plan",
                                 fontSize = 12.sp,
-                                color = ClaudeTerracotta,
+                                color = t.accent,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

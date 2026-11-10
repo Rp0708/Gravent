@@ -103,7 +103,7 @@ fun FullScreenLocalToolsInstaller(
                 title = {
                     Column {
                         Text(
-                            text = "AntiGem Environment",
+                            text = "Gravent Environment",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -199,7 +199,7 @@ fun FullScreenLocalToolsInstaller(
                 text = when (installerState) {
                     is LocalInstallerState.Success -> if (isTermux) "Termux-compatible shell, coreutils & AGY tools are installed and ready." else "Ubuntu ARM64 container, bash, glibc & AGY tools are ready."
                     is LocalInstallerState.Error -> "Failed to unpack rootfs. You can retry or pick a local ZIP archive."
-                    is LocalInstallerState.Idle -> if (isTermux) "Select how you would like to set up the local Termux environment for AntiGem:" else "Select how you would like to set up the Ubuntu Linux container for AntiGem:"
+                    is LocalInstallerState.Idle -> if (isTermux) "Select how you would like to set up the local Termux environment for Gravent:" else "Select how you would like to set up the Ubuntu Linux container for Gravent:"
                     is LocalInstallerState.Discovering -> "Checking releases for the latest verified rootfs archive."
                     is LocalInstallerState.AwaitingConfirmation -> "Review details below and confirm to begin installation."
                     is LocalInstallerState.Downloading -> "Fetching rootfs archive into secure application storage."
@@ -371,7 +371,7 @@ fun FullScreenLocalToolsInstaller(
                                 RadioButton(
                                     selected = selectedSourceType == 0,
                                     onClick = { selectedSourceType = 0 },
-                                    colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                    colors = graventRadioColors()
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column(modifier = Modifier.weight(1f)) {
@@ -423,7 +423,7 @@ fun FullScreenLocalToolsInstaller(
                                     RadioButton(
                                         selected = selectedSourceType == 2,
                                         onClick = { selectedSourceType = 2 },
-                                        colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                        colors = graventRadioColors()
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -491,7 +491,7 @@ fun FullScreenLocalToolsInstaller(
                                     RadioButton(
                                         selected = selectedSourceType == 1,
                                         onClick = { selectedSourceType = 1 },
-                                        colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                        colors = graventRadioColors()
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -876,12 +876,11 @@ fun FullScreenLocalToolsInstaller(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                        colors = graventPrimaryButtonColors()
                     ) {
                         Icon(
                             imageVector = Icons.Default.Download,
                             contentDescription = null,
-                            tint = Color.Black,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -892,8 +891,7 @@ fun FullScreenLocalToolsInstaller(
                                 else -> if (selectedFileUri != null) "Install Local ZIP" else "Choose ZIP File"
                             },
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
@@ -906,7 +904,7 @@ fun FullScreenLocalToolsInstaller(
                             .height(46.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Skip Setup & Open AntiGem Chat", fontSize = 14.sp)
+                        Text("Skip Setup & Open Gravent Chat", fontSize = 14.sp)
                     }
                 }
 
@@ -927,11 +925,11 @@ fun FullScreenLocalToolsInstaller(
                                 .weight(1f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                            colors = graventPrimaryButtonColors()
                         ) {
-                            Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Black)
+                            Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Confirm & Install", fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text("Confirm & Install", fontWeight = FontWeight.Bold)
                         }
 
                         OutlinedButton(
@@ -969,7 +967,7 @@ fun FullScreenLocalToolsInstaller(
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Run in Background & Open AntiGem")
+                        Text("Run in Background & Open Gravent")
                     }
                 }
 
@@ -980,11 +978,11 @@ fun FullScreenLocalToolsInstaller(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                        colors = graventPrimaryButtonColors()
                     ) {
-                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Black)
+                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Get Started", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text("Get Started", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -1008,11 +1006,11 @@ fun FullScreenLocalToolsInstaller(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                            colors = graventPrimaryButtonColors()
                         ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Retry Installation", fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text("Retry Installation", fontWeight = FontWeight.Bold)
                         }
 
                         Row(

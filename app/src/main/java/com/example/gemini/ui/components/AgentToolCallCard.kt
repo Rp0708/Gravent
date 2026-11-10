@@ -162,7 +162,7 @@ fun AgentToolCallCard(
 
     val actionColor = when {
         isPendingApproval -> Color(0xFFF59E0B)
-        isRunning -> ClaudeTerracotta
+        isRunning -> graventTokens().accent
         isSuccess -> MaterialTheme.colorScheme.onSurface
         isTerminated || isFailed -> Color(0xFFEF4444)
         isRejected -> Color.Gray
@@ -228,7 +228,7 @@ fun AgentToolCallCard(
                 Icon(
                     imageVector = toolIcon,
                     contentDescription = "Running",
-                    tint = ClaudeTerracotta,
+                    tint = graventTokens().accent,
                     modifier = Modifier.size(14.dp)
                 )
             } else if (isSuccess) {

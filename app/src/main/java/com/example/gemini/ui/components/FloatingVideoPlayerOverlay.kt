@@ -32,6 +32,7 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.gemini.data.media.YouTubeMediaSessionManager
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.theme.isAppInDarkTheme
 import kotlin.math.roundToInt
 
@@ -264,6 +265,7 @@ fun FloatingVideoPlayerOverlay(
                             Spacer(modifier = Modifier.width(10.dp))
 
                             // Play / Pause Toggle
+                            val t = graventTokens()
                             FilledIconButton(
                                 onClick = {
                                     if (activeState.isPlaying) {
@@ -273,14 +275,14 @@ fun FloatingVideoPlayerOverlay(
                                     }
                                 },
                                 colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = if (activeState.isPlaying) Color(0xFFFF0000) else ClaudeTerracotta
+                                    containerColor = if (activeState.isPlaying) Color(0xFFFF0000) else t.accent
                                 ),
                                 modifier = Modifier.size(34.dp)
                             ) {
                                 Icon(
                                     imageVector = if (activeState.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                     contentDescription = if (activeState.isPlaying) "Pause" else "Play",
-                                    tint = Color.White,
+                                    tint = if (activeState.isPlaying) Color.White else t.onAccent,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }

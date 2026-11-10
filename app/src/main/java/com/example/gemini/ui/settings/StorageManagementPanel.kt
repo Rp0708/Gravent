@@ -30,8 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.local.*
-import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.launch
 
 private data class StorageUiPalette(
@@ -43,10 +43,17 @@ private data class StorageUiPalette(
     val primaryText: Color,
     val secondaryText: Color,
     val mutedText: Color,
+    val accent: Color,
+    val onAccent: Color,
     val isDark: Boolean
 )
 
-private fun buildStoragePalette(cardBg: Color, cardBorder: BorderStroke): StorageUiPalette {
+private fun buildStoragePalette(
+    cardBg: Color,
+    cardBorder: BorderStroke,
+    accent: Color,
+    onAccent: Color
+): StorageUiPalette {
     val isDark = cardBg.luminance() < 0.5f
     return StorageUiPalette(
         cardBg = cardBg,
@@ -57,6 +64,8 @@ private fun buildStoragePalette(cardBg: Color, cardBorder: BorderStroke): Storag
         primaryText = if (isDark) Color(0xFFFAFAFA) else Color(0xFF18181B),
         secondaryText = if (isDark) Color(0xFF8E8E93) else Color(0xFF52525B),
         mutedText = Color(0xFF71717A),
+        accent = accent,
+        onAccent = onAccent,
         isDark = isDark
     )
 }
@@ -78,7 +87,10 @@ fun StorageManagementPanel(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val palette = remember(cardBg, cardBorder) { buildStoragePalette(cardBg, cardBorder) }
+    val tokens = graventTokens()
+    val palette = remember(cardBg, cardBorder, tokens) {
+        buildStoragePalette(cardBg, cardBorder, tokens.accent, tokens.onAccent)
+    }
 
     val cachedReport by AppStorageManager.latestReport.collectAsState()
     var isScanning by remember { mutableStateOf(cachedReport == null) }
@@ -220,7 +232,7 @@ fun StorageManagementPanel(
                 val activeCacheCount = report.extraCaches.count { it.bytes > 0L }
                 StorageSectionHeaderCard(
                     icon = Icons.Outlined.CleaningServices,
-                    iconTint = if (report.totalAllCachesBytes > 0L) ClaudeTerracotta else Color(0xFFE8E5DF),
+                    iconTint = if (report.totalAllCachesBytes > 0L) graventTokens().accent else graventTokens().accent,
                     title = "Extra Caches & Residual Temp",
                     subtitle = if (activeCacheCount > 0) {
                         "$activeCacheCount active caches across OS, WebView, APT, dev tools & agents"
@@ -228,7 +240,7 @@ fun StorageManagementPanel(
                         "All detected caches are clean (0 B)"
                     },
                     badgeText = Formatter.formatFileSize(context, report.totalAllCachesBytes),
-                    badgeColor = if (report.totalAllCachesBytes > 0L) ClaudeTerracotta else QuotaGreen,
+                    badgeColor = if (report.totalAllCachesBytes > 0L) graventTokens().accent else QuotaGreen,
                     isExpanded = showExtraCachesList,
                     onToggle = { showExtraCachesList = !showExtraCachesList },
                     palette = palette
@@ -318,7 +330,7 @@ fun StorageManagementPanel(
                     val artBytes = report.workspaceArtifacts.sumOf { it.bytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.FolderOpen,
-                        iconTint = Color(0xFFE8E5DF),
+                        iconTint = graventTokens().accent,
                         title = "Workspaces & Build Artifacts",
                         subtitle = "${report.workspaces.size} workspaces · ${Formatter.formatFileSize(context, artBytes)} in node_modules / build / venv",
                         badgeText = Formatter.formatFileSize(context, wsBytes),
@@ -366,7 +378,7 @@ fun StorageManagementPanel(
                     val pkgTotal = report.globalPackages.sumOf { it.bytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.Extension,
-                        iconTint = Color(0xFFE8E5DF),
+                        iconTint = graventTokens().accent,
                         title = "Global Node.js / npm Packages",
                         subtitle = "${report.globalPackages.size} installed global npm packages",
                         badgeText = Formatter.formatFileSize(context, pkgTotal),
@@ -392,7 +404,7 @@ fun StorageManagementPanel(
                     val dpkgSum = report.dpkgPackages.sumOf { it.estimatedBytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.Inventory2,
-                        iconTint = Color(0xFFE8E5DF),
+                        iconTint = graventTokens().accent,
                         title = "Installed Linux Packages (dpkg)",
                         subtitle = "Top ${report.dpkgPackages.size} APT packages (dpkg registry metadata, already counted in Linux OS above)",
                         badgeText = "~${Formatter.formatFileSize(context, dpkgSum)}",
@@ -418,7 +430,7 @@ fun StorageManagementPanel(
                     val bigSum = report.largestFiles.sumOf { it.bytes }
                     StorageSectionHeaderCard(
                         icon = Icons.Outlined.Archive,
-                        iconTint = Color(0xFFE8E5DF),
+                        iconTint = graventTokens().accent,
                         title = "Top ${report.largestFiles.size} Largest Files",
                         subtitle = "Biggest individual files inside app private storage",
                         badgeText = Formatter.formatFileSize(context, bigSum),
@@ -448,7 +460,7 @@ fun StorageManagementPanel(
                 val ext = report.externalBackups
                 StorageSectionHeaderCard(
                     icon = Icons.Outlined.FolderZip,
-                    iconTint = Color(0xFFE8E5DF),
+                    iconTint = graventTokens().accent,
                     title = "Shared Downloads & Backups",
                     subtitle = if (!ext.hasPermission) {
                         "Separate from App Footprint · Grant file access to scan /sdcard/Download/Antigem"
@@ -552,7 +564,7 @@ private fun StorageHeroCard(
                         Icon(
                             imageVector = Icons.Outlined.Storage,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = graventTokens().accent,
                             modifier = Modifier.size(19.dp)
                         )
                     }
@@ -602,7 +614,7 @@ private fun StorageHeroCard(
                         CircularProgressIndicator(
                             modifier = Modifier.size(17.dp),
                             strokeWidth = 2.dp,
-                            color = Color(0xFFE8E5DF)
+                            color = graventTokens().accent
                         )
                     } else {
                         Icon(
@@ -662,14 +674,14 @@ private fun StorageHeroCard(
                         HeroStatTile(
                             label = "Tools & Data",
                             value = Formatter.formatFileSize(context, report.netUserDataBytes),
-                            accentColor = Color(0xFFE8E5DF),
+                            accentColor = graventTokens().accent,
                             palette = palette,
                             modifier = Modifier.weight(1f)
                         )
                         HeroStatTile(
                             label = "Caches",
                             value = Formatter.formatFileSize(context, report.totalAllCachesBytes),
-                            accentColor = ClaudeTerracotta,
+                            accentColor = graventTokens().accent,
                             palette = palette,
                             modifier = Modifier.weight(1f)
                         )
@@ -753,7 +765,7 @@ private fun StorageOptimizeCard(
                     Icon(
                         imageVector = Icons.Outlined.AutoAwesome,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = graventTokens().accent,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -772,7 +784,7 @@ private fun StorageOptimizeCard(
                     color = palette.subChipBg,
                     border = BorderStroke(
                         1.dp,
-                        if (reclaimableTotal > 0L) ClaudeTerracotta.copy(alpha = 0.4f) else palette.subtleBorder
+                        if (reclaimableTotal > 0L) graventTokens().accent.copy(alpha = 0.4f) else palette.subtleBorder
                     )
                 ) {
                     Text(
@@ -784,7 +796,7 @@ private fun StorageOptimizeCard(
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = FontFamily.Monospace,
-                        color = if (reclaimableTotal > 0L) Color(0xFFE8E5DF) else QuotaGreen,
+                        color = if (reclaimableTotal > 0L) graventTokens().accent else QuotaGreen,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -801,8 +813,8 @@ private fun StorageOptimizeCard(
                 onClick = onQuickOptimize,
                 enabled = !isBusy && safeSize > 0L,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (palette.isDark) Color(0xFFE8E5DF) else Color(0xFF18181B),
-                    contentColor = if (palette.isDark) Color(0xFF09090B) else Color(0xFFFAFAFA),
+                    containerColor = palette.accent,
+                    contentColor = palette.onAccent,
                     disabledContainerColor = palette.subChipBg,
                     disabledContentColor = palette.mutedText
                 ),
@@ -815,7 +827,7 @@ private fun StorageOptimizeCard(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = if (palette.isDark) Color(0xFF09090B) else Color(0xFFFAFAFA)
+                        color = palette.onAccent
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Cleaning Safe Caches…", fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
@@ -1242,7 +1254,7 @@ private fun WorkspaceRowCard(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                color = ClaudeTerracotta
+                color = palette.accent
             )
         }
     }
@@ -1333,7 +1345,7 @@ private fun ToolPackageRow(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace,
-                color = Color(0xFFE8E5DF)
+                color = palette.accent
             )
         }
     }
@@ -1418,7 +1430,7 @@ private fun LargeFileRow(
                     enabled = !isBusy,
                     modifier = Modifier.size(40.dp)
                 ) {
-                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete File", tint = ClaudeTerracotta, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete File", tint = graventTokens().accent, modifier = Modifier.size(18.dp))
                 }
             }
         }

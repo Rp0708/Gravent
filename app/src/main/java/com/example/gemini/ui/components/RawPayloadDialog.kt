@@ -25,7 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventNeutralButtonColors
+import com.example.gemini.theme.graventTokens
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -35,6 +36,7 @@ fun RawPayloadDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val t = graventTokens()
     var wrapLines by remember { mutableStateOf(true) }
 
     val prettyJson = remember(payloadJson) {
@@ -58,8 +60,8 @@ fun RawPayloadDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF13141C),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+            color = t.cardBg,
+            border = BorderStroke(1.dp, t.border),
             modifier = Modifier
                 .fillMaxWidth(0.98f)
                 .fillMaxHeight(0.86f)
@@ -83,7 +85,7 @@ fun RawPayloadDialog(
                         Icon(
                             imageVector = Icons.Outlined.DataObject,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = t.accent,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -91,7 +93,7 @@ fun RawPayloadDialog(
                             text = "Raw Request Payload",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = t.textPrimary
                         )
                     }
 
@@ -108,13 +110,13 @@ fun RawPayloadDialog(
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = ClaudeTerracotta.copy(alpha = 0.25f),
-                            selectedLabelColor = Color.White,
-                            selectedLeadingIconColor = ClaudeTerracotta,
-                            containerColor = Color(0xFF1E202E),
-                            labelColor = Color.White.copy(alpha = 0.7f)
+                            selectedContainerColor = t.accentSoftBg,
+                            selectedLabelColor = t.textPrimary,
+                            selectedLeadingIconColor = t.accent,
+                            containerColor = t.elevatedBg,
+                            labelColor = t.textSecondary
                         ),
-                        border = BorderStroke(1.dp, if (wrapLines) ClaudeTerracotta.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.1f))
+                        border = BorderStroke(1.dp, if (wrapLines) t.accent.copy(alpha = 0.55f) else t.border)
                     )
                 }
 
@@ -122,7 +124,7 @@ fun RawPayloadDialog(
                 Text(
                     text = "Formatted JSON payload transmitted to Google CloudCode API:",
                     fontSize = 11.5.sp,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = t.textSecondary
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -130,8 +132,8 @@ fun RawPayloadDialog(
                 // JSON Content Box
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF0A0B10),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                    color = if (t.isDark) Color(0xFF0A0B10) else t.elevatedBg,
+                    border = BorderStroke(1.dp, t.subtleBorder),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
@@ -155,7 +157,7 @@ fun RawPayloadDialog(
                             fontSize = 11.5.sp,
                             lineHeight = 16.5.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = Color(0xFF8BE9FD),
+                            color = if (t.isDark) Color(0xFF8BE9FD) else Color(0xFF0F4C81),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -175,25 +177,28 @@ fun RawPayloadDialog(
                             clipboard.setPrimaryClip(ClipData.newPlainText("Raw Payload JSON", prettyJson))
                             Toast.makeText(context, "Formatted JSON copied to clipboard!", Toast.LENGTH_SHORT).show()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E202E)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = t.elevatedBg,
+                            contentColor = t.textPrimary
+                        ),
+                        border = BorderStroke(1.dp, t.border),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
                             contentDescription = "Copy",
-                            tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Copy JSON", fontSize = 12.5.sp, color = Color.White)
+                        Text("Copy JSON", fontSize = 12.5.sp)
                     }
 
                     Button(
                         onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        colors = graventNeutralButtonColors(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Close", fontSize = 13.sp, color = Color.Black)
+                        Text("Close", fontSize = 13.sp)
                     }
                 }
             }

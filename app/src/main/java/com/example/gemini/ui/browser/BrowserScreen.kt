@@ -79,6 +79,8 @@ import androidx.core.view.WindowCompat
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import java.net.URLEncoder
 
 /**
@@ -1220,7 +1222,7 @@ private fun SpeedDialHomeView(
                             showAddDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta)
+                    colors = graventPrimaryButtonColors()
                 ) {
                     Text("Add")
                 }
@@ -1476,7 +1478,7 @@ private fun TabOverviewScreen(
                     }
 
                     TextButton(onClick = onCloseOverview) {
-                        Text("Done", fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                        Text("Done", fontWeight = FontWeight.Bold, color = graventTokens().accent)
                     }
                 }
             }
@@ -1512,16 +1514,13 @@ private fun TabOverviewScreen(
                     // "+" New Tab on bottom right
                     Button(
                         onClick = onNewTab,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ClaudeTerracotta,
-                            contentColor = Color.Black
-                        ),
+                        colors = graventPrimaryButtonColors(),
                         shape = RoundedCornerShape(20.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("New tab", color = Color.Black, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
+                        Text("New tab", fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1954,16 +1953,13 @@ fun BrowserDiagnosticOverlay(
                 ) {
                     Button(
                         onClick = onReload,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ClaudeTerracotta,
-                            contentColor = Color.Black
-                        ),
+                        colors = graventPrimaryButtonColors(),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f).height(42.dp)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Reload", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Reload", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     OutlinedButton(

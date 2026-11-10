@@ -65,6 +65,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,7 +91,10 @@ import com.example.gemini.data.daemon.GitFileStatus
 import com.example.gemini.data.daemon.GitStatusResponse
 import com.example.gemini.domain.model.TurnDiffStats
 import com.example.gemini.domain.model.TurnFileDelta
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventCheckboxColors
+import com.example.gemini.theme.graventNeutralButtonColors
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.ui.components.formatTelemetryShortTime
 import com.example.gemini.ui.ide.UnifiedDiffViewer
 import kotlinx.coroutines.Dispatchers
@@ -98,17 +102,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-private val HomeCardBg = Color(0xFF131317)
-private val HomeCardElevated = Color(0xFF1A1A20)
-private val HomeCardBorder = Color(0xFF23232A)
-private val HomeCardDivider = Color(0xFF202026)
-private val HomeWarmAccent = Color(0xFFE8E5DF)
-private val HomeTextPrimary = Color(0xFFF4F4F5)
-private val HomeTextSecondary = Color(0xFF8E8E98)
-private val HomeAddGreen = Color(0xFF4ADE80)
-private val HomeDelRed = Color(0xFFF87171)
-private val HomeWarnAmber = Color(0xFFFBBF24)
-private val HomeSkyBlue = Color(0xFF38BDF8)
+private val HomeCardBg: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().cardBg
+private val HomeCardElevated: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().elevatedBg
+private val HomeCardBorder: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().border
+private val HomeCardDivider: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().subtleBorder
+private val HomeWarmAccent: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().accent
+private val HomeTextPrimary: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().textPrimary
+private val HomeTextSecondary: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().textSecondary
+private val HomeAddGreen: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().gitAdd
+private val HomeDelRed: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().gitDel
+private val HomeWarnAmber: Color
+    @Composable @ReadOnlyComposable get() = graventTokens().warnAmber
+private val HomeSkyBlue: Color
+    @Composable @ReadOnlyComposable get() = if (graventTokens().isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -194,7 +209,7 @@ fun HomeCodexWorkspaceCard(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = HomeCardElevated,
-                    border = BorderStroke(0.6.dp, Color(0xFF2B2B34))
+                    border = BorderStroke(0.6.dp, HomeCardBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
@@ -293,7 +308,7 @@ fun InChatRepoGitDialog(
                         Icon(
                             imageVector = Icons.Default.AltRoute,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = HomeWarmAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -449,7 +464,7 @@ fun TurnGitInfoDialog(
                         Icon(
                             imageVector = Icons.Outlined.Info,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = HomeWarmAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -620,7 +635,8 @@ fun TurnGitInfoDialog(
                     }
                     Button(
                         onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        colors = graventNeutralButtonColors(),
+                        border = BorderStroke(1.dp, graventTokens().neutralBtnBorder),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -690,7 +706,7 @@ private fun HomeRepoGitSection(
 
     if (isGitLoading && gitStatus != null) {
         LinearProgressIndicator(
-            color = ClaudeTerracotta,
+            color = HomeWarmAccent,
             trackColor = HomeCardDivider,
             modifier = Modifier
                 .fillMaxWidth()
@@ -789,7 +805,7 @@ private fun HomeRepoGitSection(
                             .clickable { showBranchDialog = true },
                         shape = RoundedCornerShape(6.dp),
                         color = HomeCardElevated,
-                        border = BorderStroke(0.6.dp, Color(0xFF2B2B34))
+                        border = BorderStroke(0.6.dp, HomeCardBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
@@ -807,7 +823,7 @@ private fun HomeRepoGitSection(
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFFE4E4E9),
+                                color = HomeTextPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 110.dp)
@@ -862,8 +878,8 @@ private fun HomeRepoGitSection(
                     if (hasUncommitted) {
                         Surface(
                             shape = RoundedCornerShape(7.dp),
-                            color = Color(0xFF191920),
-                            border = BorderStroke(0.6.dp, Color(0xFF2D2D36))
+                            color = HomeCardElevated,
+                            border = BorderStroke(0.6.dp, HomeCardBorder)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
@@ -874,7 +890,7 @@ private fun HomeRepoGitSection(
                                     text = "${gitStatus.totalChangesCount}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFFE4E4E9)
+                                    color = HomeTextPrimary
                                 )
                                 if (gitStatus.totalAdditions > 0) {
                                     Text(
@@ -995,7 +1011,7 @@ private fun HomeRepoGitSection(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF101014))
+                        .background(graventTokens().canvasBg)
                 ) {
                     HorizontalDivider(thickness = 0.6.dp, color = HomeCardDivider)
 
@@ -1094,7 +1110,7 @@ private fun HomeRepoGitSection(
                             HomeGitActionChip(
                                 label = "Review changes",
                                 icon = Icons.Outlined.AutoAwesome,
-                                accent = ClaudeTerracotta,
+                                accent = HomeWarmAccent,
                                 enabled = !isGitLoading,
                                 onClick = {
                                     val fileSample = combinedFiles.take(8).joinToString(", ") { it.path }
@@ -1256,11 +1272,12 @@ fun HomeRecentDiffBadge(
     modifier: Modifier = Modifier
 ) {
     if (diffStats == null || (diffStats.additions <= 0 && diffStats.deletions <= 0)) return
+    val t = graventTokens()
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(6.dp),
-        color = Color(0xFF171A18),
-        border = BorderStroke(0.6.dp, Color(0xFF28302A))
+        color = t.gitAddBg,
+        border = BorderStroke(0.6.dp, t.gitAddBorder)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -1313,7 +1330,7 @@ private fun HomeGitChangedFileRow(
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = Color(0xFF15151A)
+        color = HomeCardElevated
     ) {
         Row(
             modifier = Modifier
@@ -1342,7 +1359,7 @@ private fun HomeGitChangedFileRow(
                     text = fileName,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFFE4E4E9),
+                    color = HomeTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1383,7 +1400,7 @@ private fun HomeGitChangedFileRow(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = "View diff",
-                    tint = Color(0xFF52525B),
+                    tint = HomeTextSecondary,
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -1405,7 +1422,7 @@ private fun HomeGitActionChip(
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = HomeCardElevated,
-        border = BorderStroke(0.7.dp, Color(0xFF2B2B34))
+        border = BorderStroke(0.7.dp, HomeCardBorder)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
@@ -1473,7 +1490,7 @@ private fun HomeBranchPickerDialog(
                         Icon(
                             imageVector = Icons.Default.AltRoute,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = HomeWarmAccent,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -1501,7 +1518,7 @@ private fun HomeBranchPickerDialog(
                         placeholder = { Text("New branch name…", fontSize = 12.5.sp) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ClaudeTerracotta,
+                            focusedBorderColor = HomeWarmAccent,
                             unfocusedBorderColor = HomeCardBorder,
                             focusedTextColor = HomeTextPrimary,
                             unfocusedTextColor = HomeTextPrimary
@@ -1514,7 +1531,7 @@ private fun HomeBranchPickerDialog(
                             if (clean.isNotBlank()) onSelectBranch(clean, true)
                         },
                         enabled = newBranchName.trim().isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        colors = graventPrimaryButtonColors(),
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                     ) {
@@ -1650,7 +1667,7 @@ private fun HomeCommitDialog(
                             },
                         shape = RoundedCornerShape(7.dp),
                         color = HomeCardElevated,
-                        border = BorderStroke(0.6.dp, Color(0xFF2B2B34))
+                        border = BorderStroke(0.6.dp, HomeCardBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
@@ -1660,7 +1677,7 @@ private fun HomeCommitDialog(
                             Icon(
                                 imageVector = Icons.Outlined.AutoAwesome,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = HomeWarmAccent,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
@@ -1685,7 +1702,7 @@ private fun HomeCommitDialog(
                     minLines = 2,
                     maxLines = 4,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ClaudeTerracotta,
+                        focusedBorderColor = HomeWarmAccent,
                         unfocusedBorderColor = HomeCardBorder,
                         focusedTextColor = HomeTextPrimary,
                         unfocusedTextColor = HomeTextPrimary
@@ -1705,7 +1722,7 @@ private fun HomeCommitDialog(
                         Checkbox(
                             checked = alsoPush,
                             onCheckedChange = { alsoPush = it },
-                            colors = CheckboxDefaults.colors(checkedColor = ClaudeTerracotta)
+                            colors = graventCheckboxColors()
                         )
                         Text(
                             text = "Push to origin immediately",
@@ -1737,7 +1754,7 @@ private fun HomeCommitDialog(
                             onCommit(commitMessage, alsoPush) { err -> errorMessage = err }
                         },
                         enabled = !isBusy && commitMessage.trim().isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        colors = graventPrimaryButtonColors(),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
@@ -1805,7 +1822,7 @@ private fun HomeFileDiffDialog(
             when {
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = ClaudeTerracotta)
+                        CircularProgressIndicator(color = HomeWarmAccent)
                     }
                 }
                 rawDiff.isNotBlank() -> {
@@ -1864,7 +1881,7 @@ private fun HomeFileDiffDialog(
                             }
                             Button(
                                 onClick = { onOpenInIde(file.path) },
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                                colors = graventPrimaryButtonColors()
                             ) {
                                 Text("Open IDE", fontWeight = FontWeight.SemiBold)
                             }

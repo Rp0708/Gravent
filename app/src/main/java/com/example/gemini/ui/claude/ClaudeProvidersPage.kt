@@ -95,6 +95,8 @@ import com.example.gemini.data.agent.claude.tokenLabel
 import com.example.gemini.theme.QuotaAmber
 import com.example.gemini.theme.QuotaGreen
 import com.example.gemini.theme.QuotaRed
+import com.example.gemini.theme.graventCheckboxColors
+import com.example.gemini.theme.graventSwitchColors
 import com.example.gemini.ui.components.ClaudeAccent
 
 private const val OPENROUTER_BASE_URL = "https://openrouter.ai/api"
@@ -612,7 +614,7 @@ private fun ProviderEditor(
                             )
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Switch(checked = freeOnly, onCheckedChange = { freeOnly = it }, colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent))
+                                Switch(checked = freeOnly, onCheckedChange = { freeOnly = it }, colors = graventSwitchColors())
                                 Spacer(Modifier.width(10.dp))
                                 Text("Only free models that can call tools", fontSize = 12.5.sp)
                             }
@@ -713,7 +715,7 @@ private fun ProviderEditor(
                                     fontSize = 11.sp, color = muted
                                 )
                             }
-                            Switch(checked = sendThinking, onCheckedChange = { sendThinking = it }, colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent))
+                            Switch(checked = sendThinking, onCheckedChange = { sendThinking = it }, colors = graventSwitchColors())
                         }
                         if (sendThinking) {
                             OutlinedTextField(
@@ -749,7 +751,7 @@ private fun ProviderEditor(
                                 Text("Disable experimental betas", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                                 Text("Turn on if the provider answers 400 about unknown fields or beta headers.", fontSize = 11.sp, color = muted)
                             }
-                            Switch(checked = disableBetas, onCheckedChange = { disableBetas = it }, colors = SwitchDefaults.colors(checkedTrackColor = ClaudeAccent))
+                            Switch(checked = disableBetas, onCheckedChange = { disableBetas = it }, colors = graventSwitchColors())
                         }
                     }
 
@@ -922,7 +924,7 @@ private fun FetchedModelsDialog(
                         ) {
                             Checkbox(
                                 checked = added || m.id in picked, onCheckedChange = null, enabled = !added,
-                                colors = CheckboxDefaults.colors(checkedColor = ClaudeAccent)
+                                colors = graventCheckboxColors()
                             )
                             Spacer(Modifier.width(6.dp))
                             Column(Modifier.weight(1f).padding(vertical = 4.dp)) {

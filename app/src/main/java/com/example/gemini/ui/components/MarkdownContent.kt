@@ -271,10 +271,11 @@ fun MarkdownBlockView(
                     .padding(start = (block.indent * 14).dp),
                 verticalAlignment = Alignment.Top
             ) {
+                val bulletAccent = com.example.gemini.theme.graventTokens().accent
                 Text(
                     text = if (block.indent == 0) "• " else "◦ ",
                     fontWeight = FontWeight.Bold,
-                    color = ClaudeTerracotta,
+                    color = bulletAccent,
                     fontSize = 14.sp,
                     lineHeight = 21.sp,
                     style = TextStyle(
@@ -301,7 +302,7 @@ fun MarkdownBlockView(
                 Text(
                     text = "${block.number} ",
                     fontWeight = FontWeight.Bold,
-                    color = ClaudeTerracotta,
+                    color = com.example.gemini.theme.graventTokens().accent,
                     fontSize = 13.5.sp,
                     lineHeight = 21.sp,
                     style = TextStyle(
@@ -360,7 +361,7 @@ fun MarkdownBlockView(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(4.dp)
-                            .background(ClaudeTerracotta)
+                            .background(com.example.gemini.theme.graventTokens().accent)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     FormattedInlineText(
@@ -732,10 +733,11 @@ fun MermaidDiagramView(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val mermaidTokens = com.example.gemini.theme.graventTokens()
                 Icon(
                     imageVector = Icons.Outlined.AutoAwesome,
                     contentDescription = null,
-                    tint = ClaudeTerracotta,
+                    tint = mermaidTokens.accent,
                     modifier = Modifier.size(15.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -743,7 +745,7 @@ fun MermaidDiagramView(
                     text = "MERMAID DIAGRAM",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ClaudeTerracotta,
+                    color = mermaidTokens.accent,
                     letterSpacing = 0.5.sp
                 )
 
@@ -759,7 +761,7 @@ fun MermaidDiagramView(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (selectedTab == 0) ClaudeTerracotta else Color.Transparent)
+                            .background(if (selectedTab == 0) mermaidTokens.accent else Color.Transparent)
                             .clickable { selectedTab = 0 }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -767,14 +769,14 @@ fun MermaidDiagramView(
                             text = "Diagram",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = if (selectedTab == 0) mermaidTokens.onAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
 
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (selectedTab == 1) ClaudeTerracotta else Color.Transparent)
+                            .background(if (selectedTab == 1) mermaidTokens.accent else Color.Transparent)
                             .clickable { selectedTab = 1 }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -782,7 +784,7 @@ fun MermaidDiagramView(
                             text = "Code",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = if (selectedTab == 1) mermaidTokens.onAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -953,6 +955,7 @@ fun MermaidFullscreenDialog(
                     Spacer(modifier = Modifier.weight(1f))
 
                     // Diagram / Code Switcher Pills
+                    val fsMermaidTokens = com.example.gemini.theme.graventTokens()
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
@@ -962,7 +965,7 @@ fun MermaidFullscreenDialog(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (selectedTab == 0) ClaudeTerracotta else Color.Transparent)
+                                .background(if (selectedTab == 0) fsMermaidTokens.accent else Color.Transparent)
                                 .clickable { selectedTab = 0 }
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -970,14 +973,14 @@ fun MermaidFullscreenDialog(
                                 text = "Diagram",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = if (selectedTab == 0) fsMermaidTokens.onAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                         }
 
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (selectedTab == 1) ClaudeTerracotta else Color.Transparent)
+                                .background(if (selectedTab == 1) fsMermaidTokens.accent else Color.Transparent)
                                 .clickable { selectedTab = 1 }
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -985,7 +988,7 @@ fun MermaidFullscreenDialog(
                                 text = "Code",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = if (selectedTab == 1) fsMermaidTokens.onAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -1310,7 +1313,7 @@ fun MarkdownDetailsView(
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = ClaudeTerracotta,
+                    tint = com.example.gemini.theme.graventTokens().accent,
                     modifier = Modifier
                         .size(20.dp)
                         .rotate(rotationAngle)
@@ -2827,7 +2830,7 @@ private fun buildRichAnnotatedString(
                         fontFamily = FontFamily.Monospace,
                         background = Color(0x24D97706),
                         fontWeight = FontWeight.SemiBold,
-                        color = ClaudeTerracotta,
+                        color = if (isDark) Color(0xFFE8E5DF) else Color(0xFF92400E),
                         fontSize = 12.5.sp
                     )
                 )
@@ -2887,7 +2890,7 @@ private fun buildRichAnnotatedString(
                     SpanStyle(
                         fontFamily = FontFamily.Serif,
                         fontStyle = FontStyle.Italic,
-                        color = ClaudeTerracotta,
+                        color = if (isDark) Color(0xFFE8E5DF) else Color(0xFF92400E),
                         fontWeight = FontWeight.Medium
                     )
                 )

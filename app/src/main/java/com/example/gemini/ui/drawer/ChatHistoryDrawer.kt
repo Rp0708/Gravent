@@ -82,6 +82,8 @@ import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
 import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.GeminiBlue
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import androidx.compose.material.icons.outlined.Share
 import com.example.gemini.ui.components.ConversationExportHelper
 import com.example.gemini.ui.components.ConversationShareHelper
@@ -454,7 +456,7 @@ fun ChatHistoryDrawer(
             },
             title = {
                 Text(
-                    text = "Exit AntiGem?",
+                    text = "Exit Gravent?",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -604,17 +606,18 @@ fun ChatHistoryDrawer(
         AlertDialog(
             onDismissRequest = { fileToCreateConv = null },
             icon = {
+                val accent = graventTokens().accent
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                        .background(accent.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        tint = ClaudeTerracotta,
+                        tint = accent,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -635,7 +638,7 @@ fun ChatHistoryDrawer(
                     Text(
                         text = locationHint,
                         fontSize = 12.sp,
-                        color = ClaudeTerracotta,
+                        color = graventTokens().accent,
                         fontWeight = FontWeight.Medium
                     )
                     OutlinedTextField(
@@ -676,10 +679,7 @@ fun ChatHistoryDrawer(
                         newFileNameInput = "notes.md"
                         newFileContentInput = ""
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ClaudeTerracotta,
-                        contentColor = Color.White
-                    ),
+                    colors = graventPrimaryButtonColors(),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -713,10 +713,11 @@ fun ChatHistoryDrawer(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
-                border = BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f))
+                border = BorderStroke(1.dp, graventTokens().accent.copy(alpha = 0.35f))
             ) {
                 var selectedMenuMode by remember { mutableStateOf(0) } // 0: Gravent Hub, 1: React Bits Demo
                 var activeItemValue by remember { mutableStateOf("agent_agy") }
+                val branchAccent = graventTokens().accent
 
                 Column(
                     modifier = Modifier
@@ -738,13 +739,13 @@ fun ChatHistoryDrawer(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                                    .background(branchAccent.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.CallSplit,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = branchAccent,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -761,11 +762,11 @@ fun ChatHistoryDrawer(
                                     )
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = ClaudeTerracotta.copy(alpha = 0.18f)
+                                        color = branchAccent.copy(alpha = 0.18f)
                                     ) {
                                         Text(
                                             text = "REACT BITS",
-                                            color = ClaudeTerracotta,
+                                            color = branchAccent,
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.ExtraBold,
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -812,13 +813,13 @@ fun ChatHistoryDrawer(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp),
                             color = if (selectedMenuMode == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
-                            border = if (selectedMenuMode == 0) BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)) else null
+                            border = if (selectedMenuMode == 0) BorderStroke(1.dp, graventTokens().accent.copy(alpha = 0.35f)) else null
                         ) {
                             Text(
                                 text = "Gravent Hub",
                                 fontSize = 12.sp,
                                 fontWeight = if (selectedMenuMode == 0) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedMenuMode == 0) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (selectedMenuMode == 0) graventTokens().accent else MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 modifier = Modifier.padding(vertical = 6.dp)
                             )
@@ -832,13 +833,13 @@ fun ChatHistoryDrawer(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp),
                             color = if (selectedMenuMode == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
-                            border = if (selectedMenuMode == 1) BorderStroke(1.dp, ClaudeTerracotta.copy(alpha = 0.35f)) else null
+                            border = if (selectedMenuMode == 1) BorderStroke(1.dp, graventTokens().accent.copy(alpha = 0.35f)) else null
                         ) {
                             Text(
                                 text = "React Bits Demo",
                                 fontSize = 12.sp,
                                 fontWeight = if (selectedMenuMode == 1) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedMenuMode == 1) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (selectedMenuMode == 1) graventTokens().accent else MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 modifier = Modifier.padding(vertical = 6.dp)
                             )
@@ -848,12 +849,13 @@ fun ChatHistoryDrawer(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Branched Menu Component container
+                    val drawerTokens = graventTokens()
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp)),
-                        color = Color(0xFF111115),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        color = drawerTokens.canvasBg,
+                        border = BorderStroke(1.dp, drawerTokens.border)
                     ) {
                         Box(
                             modifier = Modifier
@@ -911,9 +913,9 @@ fun ChatHistoryDrawer(
                                     }
                                 },
                                 width = 320.dp,
-                                accentColor = ClaudeTerracotta,
-                                lineColor = Color(0xFF2E2E38),
-                                color = Color(0xFFF1F1F4),
+                                accentColor = drawerTokens.accent,
+                                lineColor = drawerTokens.border,
+                                color = drawerTokens.textPrimary,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -956,17 +958,13 @@ fun ChatHistoryDrawer(
                         .weight(1f)
                         .height(36.dp),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ClaudeTerracotta,
-                        contentColor = Color.Black
-                    ),
+                    colors = graventPrimaryButtonColors(),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "New Chat",
-                        tint = Color.Black,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(5.dp))
@@ -999,17 +997,19 @@ fun ChatHistoryDrawer(
                     }
                 }
 
+                val actionAccent = graventTokens().accent
+
                 // Workspace Folder Grouping Toggle Button
                 Surface(
                     onClick = { onToggleGroupByWorkspace(!groupByWorkspace) },
                     modifier = Modifier.size(36.dp),
                     shape = RoundedCornerShape(10.dp),
-                    color = if (groupByWorkspace) ClaudeTerracotta.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                    color = if (groupByWorkspace) actionAccent.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                         alpha = 0.5f
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (groupByWorkspace) ClaudeTerracotta.copy(alpha = 0.45f)
+                        if (groupByWorkspace) actionAccent.copy(alpha = 0.45f)
                         else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                     )
                 ) {
@@ -1017,7 +1017,7 @@ fun ChatHistoryDrawer(
                         Icon(
                             imageVector = Icons.Default.Folder,
                             contentDescription = if (groupByWorkspace) "Disable Workspace Grouping" else "Group by Workspace",
-                            tint = if (groupByWorkspace) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            tint = if (groupByWorkspace) actionAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.8f
                             ),
                             modifier = Modifier.size(17.dp)
@@ -1036,12 +1036,12 @@ fun ChatHistoryDrawer(
                     },
                     modifier = Modifier.size(36.dp),
                     shape = RoundedCornerShape(10.dp),
-                    color = if (isSearchActive || searchQuery.isNotBlank()) ClaudeTerracotta.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                    color = if (isSearchActive || searchQuery.isNotBlank()) actionAccent.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                         alpha = 0.5f
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (isSearchActive || searchQuery.isNotBlank()) ClaudeTerracotta.copy(alpha = 0.45f)
+                        if (isSearchActive || searchQuery.isNotBlank()) actionAccent.copy(alpha = 0.45f)
                         else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                     )
                 ) {
@@ -1049,7 +1049,7 @@ fun ChatHistoryDrawer(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = if (isSearchActive || searchQuery.isNotBlank()) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            tint = if (isSearchActive || searchQuery.isNotBlank()) actionAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.8f
                             ),
                             modifier = Modifier.size(17.dp)
@@ -1072,12 +1072,12 @@ fun ChatHistoryDrawer(
                     },
                     modifier = Modifier.size(36.dp),
                     shape = RoundedCornerShape(10.dp),
-                    color = if (hasExpandedBranches) ClaudeTerracotta.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                    color = if (hasExpandedBranches) actionAccent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                         alpha = 0.5f
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (hasExpandedBranches) ClaudeTerracotta.copy(alpha = 0.5f)
+                        if (hasExpandedBranches) actionAccent.copy(alpha = 0.5f)
                         else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                     )
                 ) {
@@ -1085,7 +1085,7 @@ fun ChatHistoryDrawer(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.CallSplit,
                             contentDescription = "Toggle Branches",
-                            tint = if (hasExpandedBranches) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            tint = if (hasExpandedBranches) actionAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.85f
                             ),
                             modifier = Modifier.size(17.dp)
@@ -1103,13 +1103,14 @@ fun ChatHistoryDrawer(
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
+                val searchFilterAccent = graventTokens().accent
                 Column(modifier = Modifier.padding(bottom = 8.dp)) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                         border = BorderStroke(
                             1.dp,
-                            if (searchQuery.isNotBlank()) ClaudeTerracotta.copy(alpha = 0.5f)
+                            if (searchQuery.isNotBlank()) searchFilterAccent.copy(alpha = 0.5f)
                             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
                         ),
                         modifier = Modifier.fillMaxWidth()
@@ -1123,7 +1124,7 @@ fun ChatHistoryDrawer(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = if (searchQuery.isNotBlank()) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                tint = if (searchQuery.isNotBlank()) searchFilterAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                     alpha = 0.7f
                                 ),
                                 modifier = Modifier.size(16.dp)
@@ -1141,7 +1142,7 @@ fun ChatHistoryDrawer(
                                     fontSize = 13.5.sp,
                                     lineHeight = 18.sp
                                 ),
-                                cursorBrush = SolidColor(ClaudeTerracotta),
+                                cursorBrush = SolidColor(searchFilterAccent),
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(vertical = 1.dp),
@@ -1180,7 +1181,7 @@ fun ChatHistoryDrawer(
                                 Icon(
                                     imageVector = Icons.Default.Tune,
                                     contentDescription = "Advanced Search",
-                                    tint = ClaudeTerracotta,
+                                    tint = searchFilterAccent,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -1204,7 +1205,7 @@ fun ChatHistoryDrawer(
                                 text = "Advanced Search ›",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = ClaudeTerracotta,
+                                color = searchFilterAccent,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
                                     .clickable { showFullSearchDialog = true }
@@ -1216,6 +1217,7 @@ fun ChatHistoryDrawer(
             }
 
             if (hasBothAgents || agentFilter != null) {
+                val filterAccent = graventTokens().accent
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1229,7 +1231,7 @@ fun ChatHistoryDrawer(
                         com.example.gemini.domain.model.AgentKind.COPILOT to "Copilot"
                     ).forEach { (agent, label) ->
                         val selected = agentFilter == agent
-                        val accent = agent?.accent() ?: ClaudeTerracotta
+                        val accent = agent?.accent() ?: filterAccent
                         Text(
                             text = label,
                             fontSize = 11.5.sp,
@@ -1432,6 +1434,7 @@ fun ChatHistoryDrawer(
                                             }
                                             if (groupName != "General") {
                                                 Spacer(modifier = Modifier.width(6.dp))
+                                                val wsAccent = graventTokens().accent
                                                 Surface(
                                                     onClick = {
                                                         val wsUri = chats.firstOrNull()?.workspaceUri ?: ""
@@ -1440,14 +1443,14 @@ fun ChatHistoryDrawer(
                                                         }
                                                     },
                                                     shape = CircleShape,
-                                                    color = ClaudeTerracotta.copy(alpha = 0.14f),
+                                                    color = wsAccent.copy(alpha = 0.14f),
                                                     modifier = Modifier.size(22.dp)
                                                 ) {
                                                     Box(contentAlignment = Alignment.Center) {
                                                         Icon(
                                                             imageVector = Icons.Default.Add,
                                                             contentDescription = "New chat in $groupName",
-                                                            tint = ClaudeTerracotta,
+                                                            tint = wsAccent,
                                                             modifier = Modifier.size(13.dp)
                                                         )
                                                     }
@@ -1519,6 +1522,7 @@ fun ChatHistoryDrawer(
 
                                     if (chats.size > 5) {
                                         item(key = "more_$groupName") {
+                                            val moreAccent = graventTokens().accent
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier
@@ -1534,13 +1538,13 @@ fun ChatHistoryDrawer(
                                                     text = if (isExpanded) "Show less" else "Show ${chats.size - 5} more",
                                                     fontSize = 11.5.sp,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = ClaudeTerracotta
+                                                    color = moreAccent
                                                 )
                                                 Spacer(modifier = Modifier.width(2.dp))
                                                 Icon(
                                                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                                     contentDescription = null,
-                                                    tint = ClaudeTerracotta,
+                                                    tint = moreAccent,
                                                     modifier = Modifier.size(14.dp)
                                                 )
                                             }
@@ -1594,13 +1598,14 @@ fun ChatHistoryDrawer(
                 }
 
                 // Profile / Login on right
+                val footerAccent = graventTokens().accent
                 if (accountsButton != null) {
                     accountsButton()
                 } else if (isAuthBusy) {
                     Surface(
                         onClick = { showSigningInProgressDialog = true },
                         shape = RoundedCornerShape(14.dp),
-                        color = ClaudeTerracotta.copy(alpha = 0.12f),
+                        color = footerAccent.copy(alpha = 0.12f),
                         modifier = Modifier.height(30.dp)
                     ) {
                         Row(
@@ -1610,14 +1615,14 @@ fun ChatHistoryDrawer(
                             Box(
                                 modifier = Modifier
                                     .size(6.dp)
-                                    .background(ClaudeTerracotta, CircleShape)
+                                    .background(footerAccent, CircleShape)
                             )
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
                                 text = "Signing In...",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = ClaudeTerracotta
+                                color = footerAccent
                             )
                         }
                     }
@@ -1631,7 +1636,7 @@ fun ChatHistoryDrawer(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    ClaudeTerracotta.copy(alpha = 0.4f)
+                                    footerAccent.copy(alpha = 0.4f)
                                 )
                             ) {
                                 Row(
@@ -1649,10 +1654,11 @@ fun ChatHistoryDrawer(
                                             .clip(CircleShape),
                                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                                         loading = {
+                                            val drawerTokens = graventTokens()
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .background(ClaudeTerracotta),
+                                                    .background(drawerTokens.accent),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 val initial =
@@ -1661,15 +1667,16 @@ fun ChatHistoryDrawer(
                                                     text = initial,
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color.White
+                                                    color = drawerTokens.onAccent
                                                 )
                                             }
                                         },
                                         error = {
+                                            val drawerTokens = graventTokens()
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .background(ClaudeTerracotta),
+                                                    .background(drawerTokens.accent),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 val initial =
@@ -1678,7 +1685,7 @@ fun ChatHistoryDrawer(
                                                     text = initial,
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color.White
+                                                    color = drawerTokens.onAccent
                                                 )
                                             }
                                         }
@@ -1702,13 +1709,14 @@ fun ChatHistoryDrawer(
 
                         com.example.gemini.data.remote.SystemStatus.UNAUTHENTICATED -> {
                             // Not logged in (UNAUTHENTICATED) -> Sign In button
+                            val authTokens = graventTokens()
                             FilledTonalButton(
                                 onClick = onLogin,
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = ClaudeTerracotta.copy(alpha = 0.15f),
-                                    contentColor = ClaudeTerracotta
+                                    containerColor = authTokens.accentSoftBg,
+                                    contentColor = authTokens.accent
                                 ),
                                 modifier = Modifier.height(32.dp)
                             ) {
@@ -1896,12 +1904,13 @@ private fun ChatHistoryItemRow(
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val rowAccent = graventTokens().accent
         if (isSubagent) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.CallSplit,
                     contentDescription = "Subagent",
-                    tint = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    tint = if (isSelected) rowAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.size(15.dp)
                 )
                 if (statusDotColor != null) {
@@ -1920,7 +1929,7 @@ private fun ChatHistoryItemRow(
                 Icon(
                     imageVector = Icons.Outlined.ChatBubbleOutline,
                     contentDescription = null,
-                    tint = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    tint = if (isSelected) rowAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.size(17.dp)
                 )
                 if (statusDotColor != null) {
@@ -1947,7 +1956,7 @@ private fun ChatHistoryItemRow(
                 fontWeight = if (isSelected) FontWeight.SemiBold else if (isSubagent) FontWeight.Medium else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = if (isSubagent && isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                color = if (isSubagent && isSelected) rowAccent else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f, fill = false)
             )
 
@@ -1960,12 +1969,12 @@ private fun ChatHistoryItemRow(
                 }
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isSubagentsExpanded) ClaudeTerracotta.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                    color = if (isSubagentsExpanded) rowAccent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                         alpha = 0.65f
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (isSubagentsExpanded) ClaudeTerracotta.copy(alpha = 0.45f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                        if (isSubagentsExpanded) rowAccent.copy(alpha = 0.45f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
                     ),
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
@@ -1979,7 +1988,7 @@ private fun ChatHistoryItemRow(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.CallSplit,
                             contentDescription = null,
-                            tint = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            tint = if (isSubagentsExpanded) rowAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             modifier = Modifier.size(11.dp)
                         )
                         if (totalChildren > 0) {
@@ -1987,13 +1996,13 @@ private fun ChatHistoryItemRow(
                                 text = "$totalChildren",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isSubagentsExpanded) rowAccent else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Icon(
                             imageVector = if (isSubagentsExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = if (isSubagentsExpanded) "Collapse branches" else "Expand branches",
-                            tint = if (isSubagentsExpanded) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            tint = if (isSubagentsExpanded) rowAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             modifier = Modifier.size(12.dp)
                         )
                     }
@@ -2124,7 +2133,7 @@ private fun ChatHistoryItemRow(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.CallSplit,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = rowAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -2227,7 +2236,7 @@ private fun ChatHistoryItemRow(
                         Icon(
                             imageVector = Icons.Outlined.Share,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = rowAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -2251,7 +2260,7 @@ private fun ChatHistoryItemRow(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            tint = ClaudeTerracotta,
+                            tint = rowAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -2307,7 +2316,7 @@ private fun ChatHistoryItemRow(
             onOpenFile = onOpenFile,
             onSelectSubagent = onSelectConversation,
             onAddFileClick = { onAddFile(conv) },
-            accentColor = ClaudeTerracotta,
+            accentColor = rowAccent,
             modifier = Modifier.padding(start = startPadding)
         )
     }
@@ -2396,17 +2405,18 @@ fun SearchChatsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        val searchAccent = graventTokens().accent
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(ClaudeTerracotta.copy(alpha = 0.15f)),
+                                .background(searchAccent.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = ClaudeTerracotta,
+                                tint = searchAccent,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -2446,7 +2456,7 @@ fun SearchChatsDialog(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                     border = BorderStroke(
                         1.5.dp,
-                        if (query.isNotBlank()) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(
+                        if (query.isNotBlank()) graventTokens().accent else MaterialTheme.colorScheme.outlineVariant.copy(
                             alpha = 0.3f
                         )
                     ),
@@ -2461,7 +2471,7 @@ fun SearchChatsDialog(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = if (query.isNotBlank()) ClaudeTerracotta else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            tint = if (query.isNotBlank()) graventTokens().accent else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.6f
                             ),
                             modifier = Modifier.size(18.dp)
@@ -2476,7 +2486,7 @@ fun SearchChatsDialog(
                                 fontSize = 14.sp,
                                 lineHeight = 20.sp
                             ),
-                            cursorBrush = SolidColor(ClaudeTerracotta),
+                            cursorBrush = SolidColor(graventTokens().accent),
                             modifier = Modifier.weight(1f),
                             decorationBox = { innerTextField ->
                                 if (query.isEmpty()) {
@@ -2507,6 +2517,8 @@ fun SearchChatsDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                val chipAccent = graventTokens().accent
+
                 // Filter chips (Time & Workspace)
                 Row(
                     modifier = Modifier
@@ -2520,12 +2532,12 @@ fun SearchChatsDialog(
                         val isSelected = selectedTimeFilter == timeLabel
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                            color = if (isSelected) chipAccent.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                                 alpha = 0.35f
                             ),
                             border = BorderStroke(
                                 1.dp,
-                                if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(
+                                if (isSelected) chipAccent else MaterialTheme.colorScheme.outlineVariant.copy(
                                     alpha = 0.2f
                                 )
                             ),
@@ -2537,7 +2549,7 @@ fun SearchChatsDialog(
                                 text = timeLabel,
                                 fontSize = 11.5.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(
+                                color = if (isSelected) chipAccent else MaterialTheme.colorScheme.onSurface.copy(
                                     alpha = 0.8f
                                 ),
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
@@ -2557,12 +2569,12 @@ fun SearchChatsDialog(
                             val isSelected = selectedWorkspaceFilter == wsName
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                                color = if (isSelected) chipAccent.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                                     alpha = 0.35f
                                 ),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.outlineVariant.copy(
+                                    if (isSelected) chipAccent else MaterialTheme.colorScheme.outlineVariant.copy(
                                         alpha = 0.2f
                                     )
                                 ),
@@ -2579,7 +2591,7 @@ fun SearchChatsDialog(
                                         Icon(
                                             imageVector = Icons.Default.Folder,
                                             contentDescription = null,
-                                            tint = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(
+                                            tint = if (isSelected) chipAccent else MaterialTheme.colorScheme.onSurface.copy(
                                                 alpha = 0.6f
                                             ),
                                             modifier = Modifier.size(12.dp)
@@ -2589,7 +2601,7 @@ fun SearchChatsDialog(
                                         text = wsName,
                                         fontSize = 11.5.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface.copy(
+                                        color = if (isSelected) chipAccent else MaterialTheme.colorScheme.onSurface.copy(
                                             alpha = 0.8f
                                         )
                                     )
@@ -2650,14 +2662,15 @@ fun SearchChatsDialog(
                     ) {
                         items(results, key = { it.id }) { conv ->
                             val isSelected = conv.id == currentConversationId
+                            val resultAccent = graventTokens().accent
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) ClaudeTerracotta.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+                                color = if (isSelected) resultAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(
                                     alpha = 0.35f
                                 ),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (isSelected) ClaudeTerracotta.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(
+                                    if (isSelected) resultAccent.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(
                                         alpha = 0.15f
                                     )
                                 ),
@@ -2683,7 +2696,7 @@ fun SearchChatsDialog(
                                             text = conv.title,
                                             fontSize = 13.5.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (isSelected) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface,
+                                            color = if (isSelected) resultAccent else MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.weight(1f)
@@ -2747,13 +2760,13 @@ fun SearchChatsDialog(
                                         if (conv.modelId.isNotBlank()) {
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
-                                                color = ClaudeTerracotta.copy(alpha = 0.1f)
+                                                color = resultAccent.copy(alpha = 0.1f)
                                             ) {
                                                 Text(
                                                     text = conv.modelId.substringAfterLast('/'),
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = ClaudeTerracotta,
+                                                    color = resultAccent,
                                                     modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                                 )
                                             }

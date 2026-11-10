@@ -36,6 +36,9 @@ import com.example.gemini.data.daemon.FsItemNode
 import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventRadioColors
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
@@ -377,7 +380,7 @@ fun FileManagerDialog(
                                 selectedTemplate = "python"
                                 showNewProjectDialog = true
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                            colors = graventPrimaryButtonColors(),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier
@@ -430,7 +433,7 @@ fun FileManagerDialog(
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Button(
                                     onClick = { jumpTo("~") },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                                    colors = graventPrimaryButtonColors(),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -690,7 +693,7 @@ fun FileManagerDialog(
                                     },
                                     enabled = saveFileNameInput.isNotBlank(),
                                     shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                                    colors = graventPrimaryButtonColors(),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(44.dp)
@@ -709,14 +712,14 @@ fun FileManagerDialog(
                                     onDismiss()
                                 },
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                                colors = graventPrimaryButtonColors(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(44.dp)
                             ) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Open this folder as Project", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                Text("Open this folder as Project", fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -759,9 +762,9 @@ fun FileManagerDialog(
                         }
                     },
                     enabled = inputName.isNotBlank() && !isOperating,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Create", color = Color.Black)
+                    Text("Create")
                 }
             },
             dismissButton = {
@@ -804,9 +807,9 @@ fun FileManagerDialog(
                         }
                     },
                     enabled = inputName.isNotBlank() && !isOperating,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Create", color = Color.Black)
+                    Text("Create")
                 }
             },
             dismissButton = {
@@ -861,7 +864,7 @@ fun FileManagerDialog(
                                     RadioButton(
                                         selected = isSel,
                                         onClick = { selectedTemplate = tmplKey },
-                                        colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                        colors = graventRadioColors()
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(tmplLabel, fontSize = 13.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
@@ -889,9 +892,9 @@ fun FileManagerDialog(
                         }
                     },
                     enabled = inputName.isNotBlank() && !isOperating,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Create & Open", color = Color.Black)
+                    Text("Create & Open")
                 }
             },
             dismissButton = {

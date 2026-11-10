@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 
 @Composable
 fun ThinkingAccordion(
@@ -33,6 +33,7 @@ fun ThinkingAccordion(
     isStreaming: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val t = graventTokens()
     var isExpanded by remember { mutableStateOf(isStreaming) }
     var hasUserManuallyToggled by remember { mutableStateOf(false) }
 
@@ -87,7 +88,7 @@ fun ThinkingAccordion(
             Icon(
                 imageVector = Icons.Outlined.Psychology,
                 contentDescription = "Thinking",
-                tint = ClaudeTerracotta.copy(alpha = 0.85f),
+                tint = t.accent.copy(alpha = 0.85f),
                 modifier = Modifier.size(15.dp)
             )
 
@@ -98,14 +99,14 @@ fun ThinkingAccordion(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(ClaudeTerracotta)
+                        .background(t.accent)
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = "Thinking...",
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = ClaudeTerracotta
+                    color = t.accent
                 )
             } else {
                 val title = if (durationMs != null && durationMs > 0) "Thought for ${formatDuration(durationMs)}" else "Thinking process"

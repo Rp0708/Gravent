@@ -18,6 +18,8 @@ kotlinxSerializationJson = "1.7.3"
 datastore = "1.1.1"
 wire = "7.0.4"
 androidxWebkit = "1.17.1"
+detekt = "2.0.0-alpha.6"
+composeRulesDetekt = "0.6.8"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -49,9 +51,11 @@ wire-grpc-client = { module = "com.squareup.wire:wire-grpc-client", version.ref 
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
+compose-rules-detekt = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "composeRulesDetekt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 wire = { id = "com.squareup.wire", version.ref = "wire" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }

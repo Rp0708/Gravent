@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.domain.model.TokenUsage
 import com.example.gemini.domain.model.TurnDiffStats
+import com.example.gemini.theme.graventTokens
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -54,11 +55,41 @@ internal fun formatTelemetryDuration(ms: Long): String {
         ms <= 0L -> ""
         ms < 1000L -> "${ms}ms"
         ms < 60_000L -> String.format(Locale.US, "%.1fs", ms / 1000.0)
-        else -> {
+        ms < 3_600_000L -> {
             val mins = ms / 60_000L
             val secs = (ms / 1000L) % 60L
-            "${mins}m ${secs}s"
+            if (secs > 0L) "${mins}m ${secs}s" else "${mins}m"
         }
+        ms < 86_400_000L -> {
+            val hours = ms / 3_600_000L
+            val mins = (ms % 3_600_000L) / 60_000L
+            if (mins > 0L) "${hours}h ${mins}m" else "${hours}h"
+        }
+        else -> {
+            val days = ms / 86_400_000L
+            val hours = (ms % 86_400_000L) / 3_600_000L
+            if (hours > 0L) "${days}d ${hours}h" else "${days}d"
+        }
+    }
+}
+
+internal fun formatFriendlyModelName(
+    rawModelId: String?,
+    resolver: ((String) -> String)? = null
+): String {
+    val trimmed = rawModelId?.trim().orEmpty()
+    if (trimmed.isEmpty()) return "Default model"
+    val resolved = resolver?.invoke(trimmed)?.trim()
+    if (!resolved.isNullOrBlank() && resolved != trimmed && !resolved.startsWith("MODEL_PLACEHOLDER_")) {
+        return resolved
+    }
+    return when {
+        trimmed.startsWith("MODEL_PLACEHOLDER_") -> {
+            val code = trimmed.removePrefix("MODEL_PLACEHOLDER_").replace('_', ' ').trim()
+            if (code.isBlank()) "Gemini Model" else "Model ($code)"
+        }
+        trimmed.contains('/') -> trimmed.substringAfterLast('/')
+        else -> trimmed
     }
 }
 
@@ -104,15 +135,15 @@ fun ResponseTelemetryPill(
     val hasTimestamp = createdAtMs > 0L
     if (usage == null && !hasDiff && !hasTimestamp) return
 
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val pillBg = if (isDark) Color(0xFF131317) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-    val pillBorder = if (isDark) Color(0xFF26262C) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-    val mutedColor = if (isDark) Color(0xFF7B7B86) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-    val valueColor = if (isDark) Color(0xFFE4E4E9) else MaterialTheme.colorScheme.onSurface
-    val inputAccent = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8)
-    val cacheColor = if (isDark) Color(0xFFFBBF24) else Color(0xFFB45309)
-    val addColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
-    val delColor = if (isDark) Color(0xFFF87171) else Color(0xFFB91C1C)
+    val t = graventTokens()
+    val pillBg = if (t.isDark) Color(0xFF131317) else t.cardBg
+    val pillBorder = if (t.isDark) Color(0xFF26262C) else t.border
+    val mutedColor = t.textSecondary
+    val valueColor = t.textPrimary
+    val inputAccent = if (t.isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8)
+    val cacheColor = t.warnAmber
+    val addColor = t.gitAdd
+    val delColor = t.gitDel
 
     val cachePct = if (usage != null && usage.cachedTokens > 0 && (usage.promptTokens + usage.cachedTokens) > 0) {
         ((usage.cachedTokens.toDouble() / (usage.promptTokens + usage.cachedTokens)) * 100).toInt().coerceIn(0, 100)
@@ -287,13 +318,13 @@ fun TurnGitOperationsChip(
 ) {
     if (diffStats == null || (diffStats.additions <= 0 && diffStats.deletions <= 0 && diffStats.filesChanged <= 0)) return
 
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val chipBg = if (isDark) Color(0xFF141715) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    val chipBorder = if (isDark) Color(0xFF262D28) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-    val dividerColor = if (isDark) Color(0xFF2B322D) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
-    val addColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
-    val delColor = if (isDark) Color(0xFFF87171) else Color(0xFFB91C1C)
-    val mutedColor = if (isDark) Color(0xFF9CA3AF) else MaterialTheme.colorScheme.onSurfaceVariant
+    val t = graventTokens()
+    val chipBg = t.gitAddBg
+    val chipBorder = t.gitAddBorder
+    val dividerColor = t.subtleBorder
+    val addColor = t.gitAdd
+    val delColor = t.gitDel
+    val mutedColor = t.textSecondary
 
     Surface(
         modifier = modifier
@@ -350,7 +381,7 @@ fun TurnGitOperationsChip(
             Icon(
                 imageVector = Icons.Outlined.Info,
                 contentDescription = "Prompt Git diff details",
-                tint = if (isDark) Color(0xFFE8E5DF) else MaterialTheme.colorScheme.onSurface,
+                tint = t.accent,
                 modifier = Modifier.size(13.dp)
             )
         }

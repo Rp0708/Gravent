@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
 
 @Composable
 fun EngineWarmingUpView(
@@ -495,22 +496,17 @@ fun NewChatSignInPromptCard(
         Button(
             onClick = onSignInClick,
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = ClaudeTerracotta,
-                contentColor = Color.Black
-            ),
+            colors = graventPrimaryButtonColors(),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.Login,
                 contentDescription = null,
-                tint = Color.Black,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Sign In",
-                color = Color.Black,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )

@@ -33,12 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gemini.theme.ClaudeDarkSurface
 import com.example.gemini.theme.QuotaAmber
 import com.example.gemini.theme.QuotaGreen
 import com.example.gemini.theme.QuotaRed
+import com.example.gemini.theme.graventTokens
 import com.example.gemini.theme.isAppInDarkTheme
-import com.example.gemini.ui.components.ClaudeAccent
 
 /** Uppercase group label used to separate Antigravity / Claude Code / App settings. */
 @Composable
@@ -67,7 +66,7 @@ fun SettingsGroupHeader(title: String, accent: Color, subtitle: String? = null, 
 }
 
 @Composable
-fun claudeCardColor(): Color = Color(0xFF09090B)
+fun claudeCardColor(): Color = graventTokens().cardBg
 
 /** Navigation card matching the existing settings cards (Monochrome B&W standard). */
 @Composable
@@ -76,18 +75,21 @@ fun ClaudeNavCard(
     title: String,
     subtitle: String,
     badge: String? = null,
-    badgeColor: Color = Color(0xFFD4D4D8),
-    tint: Color = Color(0xFF8E8E93),
+    badgeColor: Color = Color.Unspecified,
+    tint: Color = Color.Unspecified,
     onClick: () -> Unit
 ) {
+    val t = graventTokens()
+    val resolvedTint = if (tint == Color.Unspecified) t.textSecondary else tint
+    val resolvedBadgeColor = if (badgeColor == Color.Unspecified) t.textPrimary else badgeColor
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF141417),
-        border = BorderStroke(1.dp, Color(0xFF222226))
+        color = t.cardBg,
+        border = BorderStroke(1.dp, t.border)
     ) {
         Row(
             modifier = Modifier
@@ -102,7 +104,7 @@ fun ClaudeNavCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color(0xFF8E8E93),
+                    tint = resolvedTint,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -112,14 +114,14 @@ fun ClaudeNavCard(
                     text = title,
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFFAFAFA),
+                    color = t.textPrimary,
                     letterSpacing = (-0.2).sp
                 )
                 Spacer(Modifier.height(1.5.dp))
                 Text(
                     text = subtitle,
                     fontSize = 11.sp,
-                    color = Color(0xFF8E8E93),
+                    color = t.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -128,15 +130,15 @@ fun ClaudeNavCard(
                 Spacer(Modifier.width(8.dp))
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = Color(0xFF18181B),
-                    border = BorderStroke(1.dp, Color(0xFF27272A))
+                    color = t.chipBg,
+                    border = BorderStroke(1.dp, t.border)
                 ) {
                     Text(
                         text = badge.uppercase(),
                         fontSize = 9.5.sp,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFFD4D4D8),
+                        color = resolvedBadgeColor,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
@@ -145,7 +147,7 @@ fun ClaudeNavCard(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color(0xFF52525B),
+                tint = t.textMuted,
                 modifier = Modifier.size(15.dp)
             )
         }

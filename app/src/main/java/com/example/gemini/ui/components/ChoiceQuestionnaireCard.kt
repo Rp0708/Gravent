@@ -28,6 +28,8 @@ import com.example.gemini.data.remote.dto.AskQuestionResponseItemDto
 import com.example.gemini.domain.model.*
 import com.example.gemini.theme.ClaudeTerracotta
 import com.example.gemini.theme.QuotaGreen
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 
 /** True where the chat shows unanswered questions in the docked question panel; the card then stays compact. */
 val LocalQuestionPanelActive = staticCompositionLocalOf { false }
@@ -96,15 +98,16 @@ fun ChoiceQuestionnaireCard(
     val hasSelections = selectedOptions.values.any { it.isNotEmpty() } ||
             customAnswers.values.any { it.isNotBlank() }
 
+    val cardTokens = graventTokens()
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF1B1C21),
+        color = cardTokens.cardBg,
         border = BorderStroke(
             1.2.dp,
-            if (isCompleted) QuotaGreen.copy(alpha = 0.5f) else Color(0xFF2E3038)
+            if (isCompleted) QuotaGreen.copy(alpha = 0.5f) else cardTokens.border
         )
     ) {
         Column(
@@ -333,12 +336,7 @@ fun ChoiceQuestionnaireCard(
                                 onSubmit(responses, summary)
                             },
                             enabled = hasSelections,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ClaudeTerracotta,
-                                disabledContainerColor = ClaudeTerracotta.copy(alpha = 0.3f),
-                                contentColor = Color.Black,
-                                disabledContentColor = Color.Black.copy(alpha = 0.4f)
-                            ),
+                            colors = graventPrimaryButtonColors(),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
                             modifier = Modifier.height(34.dp)
@@ -346,13 +344,11 @@ fun ChoiceQuestionnaireCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.Send,
                                 contentDescription = null,
-                                tint = Color.Black,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (questionnaire.questions.size > 1) "Submit All" else "Submit",
-                                color = Color.Black,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -498,16 +494,16 @@ private fun QuestionBlockView(
                         },
                         textStyle = androidx.compose.ui.text.TextStyle(
                             fontSize = 12.5.sp,
-                            color = Color(0xFFE5E7EB)
+                            color = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3,
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ClaudeTerracotta,
-                            unfocusedBorderColor = Color(0xFF374151),
-                            focusedContainerColor = Color(0xFF141519),
-                            unfocusedContainerColor = Color(0xFF141519)
+                            focusedBorderColor = graventTokens().accent,
+                            unfocusedBorderColor = graventTokens().border,
+                            focusedContainerColor = graventTokens().canvasBg,
+                            unfocusedContainerColor = graventTokens().canvasBg
                         )
                     )
                 }
@@ -525,8 +521,9 @@ private fun OptionRow(
     isMultiSelect: Boolean,
     onClick: () -> Unit
 ) {
-    val bgColor = if (isSelected) Color(0xFF2C2F38) else Color(0xFF1E2026)
-    val borderColor = if (isSelected) ClaudeTerracotta.copy(alpha = 0.8f) else Color(0xFF272931)
+    val t = graventTokens()
+    val bgColor = if (isSelected) t.elevatedBg else t.cardBg
+    val borderColor = if (isSelected) t.accent.copy(alpha = 0.78f) else t.border
 
     Surface(
         modifier = Modifier
@@ -543,10 +540,10 @@ private fun OptionRow(
                 .padding(horizontal = 10.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Number Box [ 1 ], [ 2 ], etc. matching screenshot
+            // Number Box [ 1 ], [ 2 ], etc.
             Surface(
                 shape = RoundedCornerShape(4.dp),
-                color = if (isSelected) ClaudeTerracotta else Color(0xFF2A2D36),
+                color = if (isSelected) t.accent else t.elevatedBg,
                 modifier = Modifier.size(20.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -555,7 +552,7 @@ private fun OptionRow(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color.White else Color(0xFFD1D5DB)
+                        color = if (isSelected) t.onAccent else t.textPrimary
                     )
                 }
             }
@@ -568,13 +565,13 @@ private fun OptionRow(
                     text = label,
                     fontSize = 12.5.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) Color(0xFFF3F4F6) else Color(0xFFD1D5DB)
+                    color = t.textPrimary
                 )
                 if (!description.isNullOrBlank()) {
                     Text(
                         text = description,
                         fontSize = 10.5.sp,
-                        color = Color(0xFF9CA3AF)
+                        color = t.textSecondary
                     )
                 }
             }
@@ -586,10 +583,10 @@ private fun OptionRow(
                 modifier = Modifier
                     .size(16.dp)
                     .clip(if (isMultiSelect) RoundedCornerShape(4.dp) else CircleShape)
-                    .background(if (isSelected) ClaudeTerracotta else Color.Transparent)
+                    .background(if (isSelected) t.accent else Color.Transparent)
                     .border(
                         1.2.dp,
-                        if (isSelected) ClaudeTerracotta else Color(0xFF4B5563),
+                        if (isSelected) t.accent else t.border,
                         if (isMultiSelect) RoundedCornerShape(4.dp) else CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -598,7 +595,7 @@ private fun OptionRow(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = t.onAccent,
                         modifier = Modifier.size(11.dp)
                     )
                 }

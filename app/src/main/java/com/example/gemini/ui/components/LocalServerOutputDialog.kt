@@ -44,7 +44,7 @@ fun LocalServerOutputDialog(
     val context = LocalContext.current
     val status by LocalServerManager.status.collectAsState()
     val serverSession by LocalServerManager.serverSession.collectAsState()
-    val isDark = isAppInDarkTheme() || isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     val authPreferences = remember { AuthPreferences(context) }
     val density = androidx.compose.ui.platform.LocalDensity.current

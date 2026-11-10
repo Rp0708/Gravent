@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.gemini.data.preferences.AuthPreferences
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
 
 @Composable
 fun CustomSystemPromptDialog(
@@ -318,10 +319,10 @@ Available slash commands: /goal, /schedule, /browser, /plan, /grill-me, /teamwor
                                     onSavePrompt(promptText.ifBlank { null })
                                     onDismiss()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta),
+                                colors = graventPrimaryButtonColors(),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("Save Prompt", fontSize = 13.sp, color = Color.White)
+                                Text("Save Prompt", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }

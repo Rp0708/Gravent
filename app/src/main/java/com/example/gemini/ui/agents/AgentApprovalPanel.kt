@@ -246,7 +246,7 @@ private fun ApprovalBody(item: ApprovalItem, count: Int, onAllowAll: (() -> Unit
                     Spacer(Modifier.width(6.dp))
                     Button(
                         onClick = { item.onDeny(feedback.trim().ifBlank { null }) },
-                        colors = ButtonDefaults.buttonColors(containerColor = if (item.secondary.isEmpty()) DenyRed else accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (item.secondary.isEmpty()) DenyRed else accent, contentColor = Color.White),
                         shape = RoundedCornerShape(12.dp)
                     ) { Text(item.denyLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                 }
@@ -259,7 +259,7 @@ private fun ApprovalBody(item: ApprovalItem, count: Int, onAllowAll: (() -> Unit
                     onClick = item.primary.onClick,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AllowGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = AllowGreen, contentColor = Color.White)
                 ) { Text(item.primary.label, fontWeight = FontWeight.SemiBold) }
                 item.secondary.forEach { choice ->
                     Spacer(Modifier.height(6.dp))
@@ -310,9 +310,12 @@ private fun ApprovalBody(item: ApprovalItem, count: Int, onAllowAll: (() -> Unit
                 Button(
                     onClick = item.primary.onClick,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AllowGreen),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AllowGreen,
+                        contentColor = Color.White
+                    ),
                     contentPadding = PaddingValues(horizontal = 18.dp)
-                ) { Text(item.primary.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White) }
+                ) { Text(item.primary.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
     }

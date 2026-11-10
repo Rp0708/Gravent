@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.gemini.AppViewMode
-import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -203,10 +203,11 @@ fun FloatingSwitcherWidget(
                 AppViewMode.NOTES -> Icons.Outlined.EditNote
             }
 
+            val t = graventTokens()
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF09090B),
-                border = BorderStroke(1.dp, Color(0xFF222226)),
+                color = t.cardBg,
+                border = BorderStroke(1.dp, t.border),
                 shadowElevation = 12.dp,
                 modifier = Modifier
                     .shadow(12.dp, RoundedCornerShape(20.dp))
@@ -228,13 +229,13 @@ fun FloatingSwitcherWidget(
                         Icon(
                             imageVector = currentModeIcon,
                             contentDescription = "Current Mode",
-                            tint = Color(0xFFFAFAFA),
+                            tint = t.textPrimary,
                             modifier = Modifier.size(16.dp)
                         )
                         Icon(
                             imageVector = expandArrowIcon,
                             contentDescription = "Expand Navigation",
-                            tint = Color(0xFF71717A),
+                            tint = t.textMuted,
                             modifier = Modifier.size(13.dp)
                         )
                     }
@@ -405,10 +406,11 @@ private fun FloatingSwitcherItemButton(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val t = graventTokens()
     Surface(
         shape = CircleShape,
-        color = if (isSelected) Color(0xFFFAFAFA) else Color.Transparent,
-        border = if (isSelected) BorderStroke(1.dp, Color(0xFFFFFFFF)) else null,
+        color = if (isSelected) t.accent else Color.Transparent,
+        border = if (isSelected) BorderStroke(1.dp, t.accent) else null,
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
@@ -418,7 +420,7 @@ private fun FloatingSwitcherItemButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = if (isSelected) Color(0xFF09090B) else Color(0xFFA1A1AA),
+                tint = if (isSelected) t.onAccent else t.textSecondary,
                 modifier = Modifier.size(18.dp)
             )
         }

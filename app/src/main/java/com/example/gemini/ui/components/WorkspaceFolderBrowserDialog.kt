@@ -27,6 +27,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.gemini.data.daemon.IdeApiClient
 import com.example.gemini.data.daemon.ProjectItem
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventPrimaryButtonColors
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -266,19 +267,17 @@ fun WorkspaceFolderBrowserDialog(
                         },
                         modifier = Modifier.weight(1.4f),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                        colors = graventPrimaryButtonColors(),
                         enabled = !isLoading && errorMessage == null && currentPath.isNotBlank() && currentPath != "~"
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Check,
                             contentDescription = null,
-                            tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Choose This Folder",
-                            color = Color.Black,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -329,10 +328,10 @@ fun WorkspaceFolderBrowserDialog(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black),
+                    colors = graventPrimaryButtonColors(),
                     enabled = newFolderName.isNotBlank() && !isCreatingFolder
                 ) {
-                    Text("Create", fontSize = 13.sp, color = Color.Black)
+                    Text("Create", fontSize = 13.sp)
                 }
             },
             dismissButton = {

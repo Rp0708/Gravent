@@ -154,7 +154,7 @@ fun LocalToolsInstallDialog(
                     text = when (installerState) {
                         is LocalInstallerState.Success -> if (isTermux) "Termux-compatible shell, coreutils & toolchain are now active." else "Ubuntu ARM64 container, bash, glibc & AGY tools are ready."
                         is LocalInstallerState.Error -> "Failed to configure local environment. You can retry below."
-                        is LocalInstallerState.Idle -> if (isTermux) "Select how you would like to download and install the Termux rootfs:" else "Select how you would like to set up the Ubuntu Linux container for AntiGem:"
+                        is LocalInstallerState.Idle -> if (isTermux) "Select how you would like to download and install the Termux rootfs:" else "Select how you would like to set up the Ubuntu Linux container for Gravent:"
                         else -> "Downloading and unpacking native Linux toolchain inside your app sandbox."
                     },
                     fontSize = 12.5.sp,
@@ -317,7 +317,7 @@ fun LocalToolsInstallDialog(
                                         )
                                         Spacer(modifier = Modifier.height(3.dp))
                                         Text(
-                                            text = "AntiGem runs a full Ubuntu Linux environment inside a user-space PRoot container on 64-bit ARM. No device root required.",
+                                            text = "Gravent runs a full Ubuntu Linux environment inside a user-space PRoot container on 64-bit ARM. No device root required.",
                                             fontSize = 11.5.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -346,7 +346,7 @@ fun LocalToolsInstallDialog(
                                     RadioButton(
                                         selected = selectedSourceType == 0,
                                         onClick = { selectedSourceType = 0 },
-                                        colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                        colors = graventRadioColors()
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -369,7 +369,7 @@ fun LocalToolsInstallDialog(
                                         }
                                         Text(
                                             text = if (isTermux) {
-                                                "Auto-downloads verified AntiGem rootfs (~350MB) with preconfigured tools and environment"
+                                                "Auto-downloads verified Gravent rootfs (~350MB) with preconfigured tools and environment"
                                             } else {
                                                 "Downloads official minimal Ubuntu ARM64 container rootfs with glibc, bash, and development tools"
                                             },
@@ -397,7 +397,7 @@ fun LocalToolsInstallDialog(
                                         RadioButton(
                                             selected = selectedSourceType == 2,
                                             onClick = { selectedSourceType = 2 },
-                                            colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                            colors = graventRadioColors()
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Column(modifier = Modifier.weight(1f)) {
@@ -465,7 +465,7 @@ fun LocalToolsInstallDialog(
                                         RadioButton(
                                             selected = selectedSourceType == 1,
                                             onClick = { selectedSourceType = 1 },
-                                            colors = RadioButtonDefaults.colors(selectedColor = ClaudeTerracotta)
+                                            colors = graventRadioColors()
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Column(modifier = Modifier.weight(1f)) {
@@ -935,12 +935,11 @@ fun LocalToolsInstallDialog(
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                                colors = graventPrimaryButtonColors()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Download,
                                     contentDescription = null,
-                                    tint = Color.Black,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -950,7 +949,6 @@ fun LocalToolsInstallDialog(
                                         1 -> "Download Base Termux (~33MB)"
                                         else -> if (selectedFileUri != null) "Install Local ZIP" else "Choose ZIP"
                                     },
-                                    color = Color.Black,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -979,11 +977,11 @@ fun LocalToolsInstallDialog(
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                                colors = graventPrimaryButtonColors()
                             ) {
-                                Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                                Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Confirm & Download", color = Color.Black, fontWeight = FontWeight.Bold)
+                                Text("Confirm & Download", fontWeight = FontWeight.Bold)
                             }
 
                             OutlinedButton(
@@ -1013,11 +1011,11 @@ fun LocalToolsInstallDialog(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                            colors = graventPrimaryButtonColors()
                         ) {
-                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Done", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text("Done", fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -1040,11 +1038,11 @@ fun LocalToolsInstallDialog(
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                                    colors = graventPrimaryButtonColors()
                                 ) {
-                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Retry", color = Color.Black, fontSize = 12.5.sp)
+                                    Text("Retry", fontSize = 12.5.sp)
                                 }
 
                                 OutlinedButton(

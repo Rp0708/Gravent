@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.daemon.*
 import com.example.gemini.theme.ClaudeTerracotta
+import com.example.gemini.theme.graventCheckboxColors
+import com.example.gemini.theme.graventPrimaryButtonColors
+import com.example.gemini.theme.graventTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -143,9 +146,10 @@ fun GitSourceControlView(
             ) {
                 if (status?.isGitRepo != false) {
                     Box {
+                        val branchAccent = graventTokens().accent
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = ClaudeTerracotta.copy(alpha = 0.15f),
+                            color = branchAccent.copy(alpha = 0.15f),
                             modifier = Modifier.clickable { showBranchMenu = true }
                         ) {
                             Row(
@@ -155,7 +159,7 @@ fun GitSourceControlView(
                                 Icon(
                                     imageVector = Icons.Default.AltRoute,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = branchAccent,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -163,14 +167,14 @@ fun GitSourceControlView(
                                     text = status?.branch ?: "HEAD",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
-                                    color = ClaudeTerracotta,
+                                    color = branchAccent,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
                                     contentDescription = null,
-                                    tint = ClaudeTerracotta,
+                                    tint = branchAccent,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -197,7 +201,7 @@ fun GitSourceControlView(
                                                 Icon(
                                                     imageVector = Icons.Default.Check,
                                                     contentDescription = null,
-                                                    tint = ClaudeTerracotta,
+                                                    tint = branchAccent,
                                                     modifier = Modifier.size(14.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
@@ -205,7 +209,7 @@ fun GitSourceControlView(
                                             Text(
                                                 text = b.name,
                                                 fontWeight = if (b.isCurrent) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (b.isCurrent) ClaudeTerracotta else MaterialTheme.colorScheme.onSurface
+                                                color = if (b.isCurrent) branchAccent else MaterialTheme.colorScheme.onSurface
                                             )
                                         }
                                     },
@@ -263,16 +267,17 @@ fun GitSourceControlView(
                             )
                         }
                         if (unpushedCount > 0) {
+                            val scTokens = graventTokens()
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = ClaudeTerracotta,
+                                color = scTokens.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .offset(x = 2.dp, y = (-2).dp)
                             ) {
                                 Text(
                                     text = if (unpushedCount > 99) "99+" else "$unpushedCount",
-                                    color = Color.White,
+                                    color = scTokens.onAccent,
                                     fontSize = 8.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 3.5.dp, vertical = 0.5.dp)
@@ -413,10 +418,10 @@ fun GitSourceControlView(
                                 }
                             },
                             enabled = !isOperating,
-                            colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                            colors = graventPrimaryButtonColors()
                         ) {
                             if (isOperating) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black, strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = graventTokens().onAccent, strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(8.dp))
                             } else {
                                 Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
@@ -498,22 +503,19 @@ fun GitSourceControlView(
                 },
                 enabled = !isOperating && (status?.hasChanges == true || commitMessage.isNotBlank()),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ClaudeTerracotta,
-                    contentColor = Color.Black
-                ),
+                colors = graventPrimaryButtonColors(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(36.dp)
             ) {
                 if (isOperating) {
-                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.Black, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), color = graventTokens().onAccent, strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                 } else {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                 }
-                Text("Commit", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text("Commit", fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -911,7 +913,7 @@ fun GitSourceControlView(
                         Checkbox(
                             checked = configIsGlobal,
                             onCheckedChange = { configIsGlobal = it },
-                            colors = CheckboxDefaults.colors(checkedColor = ClaudeTerracotta)
+                            colors = graventCheckboxColors()
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Column {
@@ -953,9 +955,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text(if (configPromptReason != null) "Save & Continue" else "Save", color = Color.Black)
+                    Text(if (configPromptReason != null) "Save & Continue" else "Save")
                 }
             },
             dismissButton = {
@@ -1066,7 +1068,7 @@ fun GitSourceControlView(
                         showNewBranchDialog = false
                     }
                 ) {
-                    Text("Create", fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                    Text("Create", fontWeight = FontWeight.Bold, color = graventTokens().accent)
                 }
             },
             dismissButton = {
@@ -1136,7 +1138,7 @@ fun GitSourceControlView(
                         showStashDialog = false
                     }
                 ) {
-                    Text("Stash", fontWeight = FontWeight.Bold, color = ClaudeTerracotta)
+                    Text("Stash", fontWeight = FontWeight.Bold, color = graventTokens().accent)
                 }
             },
             dismissButton = {
@@ -1169,7 +1171,7 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White)
                 ) {
                     Text("Discard")
                 }
@@ -1201,7 +1203,7 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White)
                 ) {
                     Text("Discard All")
                 }
@@ -1234,7 +1236,7 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White)
                 ) {
                     Text("Discard Untracked")
                 }
@@ -1268,9 +1270,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Unstage All", color = Color.Black)
+                    Text("Unstage All")
                 }
             },
             dismissButton = {
@@ -1285,7 +1287,7 @@ fun GitSourceControlView(
     if (showPullDialog) {
         AlertDialog(
             onDismissRequest = { showPullDialog = false },
-            icon = { Icon(Icons.Default.CloudDownload, contentDescription = null, tint = ClaudeTerracotta) },
+            icon = { Icon(Icons.Default.CloudDownload, contentDescription = null, tint = graventTokens().accent) },
             title = { Text("Git Pull", fontWeight = FontWeight.Bold) },
             text = { Text("Pull latest changes from the remote repository?") },
             confirmButton = {
@@ -1305,9 +1307,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Pull", color = Color.Black)
+                    Text("Pull")
                 }
             },
             dismissButton = {
@@ -1323,7 +1325,7 @@ fun GitSourceControlView(
         val unpushedCount = status?.unpushedCount ?: status?.ahead ?: 0
         AlertDialog(
             onDismissRequest = { showPushDialog = false },
-            icon = { Icon(Icons.Default.CloudUpload, contentDescription = null, tint = ClaudeTerracotta) },
+            icon = { Icon(Icons.Default.CloudUpload, contentDescription = null, tint = graventTokens().accent) },
             title = { Text("Git Push", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
@@ -1351,9 +1353,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text(if (unpushedCount > 0) "Push ($unpushedCount)" else "Push", color = Color.Black)
+                    Text(if (unpushedCount > 0) "Push ($unpushedCount)" else "Push")
                 }
             },
             dismissButton = {
@@ -1368,7 +1370,7 @@ fun GitSourceControlView(
     if (showCommitDialog) {
         AlertDialog(
             onDismissRequest = { showCommitDialog = false },
-            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ClaudeTerracotta) },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = graventTokens().accent) },
             title = { Text("Confirm Commit", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
@@ -1410,9 +1412,9 @@ fun GitSourceControlView(
                             isOperating = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ClaudeTerracotta, contentColor = Color.Black)
+                    colors = graventPrimaryButtonColors()
                 ) {
-                    Text("Commit", color = Color.Black)
+                    Text("Commit")
                 }
             },
             dismissButton = {
@@ -1597,7 +1599,7 @@ private fun CommitLogRow(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ClaudeTerracotta,
+                        color = graventTokens().accent,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                     )
                 }
@@ -1669,7 +1671,7 @@ private fun CommitLogRow(
 
                 if (isLoadingDetails) {
                     Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = ClaudeTerracotta, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = graventTokens().accent, strokeWidth = 2.dp)
                     }
                 } else if (details != null) {
                     if (details.body.isNotBlank()) {

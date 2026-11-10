@@ -602,7 +602,10 @@ fun CopilotSubScreen(
                                 }
                             },
                             enabled = !isStartingFlow,
-                            colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CopilotPurple,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -1049,7 +1052,10 @@ fun CopilotSettingsSection(
                             }
                         },
                         enabled = !isStartingFlow,
-                        colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CopilotPurple,
+                            contentColor = Color.White
+                        ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -1205,7 +1211,10 @@ fun GitHubDeviceFlowDialog(
         confirmButton = {
             Button(
                 onClick = { copyAndOpen() },
-                colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CopilotPurple,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Icon(if (hasCopied) Icons.Default.Check else Icons.Default.ContentCopy, contentDescription = null, Modifier.size(16.dp))
@@ -1254,7 +1263,10 @@ fun GitHubTokenDialog(
             Button(
                 onClick = { onLogin(token) },
                 enabled = token.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CopilotPurple,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Connect")
@@ -1369,7 +1381,10 @@ fun CopilotStatusPrompt(
             if (!authState.isLoggedIn) {
                 Button(
                     onClick = onSignIn,
-                    colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CopilotPurple,
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1408,7 +1423,10 @@ fun CopilotStatusPrompt(
                 ) {
                     Button(
                         onClick = onSetupTools,
-                        colors = ButtonDefaults.buttonColors(containerColor = CopilotPurple),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CopilotPurple,
+                            contentColor = Color.White
+                        ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {

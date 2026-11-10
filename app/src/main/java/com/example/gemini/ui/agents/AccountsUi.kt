@@ -62,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -127,6 +128,7 @@ private fun AccountAvatar(
 
 @Composable
 private fun InitialCircle(initial: Char?, accent: Color, size: Dp) {
+    val onCircle = if (accent.luminance() > 0.45f) Color(0xFF09090B) else Color.White
     Box(
         Modifier
             .size(size)
@@ -134,7 +136,7 @@ private fun InitialCircle(initial: Char?, accent: Color, size: Dp) {
             .background(accent),
         contentAlignment = Alignment.Center
     ) {
-        Text((initial?.uppercaseChar() ?: '•').toString(), fontSize = (size.value * 0.44f).sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        Text((initial?.uppercaseChar() ?: '•').toString(), fontSize = (size.value * 0.44f).sp, fontWeight = FontWeight.Bold, color = onCircle)
     }
 }
 
@@ -217,9 +219,10 @@ fun AccountsButton(
         DropdownMenu(
             expanded = showQuickSwitchMenu,
             onDismissRequest = { showQuickSwitchMenu = false },
+            val menuTokens = com.example.gemini.theme.graventTokens()
             modifier = Modifier
-                .background(Color(0xFF141418))
-                .border(1.dp, Color(0xFF282832), RoundedCornerShape(12.dp))
+                .background(menuTokens.cardBg)
+                .border(1.dp, menuTokens.border, RoundedCornerShape(12.dp))
                 .widthIn(min = 220.dp, max = 280.dp)
         ) {
             Text(
@@ -227,7 +230,7 @@ fun AccountsButton(
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = menuTokens.textMuted,
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
             )
 
@@ -248,14 +251,14 @@ fun AccountsButton(
                                     acc.displayName.ifBlank { acc.email },
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color.White,
+                                    color = menuTokens.textPrimary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     acc.email,
                                     fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                    color = menuTokens.textSecondary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -327,11 +330,13 @@ fun AccountsDialog(
 
     val anyExpanded = agyExpanded || claudeExpanded || copilotExpanded
 
+    val dlgTokens = com.example.gemini.theme.graventTokens()
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF111114)),
-            border = BorderStroke(1.dp, Color(0xFF222226)),
+            colors = CardDefaults.cardColors(containerColor = dlgTokens.cardBg),
+            border = BorderStroke(1.dp, dlgTokens.border),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -341,15 +346,15 @@ fun AccountsDialog(
                         "Accounts",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFAFAFA),
+                        color = dlgTokens.textPrimary,
                         modifier = Modifier.weight(1f)
                     )
 
                     // Expand / Collapse All Toggle Pill
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF18181B),
-                        border = BorderStroke(1.dp, Color(0xFF27272A)),
+                        color = dlgTokens.elevatedBg,
+                        border = BorderStroke(1.dp, dlgTokens.border),
                         modifier = Modifier.clickable {
                             val target = !anyExpanded
                             agyExpanded = target
@@ -361,7 +366,7 @@ fun AccountsDialog(
                             text = if (anyExpanded) "Collapse All" else "Expand All",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFFAFAFA),
+                            color = dlgTokens.textPrimary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -369,13 +374,13 @@ fun AccountsDialog(
                     Spacer(Modifier.width(8.dp))
 
                     IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Outlined.Close, "Close", tint = Color(0xFF8E8E93))
+                        Icon(Icons.Outlined.Close, "Close", tint = dlgTokens.textMuted)
                     }
                 }
                 Text(
                     "Switch or configure Google, Claude & GitHub Copilot accounts.",
                     fontSize = 11.5.sp,
-                    color = Color(0xFF8E8E93)
+                    color = dlgTokens.textMuted
                 )
                 Spacer(Modifier.height(14.dp))
 
@@ -395,14 +400,14 @@ fun AccountsDialog(
                             // Multi-account switcher list
                             if (savedAgyAccounts.isNotEmpty()) {
                                 Spacer(Modifier.height(8.dp))
-                                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                androidx.compose.material3.HorizontalDivider(color = dlgTokens.border)
                                 Spacer(Modifier.height(8.dp))
                                 Text(
                                     "CONFIGURED ACCOUNTS",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 1.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = dlgTokens.textMuted
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -427,7 +432,7 @@ fun AccountsDialog(
                                     }
                                 }
                                 Spacer(Modifier.height(8.dp))
-                                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                androidx.compose.material3.HorizontalDivider(color = dlgTokens.border)
                                 Spacer(Modifier.height(8.dp))
                             }
 
@@ -579,6 +584,7 @@ private fun AccountSection(
     onToggleExpand: (() -> Unit)? = null,
     actions: @Composable () -> Unit
 ) {
+    val secTokens = com.example.gemini.theme.graventTokens()
     val accent = entry.agent.accent()
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -594,9 +600,9 @@ private fun AccountSection(
                 avatar()
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(title, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(title, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = secTokens.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     subtitle?.let {
-                        Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(it, fontSize = 12.sp, color = secTokens.textSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 Spacer(Modifier.width(8.dp))
@@ -606,7 +612,7 @@ private fun AccountSection(
                     Icon(
                         if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                         contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        tint = secTokens.textMuted,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -626,10 +632,10 @@ private fun AccountSection(
                                     fact,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                                    color = secTokens.textSecondary,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                                        .background(secTokens.elevatedBg)
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
@@ -666,14 +672,22 @@ private fun SectionButton(
     primary: Color? = null,
     onClick: () -> Unit
 ) {
+    val btnTokens = com.example.gemini.theme.graventTokens()
     val color = when {
         danger -> Color(0xFFEF4444)
         primary != null -> primary
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        else -> btnTokens.textPrimary
     }
     if (primary != null) {
-        Surface(onClick = onClick, shape = RoundedCornerShape(12.dp), color = primary) {
-            Text(text, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color.Black, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
+        val isLightFill = primary.luminance() > 0.45f
+        val onPrimary = if (isLightFill) Color(0xFF09090B) else Color.White
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(12.dp),
+            color = primary,
+            border = if (isLightFill && !btnTokens.isDark) BorderStroke(1.dp, btnTokens.border) else null
+        ) {
+            Text(text, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = onPrimary, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
         }
         return
     }

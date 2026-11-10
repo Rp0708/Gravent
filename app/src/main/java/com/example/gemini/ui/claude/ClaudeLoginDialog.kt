@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gemini.data.agent.claude.ClaudeAccountManager
+import com.example.gemini.theme.graventPrimaryButtonColors
 import com.example.gemini.ui.components.ClaudeAccent
 
 /**
@@ -92,7 +93,7 @@ fun ClaudeLoginDialog(account: ClaudeAccountManager, onDismiss: () -> Unit) {
                         onClick = { account.startLogin("claudeai") },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)
+                        colors = graventPrimaryButtonColors()
                     ) {
                         androidx.compose.material3.Icon(Icons.Outlined.WorkspacePremium, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -143,7 +144,7 @@ fun ClaudeLoginDialog(account: ClaudeAccountManager, onDismiss: () -> Unit) {
                             Button(
                                 onClick = { account.submitCode(code.trim()) },
                                 enabled = code.isNotBlank(),
-                                colors = ButtonDefaults.buttonColors(containerColor = ClaudeAccent)
+                                colors = graventPrimaryButtonColors()
                             ) { Text("Submit code", fontSize = 12.sp) }
                         }
                     }
